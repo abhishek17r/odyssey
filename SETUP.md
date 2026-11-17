@@ -110,7 +110,13 @@ for sending, which can take a little while) → **Senders, Domains & Dedicated I
 host `smtp-relay.brevo.com`, port `587`, username = the SMTP login Brevo shows (looks like
 `xxxx@smtp-brevo.com`), password = the SMTP key, sender email = the sender you verified.
 
-Then, for either:
+**C. Mailjet (free plan: 200 emails a day, 6,000 a month).** https://www.mailjet.com → sign up →
+**Account settings → Senders & domains → Add a sender address** (verify your email) →
+**Account settings → API key management** → copy the **API key** and the **Secret key**. Then in Supabase's
+SMTP settings: host `in-v3.mailjet.com`, port `587`, username = the API key, password = the Secret key,
+sender email = the address you verified.
+
+Then, for any of them:
 1. **Supabase → Authentication → URL Configuration**: Site URL `https://odyssey.abhishek17r.workers.dev`,
    and under Redirect URLs add `https://odyssey.abhishek17r.workers.dev/**`.
 2. In the app: **Me → Account & sync → ✉️ Invite someone** (only the owner sees it). They get an email,
