@@ -18,12 +18,11 @@ can read or write your data.
 ## 2. The Chrome extension
 
 1. `chrome://extensions` → **↻ Reload** Odyssey (Chrome may ask to allow access to `supabase.co`).
-2. Dashboard → **Settings → ☁️ Account & sync → First time? Create your account** → pick a username
-   (e.g. `abhishek`) and a password (8+ characters) → **Create account**. Let Chrome save the password.
-   The first sync uploads everything on this computer; after that it syncs every minute and a few
-   seconds after each change.
-3. Then lock the door behind you: Supabase → **Authentication → Sign In / Providers** → turn **off**
-   “Allow new users to sign up”, **Save**. (Others couldn't see your data anyway; this stops new accounts.)
+2. Make your account in Supabase (section 5, step 2), then Dashboard → **Settings → ☁️ Account & sync** →
+   sign in with that username and password. Let Chrome save the password. The first sync uploads everything
+   on this computer; after that it syncs every minute and a few seconds after each change.
+3. Keep Supabase → **Authentication → Sign In / Providers** → “Allow new users to sign up” **off**: accounts
+   are only the ones you add.
 
 ## 3. The phone app (PWA)
 
@@ -40,13 +39,10 @@ can read or write your data.
 
 - Your password is checked by Supabase's sign-in system, which stores only a secure hash of it.
 - The Supabase URL and publishable key inside the app are public by design. On their own they open nothing:
-  the table can't be read directly, and the functions only answer the owner account.
+  the table can't be read directly, and the functions only answer a signed-in account, with its own data.
 - Each device stays signed in (a session that renews itself). Sign out under Settings → Account & sync.
-- Usernames without `@` are stored as `username@odyssey.test`, a reserved address that never receives
-  mail, so there's no "forgot password" email. If you forget the password: in Supabase run
-  `delete from public.odyssey_owner;`, delete your user under Authentication → Users, temporarily allow
-  sign-ups again, and create the account anew (your data stays; the new account becomes the owner).
-  Prefer email resets? Use a real email address as the username.
+- Usernames are stored as `username@odyssey.test`, a reserved address that never receives mail, so there's
+  no "forgot password" email: set a new password with the SQL in section 5, step 3.
 
 ## 4. Push notifications (with the app closed)
 
@@ -89,39 +85,13 @@ on, the Chrome extension stops its own scheduled reminders (it keeps the session
 
 1. Once: **Supabase → SQL Editor → New query**, paste all of `.secrets/upgrade-accounts.sql` (on your Mac), **Run**.
    It gives every record an account (your existing data stays yours) and makes push per account.
-2. To add someone: in the app, **Me → Account & sync → 👤 Add someone** (only the owner sees it). Pick their
-   username; a password is suggested. **Create account**, then **Copy** or **Share** the login details to them.
-   No email is involved. They can change the password under Account & sync. Forgot it? Same box →
-   *Someone forgot their password?* sets a new one.
-
-## 6. Optional: invite people by email (free, no expiry)
-
-Not needed: Add someone (section 5) works without email. Only if you want email invites or password-reset emails later.
-
-Supabase sends the invite and password-reset emails through any SMTP server. Two free-forever choices:
-
-**A. Your Gmail (simplest, no new account).** Invites come from your own Gmail address.
-1. Google Account → **Security → 2-Step Verification** (must be on) → **App passwords** → create one
-   named `Odyssey`, copy the 16 characters.
-2. **Supabase → Authentication → Emails → SMTP Settings → Enable custom SMTP**: host `smtp.gmail.com`,
-   port `587`, username = your Gmail address, password = the app password, sender email = the same
-   Gmail address, sender name `Odyssey`. **Save**.
-
-**B. Brevo (free plan: 300 emails a day).** https://www.brevo.com → sign up (they approve new accounts
-for sending, which can take a little while) → **Senders, Domains & Dedicated IPs → Senders → Add a sender**
-(verify your email) → **SMTP & API → SMTP → Generate a new SMTP key**. Then in Supabase's SMTP settings:
-host `smtp-relay.brevo.com`, port `587`, username = the SMTP login Brevo shows (looks like
-`xxxx@smtp-brevo.com`), password = the SMTP key, sender email = the sender you verified.
-
-**C. Mailjet (free plan: 200 emails a day, 6,000 a month).** https://www.mailjet.com → sign up →
-**Account settings → Senders & domains → Add a sender address** (verify your email) →
-**Account settings → API key management** → copy the **API key** and the **Secret key**. Then in Supabase's
-SMTP settings: host `in-v3.mailjet.com`, port `587`, username = the API key, password = the Secret key,
-sender email = the address you verified.
-
-Then, for any of them:
-1. **Supabase → Authentication → URL Configuration**: Site URL `https://odyssey.abhishek17r.workers.dev`,
-   and under Redirect URLs add `https://odyssey.abhishek17r.workers.dev/**`.
-2. In the app: **Me → Account & sync → ✉️ Invite someone** (only the owner sees it). They get an email,
-   tap the link, pick a password, and sign in with their email from then on.
-   “Forgot password?” on the sign-in screen works too, for accounts with a real email.
+2. To add someone: **Supabase → Authentication → Users → Add user → Create new user**: email
+   `theirname@odyssey.test`, a password, tick **Auto Confirm User**, **Create user**. Send them the app link,
+   the username `theirname` and the password. They sign in under Me → Account & sync, and can change the
+   password there (🔑 Change password). There's no sign-up or invite in the app.
+3. Someone forgot their password: **Supabase → SQL Editor → New query**, run (with their username and a new
+   password), then send them the new password. Their data stays as it is.
+   ```sql
+   update auth.users set encrypted_password = crypt('NEW-PASSWORD', gen_salt('bf'))
+   where email = 'theirname@odyssey.test';
+   ```

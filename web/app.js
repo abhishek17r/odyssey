@@ -2,39 +2,11 @@
 // notification permission, keep the screen awake during a focus session.
 
 import { syncNow, syncSoon, triggersSync } from './lib/syncRunner.js';
-import { cloudOn, currentUser, adoptLinkSession, setPassword, signOut } from './lib/cloud.js';
-import { renderAccount, clearForAccount } from './lib/account.js';
+import { cloudOn, currentUser } from './lib/cloud.js';
+import { renderAccount } from './lib/account.js';
 import { el, openDrawer } from './lib/controls.js';
 
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
-
-// ---- an invite / password-reset link: sign in from the link, then pick a password ----
-async function fromLink() {
-  if (!/access_token=|error_description=/.test(location.hash)) return;
-  const hash = location.hash;
-  history.replaceState(null, '', location.pathname + location.search);
-  let type;
-  try { type = await adoptLinkSession(hash); } catch (e) { alert(`That link didn’t work: ${e.message}`); return; }
-  if (!type) return;
-  const { auth, dataOwner } = await chrome.storage.local.get(['auth', 'dataOwner']);
-  if (dataOwner && auth?.user_id && dataOwner !== auth.user_id) {
-    if (!confirm('This device has another account’s data. Remove it from this device and continue with the new account? (It stays safe in that account.)')) { await signOut(); return; }
-    await clearForAccount();
-  }
-  if (auth?.user_id) await chrome.storage.local.set({ dataOwner: auth.user_id });
-  const pw = el('input', { type: 'password', autocomplete: 'new-password', placeholder: 'New password (8+ characters)', style: 'width:100%;box-sizing:border-box' });
-  const msg = el('div', { className: 'small', style: 'min-height:1.2em;margin-top:8px' });
-  const go = el('button', { type: 'submit', className: 'primary', textContent: 'Save password', style: 'width:100%;margin-top:10px' });
-  const form = el('form', {}, el('p', { className: 'small muted', textContent: `Signed in as ${auth?.email || 'you'}. Pick a password: you'll sign in with this email and password from now on.` }), pw, go, msg);
-  const sheet = openDrawer(type === 'recovery' ? 'Set a new password' : 'Welcome to Odyssey', form);
-  form.onsubmit = async (e) => {
-    e.preventDefault();
-    go.disabled = true;
-    try { await setPassword(pw.value); msg.className = 'small ok'; msg.textContent = '✓ Saved. Syncing…'; await syncNow(); sheet.close(); location.reload(); }
-    catch (err) { msg.className = 'small error'; msg.textContent = err.message; go.disabled = false; }
-  };
-}
-await fromLink();
 
 // ---- sync: on open, when you come back, every 30 s while open, and soon after any edit ----
 // the splash waits for this first sync (or 4 s, whichever is later)
