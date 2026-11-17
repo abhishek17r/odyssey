@@ -1,5 +1,5 @@
 import { load, save, weeklyBackup } from './lib/storage.js';
-import { morningBrief, eveningCheckin, habitCue } from './lib/notify.js';
+import { morningBrief, eveningCheckin, habitCue, middayNudge } from './lib/notify.js';
 import { syncNow, syncSoon, triggersSync } from './lib/syncRunner.js';
 import { activeExperiment } from './lib/coach.js';
 import { dateKey, addDays, weekKeyOf, dayScore, band, workedMs, phaseMs, planOf, metricKey, isDayComplete } from './lib/score.js';
@@ -17,10 +17,13 @@ function nextAt(hhmm) {
 // Daily alarms; each is created only while its switch is on. Habit cues: one alarm per habit with a cue time.
 async function scheduleReminders(settings, state) {
   const daily = (name, on, time) => (on && time ? chrome.alarms.create(name, { when: nextAt(time), periodInMinutes: 1440 }) : chrome.alarms.clear(name));
-  daily('checkin', settings.checkinOn !== false, settings.reminderTime);
-  daily('plan', settings.planOn !== false, settings.planTime);
-  daily('morning', settings.morningOn !== false, settings.morningTime);
-  const want = settings.cuesOn === false ? [] : (planOf(dateKey(), state || (await load()))?.goals || []).filter((g) => g.cueTime);
+  // once a phone has push on, it delivers the scheduled reminders; this computer keeps the session ones
+  const mine = !settings.pushOn;
+  daily('checkin', mine && settings.checkinOn !== false, settings.reminderTime);
+  daily('plan', mine && settings.planOn !== false, settings.planTime);
+  daily('morning', mine && settings.morningOn !== false, settings.morningTime);
+  daily('midday', mine && settings.middayOn !== false, settings.middayTime);
+  const want = !mine || settings.cuesOn === false ? [] : (planOf(dateKey(), state || (await load()))?.goals || []).filter((g) => g.cueTime);
   for (const a of await chrome.alarms.getAll()) if (a.name.startsWith('cue:') && !want.some((g) => `cue:${g.id}` === a.name)) chrome.alarms.clear(a.name);
   for (const g of want) {
     const a = await chrome.alarms.get(`cue:${g.id}`);
@@ -63,6 +66,10 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
   if (alarm.name === 'checkin') {
     const n = eveningCheckin(state, today);
     if (n) notify('checkin', n.title, n.message);
+  }
+  if (alarm.name === 'midday') {
+    const n = middayNudge(state, today);
+    if (n) notify('midday', n.title, n.message);
   }
   if (alarm.name === 'morning') {
     const n = morningBrief(state, today);

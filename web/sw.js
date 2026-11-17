@@ -20,7 +20,23 @@ self.addEventListener('fetch', (e) => {
     return hit || net;
   }));
 });
+// A push from the odyssey-push Edge Function: { title, body, url, tag }.
+self.addEventListener('push', (e) => {
+  let d = {};
+  try { d = e.data ? e.data.json() : {}; } catch { d = { title: 'Odyssey', body: e.data?.text() || '' }; }
+  e.waitUntil(self.registration.showNotification(d.title || 'Odyssey', {
+    body: d.body || '', tag: d.tag || 'odyssey', renotify: true,
+    icon: 'icons/icon-192.png', badge: 'icons/icon-192.png', data: { url: d.url || './' },
+  }));
+});
+
+// Tap a notification: bring the app forward on the right screen (or open it).
 self.addEventListener('notificationclick', (e) => {
   e.notification.close();
-  e.waitUntil(self.clients.matchAll({ type: 'window' }).then((list) => (list[0] ? list[0].focus() : self.clients.openWindow('./'))));
+  const url = new URL(e.notification.data?.url || './', self.registration.scope).href;
+  e.waitUntil(self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((list) => {
+    const open = list.find((c) => c.url.startsWith(self.registration.scope));
+    if (open) return open.navigate(url).then((c) => (c || open).focus()).catch(() => open.focus());
+    return self.clients.openWindow(url);
+  }));
 });

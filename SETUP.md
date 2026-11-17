@@ -48,6 +48,25 @@ can read or write your data.
   sign-ups again, and create the account anew (your data stays; the new account becomes the owner).
   Prefer email resets? Use a real email address as the username.
 
+## 4. Push notifications (with the app closed)
+
+The odyssey-push Edge Function runs every 5 minutes, works out what's due (session end, morning brief, midday
+nudge, evening check-in, Friday planning, habit cues) and sends it to your phone. The keys were generated on
+your Mac into `.secrets/` (never committed).
+
+1. **Supabase → SQL Editor → New query**: paste all of `.secrets/push-setup.sql` (on your Mac), **Run**.
+   It adds the push tables and the 5-minute schedule.
+2. **Supabase → Edge Functions → Secrets** (or Project Settings → Edge Functions): add the three values
+   from `.secrets/push-keys.json`: `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `CRON_SECRET`.
+3. **Deploy from GitHub**: Supabase → your account (top right) → **Access Tokens** → *Generate new token*.
+   GitHub → `abhishek17r/odyssey` → **Settings → Secrets and variables → Actions → New repository secret**:
+   name `SUPABASE_ACCESS_TOKEN`, value the token. Then **Actions → Deploy push function → Run workflow**.
+   From then on it redeploys by itself whenever its code changes.
+4. **On the iPhone** (the home-screen app): **Me → Notifications → 🔔 Turn on push** → Allow → **Send a test**.
+
+Times and switches are in Me → Notifications; habit cue times in This week → ✎ Edit habits. Once push is
+on, the Chrome extension stops its own scheduled reminders (it keeps the session ones).
+
 ## How sync works
 
 - Every device keeps its own full copy and works offline. Records (each day, ticket, session, plan …)

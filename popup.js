@@ -9,10 +9,12 @@ import { ledger, money } from './lib/rewards.js';
 import { esc, tagChips } from './lib/ui.js';
 import { buildCheckin, bindReflection } from './lib/checkin.js';
 import { saveReadiness, addIntention } from './lib/storage.js';
-import { stepper, scale, checkBtn, toast, celebrate } from './lib/controls.js';
+import { stepper, scale, checkBtn, toast, celebrate, toggle } from './lib/controls.js';
+import { nowPlayingOn, nowPlayingOff, nowPlayingUpdate, nowPlayingSupported } from './lib/nowPlaying.js';
 import { gcalUrl, openUrl } from './lib/gcal.js';
 import { setTicketContext, openTicket, refreshDrawer, kidsOf, loggedH } from './lib/tickets.js';
 import { renderAccount } from './lib/account.js';
+import { renderNotifPanel } from './lib/notifPanel.js';
 import { load, save, addTicket, updateTicket, startSession, startWork, pauseWork, resumeWork, endSession, setDelayReason } from './lib/storage.js';
 import { timedHabits, targetOptions, resolveTarget } from './lib/targets.js';
 import {
@@ -47,6 +49,8 @@ async function init() {
   showView(['today', 'tasks', 'trends', 'me'].includes(v0) ? v0 : 'today');
   if (state.activeSession) setFullscreen(true);
   renderAccount($('#meAccount'));
+  renderExtras();
+  renderNotifPanel($('#meNotif'));
 }
 
 function render() {
@@ -312,6 +316,14 @@ function renderSession() {
     $('#spP').style.flexGrow = procrast;
     $('#spW').style.flexGrow = worked;
     $('#spZ').style.flexGrow = paused;
+    if (state.settings.lockScreen && a) {
+      const lenMs = (a.minutes || state.settings.sessionMinutes) * 60000;
+      if (!upd.last || now - upd.last > 10000 || upd.phase !== a.phase) {
+        upd.last = now; upd.phase = a.phase;
+        const tk2 = a.ticketId && state.tickets[a.ticketId];
+        nowPlayingUpdate({ task: tk2 ? ticketTitle(tk2, state) : a.task, phase: a.phase, leftMs: lenMs - worked, lengthMs: lenMs, workedMs: worked });
+      }
+    }
     $('#lgP').textContent = clock(procrast);
     $('#lgW').textContent = clock(worked);
     $('#lgZ').textContent = clock(paused);
@@ -436,6 +448,7 @@ $('#sWhat').addEventListener('input', () => {
 $('#sWhat').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('#sGo').click(); });
 
 $('#sGo').onclick = async () => {
+  lockScreenStart();
   const wk = weekKeyOf(today);
   const text = $('#sWhat').value.trim();
   let pick = picked;
@@ -501,6 +514,7 @@ $('#sPause').onclick = async () => {
 };
 $('#sEnd').onclick = async () => {
   const rec = await endSession();
+  nowPlayingOff();
   state = await load();
   setFullscreen(false);
   showView('today');
@@ -533,9 +547,58 @@ chrome.storage.onChanged.addListener(async () => {
   renderMini();
 });
 
+// ---------- focus card extras: my playlist, the lock-screen card ----------
+
+const isWebApp = !!globalThis.ODYSSEY_WEB;
+// lock screen ⏯ → the session: play = start / back to working, pause = pause
+const npHandlers = {
+  play: async () => {
+    const a = state.activeSession;
+    if (a?.phase === 'paused') await resumeWork();
+    if ((await load()).activeSession?.phase === 'procrast') await startWork();
+    state = await load(); renderSession();
+  },
+  pause: async () => { if (state.activeSession?.phase === 'work') { await pauseWork(); state = await load(); renderSession(); } },
+};
+// call at the start of a tap that starts a session (audio needs the tap)
+const lockScreenStart = () => { if (isWebApp && state.settings.lockScreen && nowPlayingSupported()) nowPlayingOn(npHandlers); };
+
+async function savePlaylist() {
+  const url = prompt('Paste the link to your Spotify or Apple Music playlist', state.settings.playlistUrl || '');
+  if (url == null) return false;
+  const v = url.trim();
+  if (v && !/^https?:\/\//.test(v)) { toast('That doesn’t look like a link', 'err'); return false; }
+  const st = await load();
+  st.settings.playlistUrl = v;
+  await save({ settings: st.settings });
+  state = await load();
+  renderExtras();
+  return !!v;
+}
+$('#sPlaylist').onclick = async (e) => {
+  if (e.target.closest('.edit') || !state.settings.playlistUrl) { if (!(await savePlaylist())) return; if (e.target.closest('.edit')) return; }
+  chrome.tabs.create({ url: state.settings.playlistUrl });
+};
+function renderExtras() {
+  $('#sPlaylist').innerHTML = state.settings.playlistUrl ? '🎵 My playlist <span class="edit" title="Change the playlist">✎</span>' : '🎵 Add my playlist';
+  const can = isWebApp && nowPlayingSupported();
+  $('#sLockRow').hidden = !can;
+  if (can && !$('#sLockSw').childElementCount) {
+    $('#sLockSw').append(toggle({ checked: !!state.settings.lockScreen, label: 'Show on lock screen', onChange: async (v) => {
+      const st = await load();
+      st.settings.lockScreen = v;
+      await save({ settings: st.settings });
+      state = await load();
+      if (v && state.activeSession) { if (await nowPlayingOn(npHandlers)) toast('On the lock screen'); else toast('iPhone didn’t allow audio here', 'err'); renderSession(); }
+      else nowPlayingOff();
+    } }));
+  }
+}
+
 // ---------- ad hoc timer (top of Today): a description, or just "Ad hoc", and go ----------
 $('#qtForm').onsubmit = async (e) => {
   e.preventDefault();
+  if (!state.activeSession) lockScreenStart();
   if (state.activeSession) { setFullscreen(true); return; }
   const text = $('#qtWhat').value.trim() || 'Ad hoc';
   const ex = activeExperiment(state);

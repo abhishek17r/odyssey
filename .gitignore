@@ -3,3 +3,10 @@ dist/
 node_modules/
 .DS_Store
 *.log
+
+# keys and secrets: never committed
+.secrets/
+
+# copied in by the deploy workflow
+supabase/functions/odyssey-push/lib/
+supabase/functions/odyssey-push/rewards.config.js

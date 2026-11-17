@@ -523,3 +523,20 @@ details[open] > summary::before { transform: rotate(90deg); }
 .trTop { flex-wrap: wrap; row-gap: 2px; }
 .trName:not(:empty) { flex-basis: 100%; font-size: 12.5px; text-transform: none; letter-spacing: 0; }
 .trName:not(:empty) + .trLbl { margin-left: 0; }
+
+/* switches and notification rows (Me → Notifications, Settings) */
+.switch { position: relative; width: 42px; height: 24px; flex: none; }
+.switch input { opacity: 0; width: 0; height: 0; }
+.switch span { position: absolute; inset: 0; background: var(--none); border-radius: 99px; cursor: pointer; transition: .2s; }
+.switch span::after { content: ''; position: absolute; width: 18px; height: 18px; left: 3px; top: 3px; background: #fff; border-radius: 50%; transition: .2s cubic-bezier(.2, .8, .2, 1); box-shadow: 0 1px 3px rgba(0, 0, 0, .25); }
+.switch input:checked + span { background: var(--green); }
+.switch input:checked + span::after { transform: translateX(18px); }
+/* ================= settings: notifications ================= */
+.notifList { display: flex; flex-direction: column; gap: 8px; }
+.notifRow { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 16px; background: var(--card-2); border: 1px solid var(--line); }
+.notifRow .nIc { width: 38px; height: 38px; border-radius: 12px; display: grid; place-items: center; font-size: 18px; background: var(--card); border: 1px solid var(--line); flex: none; }
+.notifRow .nMain { flex: 1; min-width: 0; }
+.notifRow input[type=time] { width: 120px; }
+.notifRow.off .nMain, .notifRow.off input { opacity: .5; }
+.switch { display: inline-block; vertical-align: middle; }
+#sLockSw { display: inline-flex; flex: none; }

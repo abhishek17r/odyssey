@@ -287,3 +287,13 @@ body.hasMini { padding-bottom: calc(132px + env(safe-area-inset-bottom)); }
 .thBar i.fill-yellow { background: linear-gradient(90deg, #ffd36b, var(--yellow)); }
 .thBar i.fill-red { background: linear-gradient(90deg, #ff9aae, var(--red)); }
 .thBar i.fill-none { background: var(--none); }
+
+/* ---------- focus card extras ---------- */
+.fsExtras { display: flex; gap: 8px; margin-top: 10px; }
+.extraBtn { flex: 1; min-width: 0; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 10px 12px; border-radius: 14px; font-size: 13px; font-weight: 700;
+  background: var(--card-2); border: 1px solid var(--line); color: var(--text); white-space: nowrap; }
+.extraBtn .edit { opacity: .6; font-size: 12px; padding-left: 4px; }
+.lockRow { justify-content: space-between; cursor: default; }
+.lockRow[hidden] { display: none; }
+.lockRow .switch { transform: scale(.85); transform-origin: right center; }
+body.focusing .extraBtn { background: rgba(255, 255, 255, .08); border-color: rgba(255, 255, 255, .14); color: #fff; }

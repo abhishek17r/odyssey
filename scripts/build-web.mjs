@@ -12,7 +12,7 @@ await rm(out, { recursive: true, force: true });
 await mkdir(out, { recursive: true });
 
 const copy = (from, to = from) => cp(join(root, from), join(out, to), { recursive: true });
-for (const f of ['lib', 'icons', 'config.js', 'rewards.config.js', 'styles.css', 'popup.css', 'dashboard.css', 'popup.js', 'dashboard.js']) await copy(f);
+for (const f of ['lib', 'icons', 'config.js', 'rewards.config.js', 'styles.css', 'popup.css', 'ios.css', 'splash.js', 'dashboard.css', 'popup.js', 'dashboard.js']) await copy(f);
 for (const f of ['platform.js', 'app.js', 'web.css', 'manifest.webmanifest']) await copy(join('web', f), f);
 await cp(join(root, 'web', 'icons'), join(out, 'icons'), { recursive: true });
 

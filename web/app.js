@@ -73,16 +73,7 @@ function accountSheet() {
 async function setupAccountUi() {
   const me = document.querySelector('#meNotif');
   if (me) {
-    // the app: notifications live in Me (the account panel is drawn there by popup.js)
-    const draw = () => {
-      me.innerHTML = '';
-      const row = el('div', { className: 'field', style: 'margin:14px 0 0' }, el('div', { className: 'lbl', textContent: 'Notifications' }));
-      if (!('Notification' in window)) row.append(el('p', { className: 'small muted', textContent: isStandalone ? 'This browser can’t show notifications.' : 'On iPhone: add Odyssey to your Home Screen (Share → Add to Home Screen) and open it from there.' }));
-      else if (Notification.permission === 'granted') row.append(el('p', { className: 'small ok', textContent: '✓ On: session end and the two-minute nudge while the app is open.' }));
-      else { const b = el('button', { type: 'button', className: 'primary', textContent: '🔔 Turn on notifications' }); b.onclick = async () => { await Notification.requestPermission(); draw(); }; row.append(b); }
-      me.append(row);
-    };
-    draw();
+    // the app: Me → Notifications is drawn by popup.js (lib/notifPanel.js)
   } else {
     // dashboard pages: a cloud button in the header
     const top = document.querySelector('header');
