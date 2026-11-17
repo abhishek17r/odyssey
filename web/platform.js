@@ -79,8 +79,9 @@
     alarms: alarmsApi,
     notifications,
     runtime: { getURL: (p) => p, id: 'web', sendMessage() {}, onMessage: { addListener() {} } },
-    tabs: { create: ({ url }) => { if (/^https?:/.test(url)) window.open(url, '_blank', 'noopener'); else location.href = url; } },
-    action: { setBadgeText() {}, setBadgeBackgroundColor() {}, openPopup: async () => { location.href = 'index.html'; } },
+    // extension page names → the web app's clean addresses (dashboard.html#x → dashboard#x, index.html → ./)
+    tabs: { create: ({ url }) => { if (/^https?:/.test(url)) window.open(url, '_blank', 'noopener'); else location.href = url.replace(/^(popup|index)\.html/, './').replace(/\.html(?=$|[#?])/, ''); } },
+    action: { setBadgeText() {}, setBadgeBackgroundColor() {}, openPopup: async () => { location.href = './'; } },
   };
   window.ODYSSEY_WEB = true;
 })();

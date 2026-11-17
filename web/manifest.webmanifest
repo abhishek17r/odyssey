@@ -2,7 +2,7 @@
   "name": "Odyssey",
   "short_name": "Odyssey",
   "description": "Habits, a personal sprint board and a procrastination-aware focus timer.",
-  "start_url": "index.html",
+  "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait",

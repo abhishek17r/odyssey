@@ -49,7 +49,8 @@ async function list(dir) {
   }
   return files;
 }
-const files = (await list(out)).filter((f) => f !== 'sw.js').sort();
+// pages are cached under their clean addresses ("./", "dashboard"), the way the host serves them
+const files = (await list(out)).filter((f) => f !== 'sw.js' && f !== 'index.html').map((f) => f.replace(/\.html$/, '')).sort();
 const build = new Date().toISOString().replace(/[-:TZ.]/g, '').slice(0, 14);
 const sw = (await readFile(join(root, 'web', 'sw.js'), 'utf8'))
   .replace('__BUILD__', build)

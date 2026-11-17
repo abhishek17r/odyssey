@@ -5,5 +5,5 @@
 export const CLOUD = {
   url: 'https://wotlxnvhhgtrgsaggvui.supabase.co',
   anonKey: 'sb_publishable_wxXn4WOI4rkir2Mif8p6XA_kHdLORGu',
-  appUrl: '',   // e.g. 'https://odyssey-xxx.pages.dev'
+  appUrl: 'https://odyssey.abhishek17r.workers.dev',
 };

@@ -102,5 +102,5 @@ setupAccountUi();
 // dashboard pages: a way home
 if (!document.querySelector('#view-today')) {
   const nav = document.querySelector('header nav');
-  if (nav) nav.prepend(Object.assign(document.createElement('a'), { href: 'index.html', textContent: '‹ Home' }));
+  if (nav) nav.prepend(Object.assign(document.createElement('a'), { href: './', textContent: '‹ Home' }));
 }
