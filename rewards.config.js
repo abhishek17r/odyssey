@@ -51,6 +51,8 @@ export const POINTS = {
   comeback: 15,                            // logging again after two or more missed days (not paused)
   urgeResisted: 5, urgeDailyCap: 5,        // riding out an urge with the urge pause, up to 5 a day
   tinyStartBonus: 5,                       // a habit done during its tiny-start trial, in the first two weeks
+  laurel: 25,                              // each laurel (a milestone: first time, 10, 30, 100, a full week …)
+  favour: 20,                              // Athena's favour: a rare surprise on a day you kept everything
   ranks: [
     [0, 'Deckhand'], [250, 'Oarsman'], [750, 'Helmsman'], [1500, 'Navigator'], [3000, 'Captain'],
     [6000, 'Hero'], [12000, 'Legend of Ithaca'],

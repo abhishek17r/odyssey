@@ -15,6 +15,7 @@ import { openUrgePause } from './lib/urgePause.js';
 import { runEngine, tacticLine } from './lib/engine.js';
 import { morningLine, eveningReply, weeklyRead, proposals, applyProposal, decide, lineDismissed, dismissLine } from './lib/athena.js';
 import { athenaRead } from './lib/reviewSheet.js';
+import { voyage, LEGS } from './lib/voyage.js';
 import { isOnboarded, habitType } from './lib/profile.js';
 import { openDrawer } from './lib/controls.js';
 import { currentUser } from './lib/cloud.js';
@@ -1072,6 +1073,7 @@ $('#wkPlan').onclick = () => openPlan();
 $('#wkReview').onclick = () => openReview();
 $('#wkRewards').onclick = () => openRewards();
 $('#wkKleos').onclick = () => openRewards();
+$('#wkVoyage').onclick = () => openRewards();
 $('#wkBacklog').onclick = () => openBacklog();
 
 function taskRow(t) {
@@ -1107,6 +1109,11 @@ function renderWeek() {
   $('#wkSub').textContent = `${f(days[0])} – ${f(days[6])} · ${left ? `${left} day${left > 1 ? 's' : ''} left` : 'last day'}`;
   const K = kleos(state, today);
   $('#wkKleos').innerHTML = `<b>${K.week >= 0 ? '+' : '−'}${Math.abs(K.week)}</b><span>${POINTS.name} this week</span>`;
+  // the voyage: where the ship is, and how this week is going toward the next port
+  const V = voyage(state, today);
+  $('#wkVoyage').innerHTML = `<span class="vsShip">⛵</span><span class="vsMain"><b>${V.legsSailed % LEGS} of ${LEGS} legs · next: ${esc(V.next?.name || 'Ithaca')}</b>
+    <span class="vsBar"><i style="width:${Math.round(V.progress * 100)}%"></i></span></span><span class="chev">›</span>`;
+  $('#wkVoyage').title = V.progress >= 1 ? 'A fair wind: this week sails a leg' : 'Keep your focus habits 60% of the week to sail the next leg';
 
   // the 7 days, coloured by score
   $('#wkDays').innerHTML = days.map((k) => {

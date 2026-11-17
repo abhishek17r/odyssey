@@ -311,3 +311,39 @@ body.onboarding { overflow: hidden; }
 .propBtns button { padding: 6px 12px; font-size: 14px; }
 .planTop { margin-bottom: 4px; }
 .athenaToggle { margin-top: 12px; border-top: .5px solid var(--ios-sep); padding-top: 12px; }
+
+/* ================= the voyage ================= */
+.voyageStrip { display: flex; align-items: center; gap: 10px; width: 100%; background: none !important; color: var(--ios-label); padding: 0 0 14px; margin-bottom: 14px;
+  border-bottom: 1px solid var(--ios-sep); border-radius: 0; text-align: left; font-weight: 400; }
+.vsShip { font-size: 20px; flex: none; }
+.vsMain { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.vsMain b { font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.vsBar { display: block; height: 4px; border-radius: 2px; background: var(--ios-fill-2); overflow: hidden; }
+.vsBar i { display: block; height: 100%; background: var(--ios-blue); border-radius: 2px; }
+.voyageBox { background: var(--ios-cell); border-radius: 14px; padding: 10px 12px 14px; }
+.voyageMap { display: block; width: 100%; height: auto; }
+.vmWave { fill: none; stroke: var(--ios-sep); stroke-width: 1.2; stroke-linecap: round; }
+.vmAhead { fill: none; stroke: var(--ios-label-3); stroke-width: 1.4; stroke-dasharray: 3 5; stroke-linecap: round; }
+.vmDone { fill: none; stroke: var(--ios-blue); stroke-width: 2.4; stroke-linecap: round; }
+.vmPort { fill: var(--ios-cell); stroke: var(--ios-label-3); stroke-width: 1.4; }
+.vmPortOn { fill: var(--ios-blue); stroke: var(--ios-cell); stroke-width: 1.5; }
+.vmHome circle { fill: color-mix(in srgb, var(--ios-orange) 18%, var(--ios-cell)); stroke: var(--ios-orange); stroke-width: 1.4; }
+.vmHome path { fill: none; stroke: var(--ios-orange); stroke-width: 1.1; stroke-linejoin: round; }
+.vmLabel { font-size: 10.5px; fill: var(--ios-label-2); font-family: var(--font); }
+.vmShipHalo { fill: var(--ios-cell); stroke: var(--ios-blue); stroke-width: 1.2; }
+.vmShip { font-size: 13px; }
+.vmCaption { display: flex; flex-direction: column; gap: 3px; margin-top: 6px; }
+.vmCaption b { font-size: 15px; }
+.vmCaption span { font-size: 13px; color: var(--ios-label-2); line-height: 1.4; }
+.vmCaption .vmWeek { color: var(--ios-blue); }
+.rkShields { display: inline-flex; align-items: center; gap: 4px; margin-left: auto; }
+.rkShields i { width: 9px; height: 11px; border-radius: 2px 2px 6px 6px; border: 1.3px solid rgba(255, 255, 255, .7); display: inline-block; }
+.rkShields i.on { background: #ffd25e; border-color: #ffd25e; }
+.laurels .lIcon { width: 24px; text-align: center; flex: none; color: var(--ios-green); font-size: 16px; }
+.laurels .cell.dim .lIcon { color: var(--ios-label-3); }
+.laurels .cell.dim { opacity: .75; }
+.foldGroup { margin-top: 14px; }
+.foldGroup > summary { list-style: none; cursor: pointer; font-size: 13px; font-weight: 600; color: var(--ios-blue); padding: 8px 4px; }
+.foldGroup > summary::-webkit-details-marker { display: none; }
+.foldGroup > summary::after { content: ' ›'; }
+.foldGroup[open] > summary::after { content: ' ⌄'; }
