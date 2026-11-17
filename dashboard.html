@@ -1,0 +1,360 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Odyssey</title>
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="dashboard.css" />
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="brand"><h1 class="logo"><img class="mark" src="icons/logo.svg" alt="" />Odyssey</h1><span class="tagline">Every day, a step toward Ithaca</span></div>
+      <nav>
+        <a href="#today">Today</a>
+        <a href="#board">This week</a>
+        <a href="#backlog">Backlog</a>
+        <a href="#retro">Retro</a>
+        <a href="#rewards">Rewards</a>
+        <a href="#trends">Trends</a>
+        <a href="#settings">Settings</a>
+      </nav>
+    </header>
+
+    <!-- TODAY (any day) -->
+    <section id="tab-today" hidden>
+      <div class="card hero-bg">
+        <div class="dayHead">
+          <div class="dayInfo">
+            <div class="dayName" id="dDow"></div>
+            <div class="dayDate" id="dDate"></div>
+            <div class="muted small" id="dWeek"></div>
+            <div class="row" style="margin-top:12px;gap:14px;align-items:center">
+              <div class="dayScore"><b id="dScore">—</b><span id="dBand" class="small"></span></div>
+              <div class="muted small" id="dStatus"></div>
+            </div>
+            <div class="row" style="margin-top:12px;flex-wrap:wrap">
+              <button id="dPrev" title="Previous day">‹ Prev</button>
+              <button id="dToday">Today</button>
+              <button id="dNext" title="Next day">Next ›</button>
+              <input type="date" id="dPick" style="width:160px" />
+            </div>
+          </div>
+          <div class="cal">
+            <div class="row between" style="margin-bottom:6px">
+              <button class="ghost" id="calPrev">‹</button>
+              <b id="calTitle"></b>
+              <button class="ghost" id="calNext">›</button>
+            </div>
+            <div class="calGrid" id="calGrid"></div>
+            <div class="muted small" style="margin-top:6px">Weeks run Sat → Fri · ✎ = reflection written</div>
+          </div>
+        </div>
+      </div>
+      <div class="card" id="dNoPlan" hidden>
+        <p style="margin:0">No plan for this week, so there's nothing to check in. <a href="#board">Plan it →</a> You can still write a reflection below.</p>
+      </div>
+      <div class="card" id="dDueCard">
+        <div class="row between"><h3 style="margin:0">📌 Tasks due</h3><a href="#board" class="small">Open the week board →</a></div>
+        <div id="dDue" style="margin-top:10px"></div>
+      </div>
+      <section class="card" id="dCheckin">
+        <div class="row between" style="margin-bottom:10px"><h3 style="margin:0" id="dHabitsHead">Habits</h3><span class="small muted" id="dSavedAt"></span></div>
+        <div id="dGoals"></div>
+        <input type="text" id="dNote" maxlength="140" placeholder="📝 Note: a win, a lesson (optional)" style="margin-top:10px" />
+      </section>
+      <div class="card">
+        <div class="row between"><h3>Reflection</h3><span class="small" id="dReflectMsg"></span></div>
+        <textarea id="dReflection" class="reflectBox" rows="8" placeholder="How was the day, really? What went well, what got in the way, how you felt…"></textarea>
+        <div class="hint">Saves as you type.</div>
+      </div>
+      <div class="card scroll">
+        <h3>Task timer</h3>
+        <p class="muted small" style="margin-top:0">Each session's time goes to its ticket and, through the ticket, to a habit's hours in the check-in (e.g. Meaningful work). Procrastination before starting adds up across sessions. Edit or delete a session to fix it, or tick several to rename or move them together.</p>
+        <div id="dSessionEdit"></div>
+        <div id="dBulk" class="sessEdit" hidden>
+          <b id="dBulkCount"></b>
+          <div class="row" style="margin-top:8px;flex-wrap:wrap">
+            <select id="dBulkTarget" style="max-width:320px"></select>
+            <input type="text" id="dBulkTask" maxlength="80" placeholder="Rename to… (leave empty to keep names)" style="flex:1;min-width:200px" />
+            <button class="primary" id="dBulkApply">Apply</button>
+            <button id="dBulkClear">Clear</button>
+          </div>
+        </div>
+        <div id="dSessions"></div>
+      </div>
+    </section>
+
+    <!-- BOARD -->
+    <section id="tab-board" hidden>
+      <div class="card hero-bg">
+        <div class="row between" style="flex-wrap:wrap;gap:10px">
+          <h2 style="margin:0" id="boardTitle"></h2>
+          <select id="weekSelect" style="max-width:300px"></select>
+        </div>
+        <div class="muted small" id="planStatus" style="margin-top:6px"></div>
+        <div class="small" id="planRetroHint" hidden style="margin-top:6px">📊 Before planning: <a href="#retro">review this sprint's retro</a>.</div>
+        <input type="text" id="theme" maxlength="80" placeholder="Theme for the week (optional): what this week is about" style="margin-top:10px" />
+        <div class="grid" style="margin-top:12px" id="boardKpis"></div>
+      </div>
+
+      <div class="card">
+        <div class="row between" style="flex-wrap:wrap;gap:8px;margin-bottom:12px">
+          <h3 style="margin:0">1 · Tasks <span class="small muted" id="taskSum" style="text-transform:none;letter-spacing:0;font-weight:600"></span></h3>
+          <span class="small muted">Drag cards between columns · click one for details</span>
+        </div>
+        <div class="kanban" id="kanban"></div>
+        <div id="carryNote"></div>
+        <details id="planBacklogBox" style="margin-top:10px"><summary class="small"><b>Pull from the backlog</b> <span class="muted" id="planBacklogCount"></span></summary><div id="planBacklog" style="margin-top:8px"></div></details>
+      </div>
+
+      <div class="card">
+        <div class="row between" style="flex-wrap:wrap;gap:10px">
+          <h3 style="margin:0">2 · Habits</h3>
+          <button id="editHabits">✎ Edit habits</button>
+        </div>
+        <div id="boardCard" class="scroll" style="margin-top:10px">
+          <div class="tags" id="tagFilter" style="margin-bottom:10px"></div>
+          <table class="board" id="boardTable"></table>
+        </div>
+        <div id="habitEditor" hidden style="margin-top:10px">
+          <p class="muted small" style="margin-top:0">Daily and weekly rules you score yourself on. Every habit carries over to the next week with the same target until you change it here. Set targets, then Save habits.</p>
+        <div id="presetGoals"></div>
+        <div id="adhocGoals"></div>
+        <button id="addAdhoc" style="margin-top:4px">+ Add a habit</button>
+        <div class="row" style="flex-wrap:wrap;margin-top:14px">
+          <button class="primary" id="savePlan">Save habits</button>
+          <span id="planMsg" class="ok"></span>
+        </div>
+        </div>
+      </div>
+
+      <div class="weekOnly">
+      <div class="card scroll">
+        <h3>Why you procrastinated this week</h3>
+        <table id="whyWeek"></table>
+      </div>
+      <div class="card scroll">
+        <h3>Task timer this week</h3>
+        <div class="grid" id="sessionKpis" style="margin-bottom:10px"></div>
+        <table id="sessionTable"></table>
+      </div>
+      <div class="card">
+        <h3>Reflections this week</h3>
+        <div id="boardReflections"></div>
+      </div>
+      <div class="card">
+        <h3>Reasons this week</h3>
+        <div id="boardReasons" class="muted"></div>
+      </div>
+      </div>
+    </section>
+
+    <!-- RETRO -->
+    <section id="tab-retro" hidden>
+      <div class="card hero-bg">
+        <div class="row between" style="flex-wrap:wrap;gap:10px">
+          <div>
+            <h2 style="margin:0">Sprint retro</h2>
+            <div class="muted small" id="retroSub"></div>
+          </div>
+          <div class="row" style="flex-wrap:wrap">
+            <select id="retroWeek" style="max-width:300px"></select>
+            <button id="retroExport" title="The numbers below as JSON, for analysis elsewhere">Export metrics</button>
+            <a href="#plan-next" class="pill" style="padding:7px 12px">Plan next week →</a>
+          </div>
+        </div>
+        <p id="retroLine" style="margin:12px 0 0;line-height:1.5"></p>
+      </div>
+      <div class="card coach">
+        <div class="row between" style="flex-wrap:wrap"><h3 style="margin:0">🧪 Coach: one experiment at a time</h3><span class="small muted">Atomic Habits playbook · judged on your own data</span></div>
+        <div id="coachNow" style="margin-top:10px"></div>
+        <div id="coachRecs" style="margin-top:10px"></div>
+        <details style="margin-top:10px"><summary class="small">All plays and past experiments</summary><div id="coachAll"></div></details>
+      </div>
+      <div class="card scroll">
+        <h3>Headline numbers</h3>
+        <table id="retroHead"></table>
+      </div>
+      <div class="grid2col">
+        <div class="card">
+          <h3>Starting, by time of day</h3>
+          <table id="retroBlocks"></table>
+        </div>
+        <div class="card">
+          <h3>Why you procrastinated</h3>
+          <table id="retroReasons"></table>
+        </div>
+      </div>
+      <div class="card scroll">
+        <h3>Reasons by ticket <span class="small muted">· minutes</span></h3>
+        <table id="retroReasonTicket"></table>
+      </div>
+      <div class="card scroll">
+        <h3>Tickets</h3>
+        <table id="retroTickets"></table>
+      </div>
+      <div class="grid2col">
+        <div class="card">
+          <h3>Habits</h3>
+          <table id="retroHabits"></table>
+        </div>
+        <div class="card">
+          <h3>Reflections</h3>
+          <div id="retroReflections"></div>
+        </div>
+      </div>
+      <div class="card">
+        <h3>How these are measured</h3>
+        <ul class="muted small" style="margin:0;padding-left:18px" id="retroDefs"></ul>
+      </div>
+    </section>
+
+    <!-- BACKLOG -->
+    <section id="tab-backlog" hidden>
+      <div class="card">
+        <div class="row between" style="flex-wrap:wrap;gap:10px">
+          <h2 style="margin:0">🗂️ Backlog</h2>
+          <span class="muted small" id="blCount"></span>
+        </div>
+        <p class="muted small" style="margin-top:4px">Future tasks, not in any sprint yet. Pull them in when you plan, or start the timer on one (it joins this sprint as unplanned work).</p>
+        <form class="quickAdd" id="blForm"><span class="qaPlus">＋</span><input type="text" id="blTitle" maxlength="80" placeholder="Add a future task and press Enter, e.g. Renew passport" /></form>
+        <div class="blGrid" id="blList"></div>
+      </div>
+    </section>
+
+    <!-- REWARDS -->
+    <section id="tab-rewards" hidden>
+      <div class="card hero-bg">
+        <h2 style="margin:0 0 10px">💰 Rewards</h2>
+        <div class="grid" id="rwKpis"></div>
+        <p class="muted small" id="rwRule" style="margin:10px 0 0"></p>
+      </div>
+      <div class="card">
+        <h3>This week</h3>
+        <table id="rwWeek"></table>
+      </div>
+      <div class="card">
+        <h3>🛍️ Marketplace</h3>
+        <div class="market" id="rwMarket"></div>
+      </div>
+      <div class="grid2col">
+        <div class="card"><h3>Earnings by week</h3><table id="rwHistory"></table></div>
+        <div class="card"><h3>Purchases</h3><table id="rwPurchases"></table></div>
+      </div>
+    </section>
+
+    <!-- TRENDS -->
+    <section id="tab-trends" hidden>
+      <div class="card hero-bg"><h2>📈 Trends <span class="small muted" style="font-weight:600">· last 7 and 28 days</span></h2><div class="grid" id="kpis"></div></div>
+      <div class="card">
+        <h3>Daily score — last 28 days</h3>
+        <div class="chart" id="chart"></div>
+      </div>
+      <div class="card scroll">
+        <h3>Previous weeks</h3>
+        <table id="weekTable"></table>
+      </div>
+      <div class="card scroll">
+        <h3>What moves your starts <span class="small muted">· last 28 days, days with timer sessions</span></h3>
+        <p class="muted small" style="margin-top:0">Like Whoop's journal: days a behaviour happened vs days it didn't, compared on median time to start, focus hours and % procrastinating. Shows once there are 3+ days on each side. It's correlation, not proof; use it to choose experiments.</p>
+        <table id="impactTable"></table>
+      </div>
+      <div class="card">
+        <h3>Readiness</h3>
+        <div class="grid" id="readinessKpis"></div>
+      </div>
+      <div class="card">
+        <h3>By goal</h3>
+        <table id="goalTable"></table>
+      </div>
+      <div class="card">
+        <h3>By tag</h3>
+        <table id="tagTable"></table>
+      </div>
+      <div class="card scroll">
+        <h3>Why you procrastinated — last 28 days</h3>
+        <table id="why28"></table>
+      </div>
+      <div class="card">
+        <h3>Check-in reasons — last 28 days</h3>
+        <div id="reasons28" class="muted"></div>
+      </div>
+      <div class="card">
+        <h3>Reflections, last 28 days</h3>
+        <div id="reflections28"></div>
+      </div>
+    </section>
+
+    <!-- SETTINGS -->
+    <section id="tab-settings" hidden>
+      <div class="card">
+        <h2>☁️ Account &amp; sync</h2>
+        <div id="accountBox"></div>
+      </div>
+      <div class="card" id="notifCard">
+        <h2>🔔 Notifications</h2>
+        <p class="muted small" style="margin-top:0">Sent by Chrome while it's running. Turn each on or off and pick its time. Habit cue times are set per habit in This week → ✎ Edit habits.</p>
+        <div class="notifList">
+          <div class="notifRow"><div class="nIc">☀️</div><div class="nMain"><b>Morning brief</b><div class="small muted">Overdue, due today and due tomorrow; rewards at risk; a nudge for the morning check.</div></div><input type="time" id="sMorning" /><span id="swMorning"></span></div>
+          <div class="notifRow"><div class="nIc">🔁</div><div class="nMain"><b>Habit cues</b><div class="small muted">At each habit's cue time, unless it's already logged. Yes/no habits get a ✓ Done button.</div></div><span class="small muted" id="cueCount" style="min-width:120px;text-align:right"></span><span id="swCues"></span></div>
+          <div class="notifRow"><div class="nIc">✨</div><div class="nMain"><b>Evening check-in</b><div class="small muted">Only if today isn't complete; lists the habits still to log.</div></div><input type="time" id="sRemind" /><span id="swCheckin"></span></div>
+          <div class="notifRow"><div class="nIc">🗓️</div><div class="nMain"><b>Friday planning</b><div class="small muted">Fridays, if next week isn't planned: retro, then plan.</div></div><input type="time" id="sPlan" /><span id="swPlan"></span></div>
+        </div>
+        <p class="muted small" style="margin-bottom:0">Always on while a session runs: session end, the two-minute nudge, and your “next session” reminders.</p>
+      </div>
+      <div class="card">
+        <h2>Timer and readiness</h2>
+        <div class="grid">
+          <label>Default session length (min)<br><input type="number" id="sTimer" min="5" max="240" style="margin-top:4px" /></label>
+          <label>Ask “why?” after procrastinating (min)<br><input type="number" id="sAskWhy" min="0" max="60" style="margin-top:4px" /></label>
+          <label>Sleep target (h)<br><input type="number" id="sSleep" min="4" max="12" step="0.5" style="margin-top:4px" /></label>
+        </div>
+        <div class="grid" style="margin-top:12px">
+          <label>Blocked sites during sessions (one per line; used by the “Block the distractions” experiment)<br><textarea id="sBlock" rows="5" style="margin-top:4px;width:100%"></textarea></label>
+          <label>Pre-start checklist (one per line; used by “Prime the environment”)<br><textarea id="sEnv" rows="5" style="margin-top:4px;width:100%"></textarea></label>
+        </div>
+      </div>
+      <div class="card">
+        <h2>Tags</h2>
+        <p class="muted small" style="margin-top:0">Pick a colour, rename, or delete. Deleting a tag removes it from goals’ display.</p>
+        <div id="tagEditor"></div>
+        <button id="addTagBtn">+ Add tag</button>
+      </div>
+      <div class="row" style="margin-bottom:12px">
+        <button class="primary" id="saveSettings">Save settings</button>
+        <span id="settingsMsg" class="ok"></span>
+      </div>
+      <div class="card">
+        <h2>Data</h2>
+        <p class="muted small" style="margin-top:0">Stored only in this Chrome profile. A backup is kept automatically every week and before every upgrade, restore or import (last 10, below). Export to keep a copy outside Chrome.</p>
+        <div class="row" style="flex-wrap:wrap">
+          <button id="exportBtn">Export JSON</button>
+          <button id="importBtn">Import JSON</button>
+          <input type="file" id="importFile" accept="application/json" hidden />
+          <button id="resetBtn" class="ghost" style="color:var(--red)">Erase everything</button>
+        </div>
+      </div>
+      <div class="card scroll">
+        <div class="row between"><h2 style="margin:0">Backups</h2><button id="backupNow">Back up now</button></div>
+        <table id="backupTable" style="margin-top:8px"></table>
+      </div>
+      <div class="card">
+        <h2>How the score works</h2>
+        <ul class="muted" style="margin:0;padding-left:18px">
+          <li><b>Days / week</b> (Gym, HIIT): done = 100. Skipped = 100 while the weekly target is still reachable, 0 once it isn't. Skips need a reason.</li>
+          <li><b>At most per day</b> (Snacking, Scrolling, Procrastination): at or under = 100, falling to 0 at double. A target of 0 is strict: 1 over = 40, 2 = 10, 3+ = 0.</li>
+          <li><b>At least per day</b> (Meaningful work): value ÷ target, capped at 100.</li>
+          <li><b>Per week totals</b> (Job hunting, ad hoc): are you on pace? Running total ÷ the share of the target due by today.</li>
+          <li><b>Task timer</b>: each session starts in procrastination mode; time until you press “Start working” counts as procrastination, the rest as work (paused time counts as neither; after Resume you're procrastinating again until you press Back to work). Each session's “% procrastinating” is procrastination ÷ (procrastination + work). Today’s totals pre-fill Meaningful work (hours and procrastination minutes) in the check-in, and you can edit them there.</li>
+          <li><b>Tasks</b> (yes / no): 100 from the day it’s done; not counted while there’s still time; 0 if Friday ends without it.</li>
+          <li><b>Status</b> on the board: <i>Done</i> when the weekly target is met; <i>On track</i>; <i>At risk</i> when there’s no slack left (or behind pace / under 80% of days on target); <i>Missed</i> when the target can’t be reached any more (or under 50% of days on target).</li>
+          <li>A goal is the average of its metrics; the day is the average of its goals. Green ≥ 67, amber 34–66, coral &lt; 34.</li>
+        </ul>
+      </div>
+    </section>
+  </div>
+  <script type="module" src="dashboard.js"></script>
+</body>
+</html>

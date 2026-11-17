@@ -1,0 +1,215 @@
+/* Popup (tokens come from styles.css). */
+body { width: 400px; min-height: 560px; padding: 0 12px calc(78px + env(safe-area-inset-bottom)); margin: 0 auto; }
+.card { padding: 14px; margin-bottom: 12px; }
+
+/* ---------- hero ---------- */
+.heroCard { padding: 14px 14px 12px; }
+.heroTop { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+.heroTop .logo { font-size: 14px; color: #fff; }
+.heroTop .logo img.mark { width: 24px; height: 24px; border-radius: 7px; }
+.heroTop .logo { font-size: 16px; }
+.wallet { display: flex; flex-direction: column; align-items: flex-end; line-height: 1.15; padding: 5px 11px; border-radius: 12px; background: var(--glass); border: 1px solid var(--glass-line); }
+.wallet:hover { text-decoration: none; background: rgba(255, 255, 255, .12); }
+.wallet b { color: #f8dc98; font-family: var(--font-num); font-size: 15px; letter-spacing: -.01em; }
+.wallet span { font-size: 10px; color: rgba(226, 235, 255, .6); font-weight: 600; }
+.heroMain { display: flex; gap: 14px; align-items: center; }
+.heroText { flex: 1; }
+.heroText .band { font-size: 19px; letter-spacing: -.01em; }
+.cheer { font-size: 12px; color: rgba(226, 235, 255, .65); margin-top: 2px; }
+.ring { position: relative; width: 124px; height: 124px; flex: none; }
+.ring svg { transform: rotate(-90deg); filter: drop-shadow(0 0 10px rgba(94, 142, 255, .25)); }
+#ringArc { transition: stroke-dasharray .8s cubic-bezier(.2, .8, .2, 1); }
+.ring .val { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; }
+.ring .num { font-family: var(--font-num); font-size: 38px; font-weight: 850; line-height: 1; letter-spacing: -.03em; color: #fff; }
+.ring .pct { font-size: 10.5px; color: rgba(226, 235, 255, .55); text-transform: uppercase; letter-spacing: .1em; margin-top: 3px; }
+.stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 12px; }
+.stat { padding: 8px 10px; border-radius: 12px; background: var(--glass); border: 1px solid var(--glass-line); }
+.stat b { display: block; font-family: var(--font-num); font-size: 17px; font-weight: 800; color: #fff; letter-spacing: -.01em; font-variant-numeric: tabular-nums; }
+.stat span { color: rgba(226, 235, 255, .58); font-size: 10.5px; font-weight: 600; }
+
+/* ---------- morning ---------- */
+.expBox { background: var(--accent-tint); border: 1px solid color-mix(in srgb, var(--accent) 25%, var(--line)); border-radius: 12px; padding: 9px 11px; margin-top: 10px; font-size: 12px; }
+.expBox b { font-size: 12px; }
+.ritual label { display: flex; gap: 6px; align-items: center; margin-top: 5px; }
+.banner { background: linear-gradient(135deg, var(--yellow-tint), var(--accent-tint)); cursor: pointer; font-weight: 650; border-color: color-mix(in srgb, var(--yellow) 30%, var(--line)); }
+.goalRow { display: flex; align-items: center; gap: 8px; margin: 8px 0; }
+.goalRow .name { width: 140px; font-weight: 650; }
+.goalRow .v { width: 30px; text-align: right; font-weight: 800; font-variant-numeric: tabular-nums; }
+
+/* ---------- focus session ---------- */
+.session { --phase: var(--accent); transition: background .4s, border-color .4s; }
+.session .t { display: block; font-size: 12px; color: var(--muted); font-weight: 650; margin: 10px 0 5px; }
+.session.procrast { --phase: var(--red); }
+.session.working { --phase: var(--green); }
+.session.paused { --phase: var(--yellow); }
+.session.procrast, .session.working, .session.paused {
+  background: radial-gradient(120% 70% at 50% 0%, color-mix(in srgb, var(--phase) 16%, var(--card)), var(--card) 75%);
+  border-color: color-mix(in srgb, var(--phase) 30%, var(--line));
+}
+.startBig {
+  width: 100%; display: flex; align-items: center; gap: 14px; text-align: left; padding: 14px 16px; border-radius: 16px;
+  background: var(--accent-grad); color: #fff; border: 0; box-shadow: 0 10px 26px color-mix(in srgb, var(--accent) 38%, transparent);
+}
+.startBig:hover { filter: brightness(1.07); background: var(--accent-grad); }
+.startBig .play { width: 40px; height: 40px; flex: none; border-radius: 50%; display: grid; place-items: center; background: rgba(255, 255, 255, .2); font-size: 15px; padding-left: 3px; }
+.startBig b { display: block; font-size: 15px; }
+.startBig small { display: block; font-size: 11.5px; opacity: .8; font-weight: 500; }
+.subPanel { margin-top: 8px; padding: 10px; border-radius: 12px; background: var(--card-2); border: 1px solid var(--line); }
+.lenRow { gap: 8px; }
+.lenChips { flex: 1; }
+.lenChips button { font-variant-numeric: tabular-nums; }
+.lenChips button.on { background: var(--card); color: var(--accent); box-shadow: var(--shadow); }
+.lenRow input[type=number] { width: 70px; }
+.goBtn { width: 100%; margin-top: 12px; padding: 11px; font-size: 15px; border-radius: 14px; }
+.todayLine { margin-top: 10px; font-size: 12px; color: var(--muted); text-align: center; }
+.todayLine:empty { display: none; }
+.dueList { margin-top: 10px; padding: 9px 11px; border-radius: 12px; background: var(--red-tint); font-size: 12px; line-height: 1.6; border: 1px solid color-mix(in srgb, var(--red) 22%, var(--line)); }
+
+.sTask { font-weight: 800; font-size: 16px; text-align: center; overflow-wrap: anywhere; letter-spacing: -.01em; }
+.sGoalName { font-size: 12px; color: var(--muted); text-align: center; margin-top: 2px; }
+.sGoalName:empty { display: none; }
+.firstStep { margin: 10px 0 0; padding: 8px 11px; border-radius: 12px; background: var(--card); border: 1px dashed color-mix(in srgb, var(--phase) 45%, var(--line)); font-size: 12.5px; }
+
+.timer { position: relative; width: 216px; height: 216px; margin: 6px auto 8px; }
+.tRing { width: 100%; height: 100%; transform: rotate(-90deg); overflow: visible; }
+.tTrack { fill: none; stroke: color-mix(in srgb, var(--phase) 14%, var(--line)); stroke-width: 12; }
+.tArc {
+  fill: none; stroke: var(--phase); stroke-width: 12; stroke-linecap: round; stroke-dasharray: 0 999;
+  transition: stroke-dasharray .9s linear, stroke .4s; filter: drop-shadow(0 0 8px color-mix(in srgb, var(--phase) 55%, transparent));
+}
+.procrast .tArc { animation: pulse 2s ease-in-out infinite; }
+@keyframes pulse { 50% { opacity: .55; } }
+.tCenter { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+.tLabel { font-size: 10.5px; text-transform: uppercase; letter-spacing: .12em; font-weight: 800; color: var(--phase); }
+.clock { font-family: var(--font-num); font-size: 50px; font-weight: 800; letter-spacing: -.04em; font-variant-numeric: tabular-nums; line-height: 1.05; margin: 2px 0; }
+.tSub { font-size: 11.5px; color: var(--muted); max-width: 150px; }
+
+.split { display: flex; height: 8px; border-radius: 99px; overflow: hidden; background: var(--none-tint); margin-top: 14px; gap: 2px; }
+.split i { display: block; height: 100%; transition: flex-grow .9s linear; flex-grow: 0; min-width: 0; }
+.split .p, .dot.p { background: var(--red); }
+.split .w, .dot.w { background: var(--green); }
+.split .z, .dot.z { background: var(--yellow); }
+.legend { display: flex; justify-content: space-between; gap: 6px; margin-top: 7px; font-size: 11px; color: var(--muted); }
+.legend b { color: var(--text); font-variant-numeric: tabular-nums; margin-left: 2px; }
+.dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 5px; vertical-align: 1px; }
+.hint.center { text-align: center; }
+.tBtns { display: flex; gap: 8px; margin-top: 12px; }
+.tBtns button { flex: 1; padding: 11px 8px; border-radius: 14px; font-size: 13.5px; }
+.tBtns #sWork { flex: 2; }
+#sWork { background: linear-gradient(135deg, #16c793, #0fa678); box-shadow: 0 8px 20px color-mix(in srgb, var(--green) 40%, transparent); }
+#sEnd:hover { color: var(--red); border-color: color-mix(in srgb, var(--red) 40%, var(--line)); }
+
+.whyChips { display: flex; flex-wrap: wrap; gap: 6px; }
+.whyChips button { padding: 6px 11px; font-size: 12px; }
+.whyChips button:hover { background: var(--accent-tint); }
+
+/* ---------- tab bar ---------- */
+.tabbar {
+  position: sticky; bottom: 0; display: grid; grid-template-columns: repeat(6, 1fr); margin: 0 -12px; padding: 8px 8px 10px;
+  background: color-mix(in srgb, var(--bg) 82%, transparent); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  border-top: 1px solid var(--line);
+}
+.tabbar a { display: flex; flex-direction: column; align-items: center; gap: 1px; font-size: 10.5px; color: var(--muted); padding: 4px 0; border-radius: 10px; }
+.tabbar a span { font-size: 17px; line-height: 1.2; transition: transform .15s; }
+.tabbar a:hover { color: var(--text); background: var(--soft); text-decoration: none; }
+.tabbar a:hover span { transform: translateY(-1px) scale(1.08); }
+
+/* ---------- today: due tasks + habits ---------- */
+.subHead { font-size: 10.5px; font-weight: 800; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin: 4px 0 8px; }
+#habitsHead { margin-top: 14px; }
+#todayCard .habit { padding: 10px; }
+#todayCard .habit .hIcon { width: 36px; height: 36px; font-size: 18px; border-radius: 11px; }
+.calMini { width: 34px; height: 34px; padding: 0; font-size: 15px; flex: none; }
+#sSaved a { white-space: nowrap; }
+
+
+/* ================= app shell: views, top bar, tab bar ================= */
+.view { padding-top: 12px; animation: viewIn .22s ease; }
+@keyframes viewIn { from { transform: translateY(4px); } to { transform: none; } }
+.topbar { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 6px 4px 12px; }
+.tbDay { font-family: var(--font-brand); font-size: 26px; font-weight: 700; letter-spacing: -.01em; line-height: 1.1; }
+.tbDate { font-size: 12.5px; color: var(--muted); margin-top: 2px; }
+.cheerLine { font-size: 12.5px; margin: -4px 4px 12px; }
+.cheerLine .cheer { color: var(--muted); }
+.miniRing { padding: 0; border: 0; background: none; border-radius: 50%; box-shadow: none; }
+.miniRing:hover { background: none; }
+.miniRing .ring { width: 58px; height: 58px; }
+.miniRing .ring svg { width: 100%; height: 100%; filter: none; }
+.miniRing .ring svg circle:first-of-type { stroke: var(--none-tint); }
+.miniRing .ring .num { font-size: 18px; color: var(--text); }
+
+.tabbar { position: fixed; left: 50%; transform: translateX(-50%); bottom: 0; width: 100%; max-width: 560px; z-index: 30;
+  display: grid; grid-template-columns: repeat(4, 1fr); margin: 0; padding: 6px 10px calc(8px + env(safe-area-inset-bottom));
+  background: color-mix(in srgb, var(--card) 86%, transparent); backdrop-filter: saturate(1.6) blur(16px); -webkit-backdrop-filter: saturate(1.6) blur(16px);
+  border-top: 1px solid var(--line); }
+.tabbar button { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px 0; border: 0; border-radius: 14px; background: none; box-shadow: none; color: var(--muted); font-size: 11px; font-weight: 700; }
+.tabbar button span { font-size: 20px; line-height: 1.15; filter: grayscale(.6); opacity: .75; transition: transform .15s, filter .15s, opacity .15s; }
+.tabbar button:hover { background: var(--soft); }
+.tabbar button.on { color: var(--accent); }
+.tabbar button.on span { filter: none; opacity: 1; transform: translateY(-1px) scale(1.08); }
+
+/* ================= Me ================= */
+.topbar .wallet { background: var(--bronze-tint); border-color: color-mix(in srgb, var(--bronze) 35%, var(--line)); }
+.topbar .wallet b { color: var(--bronze); }
+.topbar .wallet span { color: var(--muted); }
+.statsCard .stats { margin-top: 0; }
+.linkList { display: flex; flex-direction: column; }
+.linkList a { display: grid; grid-template-columns: 34px 1fr; grid-template-rows: auto auto; align-items: center; column-gap: 10px; padding: 9px 4px; border-bottom: 1px solid var(--line-2); color: var(--text); font-weight: 700; }
+.linkList a:last-child { border-bottom: 0; }
+.linkList a:hover { text-decoration: none; background: var(--soft); border-radius: 12px; }
+.linkList a span { grid-row: span 2; width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center; background: var(--card-2); border: 1px solid var(--line); font-size: 16px; }
+.linkList a small { color: var(--muted); font-weight: 500; font-size: 11.5px; }
+
+/* ================= Tasks ================= */
+.scopeSeg { margin-bottom: 10px; }
+.scopeSeg button.on { background: var(--card); color: var(--accent); box-shadow: var(--shadow); }
+#tkAdd { margin-bottom: 12px; background: var(--card); }
+.tkRow { cursor: pointer; }
+.tkRow:hover { border-color: color-mix(in srgb, var(--accent) 30%, var(--line)); }
+.tkRow.isDone .tTitle { text-decoration: line-through; color: var(--muted); }
+.doneToggle { margin: 6px 0 8px; }
+
+/* ================= Focus: full screen while a session runs ================= */
+.fsTop { display: none; }
+body.focusing { overflow: hidden; }
+body.focusing #sessionCard {
+  position: fixed; inset: 0; z-index: 40; margin: 0; border-radius: 0; border: 0; overflow-y: auto;
+  padding: calc(12px + env(safe-area-inset-top)) 20px calc(24px + env(safe-area-inset-bottom));
+  display: flex; flex-direction: column;
+  background: radial-gradient(120% 60% at 50% 0%, color-mix(in srgb, var(--phase) 22%, #0b1430), #070b16 75%);
+  color: #eef3ff; color-scheme: dark;
+}
+body.focusing #sessionCard #sRun { flex: 1; display: flex; flex-direction: column; max-width: 460px; width: 100%; margin: 0 auto; }
+body.focusing #sessionCard #sRun[hidden] { display: none; }
+body.focusing .fsTop { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+body.focusing .fsMin { font-size: 22px; color: #cfd8f0; width: 40px; height: 40px; padding: 0; }
+body.focusing .fsBrand { font-family: var(--font-brand); font-size: 17px; font-weight: 700; color: #dfe7ff; }
+body.focusing .fsSpacer { width: 40px; }
+body.focusing .timer { width: min(78vw, 320px); height: min(78vw, 320px); margin: 18px auto 14px; }
+body.focusing .clock { font-size: clamp(56px, 17vw, 76px); color: #fff; }
+body.focusing .tSub, body.focusing .sGoalName, body.focusing .hint, body.focusing .legend, body.focusing .small.muted { color: rgba(226, 235, 255, .62); }
+body.focusing .legend b { color: #fff; }
+body.focusing .sTask { font-size: 19px; color: #fff; }
+body.focusing .tTrack { stroke: rgba(255, 255, 255, .08); }
+body.focusing .split { background: rgba(255, 255, 255, .08); }
+body.focusing .firstStep { background: rgba(255, 255, 255, .06); color: #eef3ff; }
+body.focusing .tBtns { margin-top: auto; padding-top: 18px; }
+body.focusing .tBtns button:not(.primary) { background: rgba(255, 255, 255, .08); border-color: rgba(255, 255, 255, .14); color: #fff; }
+body.focusing .status { background: rgba(255, 255, 255, .1); color: #fff; }
+body.focusing .whyChips button { background: rgba(255, 255, 255, .08); border-color: rgba(255, 255, 255, .14); color: #fff; }
+body.focusing #sWhy input { background: rgba(255, 255, 255, .06); border-color: rgba(255, 255, 255, .14); color: #fff; }
+body.focusing .tabbar, body.focusing .miniBar { display: none; }
+
+/* mini bar: the running session while you're elsewhere */
+.miniBar { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(66px + env(safe-area-inset-bottom)); z-index: 31;
+  width: calc(100% - 20px); max-width: 540px; display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: 16px; border: 0;
+  background: #0d1830; color: #fff; box-shadow: 0 10px 30px rgba(0, 0, 0, .3); text-align: left; }
+.miniBar:hover { background: #12204a; }
+.mbDot { width: 10px; height: 10px; border-radius: 50%; background: var(--accent); flex: none; }
+.mbDot.procrast { background: var(--red); animation: pulse 1.6s ease-in-out infinite; }
+.mbDot.work { background: var(--green); }
+.mbDot.paused { background: var(--yellow); }
+.mbTask { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 650; font-size: 13px; }
+.mbClock { font-family: var(--font-num); font-variant-numeric: tabular-nums; font-size: 15px; }
+.mbOpen { opacity: .6; }
+body.hasMini { padding-bottom: calc(132px + env(safe-area-inset-bottom)); }

@@ -1,0 +1,21 @@
+/* The web app (PWA): full-width phone layout, safe areas, bigger touch targets. Loaded after the other sheets. */
+body.home { width: auto; max-width: 560px; min-height: 100vh; padding-top: env(safe-area-inset-top); -webkit-tap-highlight-color: transparent; overscroll-behavior-y: none; }
+body.dash { padding-bottom: 0; }
+html { -webkit-text-size-adjust: 100%; }
+body.dash { max-width: 1080px; padding-top: env(safe-area-inset-top); }
+.tBtns button { padding: 14px 8px; font-size: 15px; }
+.stepper .stepBtn { width: 38px; height: 38px; }
+.checkBtn { width: 48px; height: 48px; }
+.cloudBtn { padding: 5px 10px; font-size: 12px; background: var(--glass) !important; border-color: var(--glass-line) !important; color: #fff !important; margin-left: auto; margin-right: 8px; }
+header .cloudBtn { background: var(--card-2) !important; color: var(--text) !important; border-color: var(--line) !important; }
+.heroTop { gap: 6px; }
+.drawer { width: 100vw; max-width: 520px; padding-bottom: env(safe-area-inset-bottom); }
+@media (max-width: 600px) {
+  .drawer { top: auto; height: 88vh; width: 100vw; max-width: none; border-radius: 22px 22px 0 0; transform: translateY(100%); border-left: 0; border-top: 1px solid var(--line); }
+  .drawer.in { transform: none; }
+  header { position: static; }
+  nav { overflow-x: auto; flex-wrap: nowrap; max-width: 100%; }
+  nav a { white-space: nowrap; }
+}
+input, select, textarea { font-size: 16px; } /* no zoom-on-focus in iOS Safari */
+.web #notifCard { display: none; } /* scheduled by the Chrome extension; phone push comes with web push */

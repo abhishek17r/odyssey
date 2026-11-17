@@ -1,0 +1,179 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Odyssey</title>
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="popup.css" />
+</head>
+<body>
+  <!-- TODAY -->
+  <main class="view" id="view-today">
+    <header class="topbar">
+      <div>
+        <div class="tbDay" id="tbDay"></div>
+        <div class="tbDate" id="dateLabel"></div>
+      </div>
+      <button type="button" class="miniRing" id="miniRing" title="Today's score">
+        <div class="ring">
+          <svg width="124" height="124" viewBox="0 0 124 124">
+          <defs>
+            <linearGradient id="g-green" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#5ff2c0"/><stop offset="1" stop-color="#12b886"/></linearGradient>
+            <linearGradient id="g-yellow" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffd36b"/><stop offset="1" stop-color="#f59f0b"/></linearGradient>
+            <linearGradient id="g-red" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ff9aae"/><stop offset="1" stop-color="#f2496b"/></linearGradient>
+            <linearGradient id="g-none" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#7aa7e8"/><stop offset="1" stop-color="#2458e6"/></linearGradient>
+          </defs>
+          <circle cx="62" cy="62" r="52" fill="none" stroke="rgba(255,255,255,.09)" stroke-width="10" />
+          <circle id="ringArc" cx="62" cy="62" r="52" fill="none" stroke-width="10" stroke-linecap="round" stroke-dasharray="0 999" />
+        </svg>
+          <div class="val"><div class="num" id="scoreText">—</div></div>
+        </div>
+      </button>
+    </header>
+    <div class="cheerLine"><span class="band" id="bandLabel"></span> <span class="cheer" id="cheer"></span></div>
+
+    <section class="card banner" id="planBanner" hidden></section>
+
+    <section class="card" id="noPlan" hidden>
+      <h3>No plan for this week</h3>
+      <p class="muted" style="margin-top:0">Set this week’s habits first. Your built-in ones are ready; it takes a minute.</p>
+      <button class="primary" id="planNow" style="width:100%">Plan this week</button>
+    </section>
+
+    <section class="card" id="todayCard" hidden>
+      <div class="checkinHead"><h3 style="margin:0">Today</h3><span class="progressPill" id="todayProg"></span></div>
+      <div id="dueBox"></div>
+      <div class="subHead" id="habitsHead">Habits</div>
+      <div id="goalQs"></div>
+      <input type="text" id="note" maxlength="140" placeholder="📝 Note: a win, a lesson (optional)" style="margin-top:10px" />
+    </section>
+
+    <section class="card" id="reflectCard">
+      <div class="row between"><h3>Reflection</h3><span class="small" id="reflectMsg"></span></div>
+      <textarea id="reflection" class="reflectBox" rows="4" placeholder="How was today, really? What went well, what got in the way, how you felt…"></textarea>
+    </section>
+  </main>
+
+  <!-- FOCUS -->
+  <main class="view" id="view-focus" hidden>
+    <header class="topbar"><div><div class="tbDay">Focus</div><div class="tbDate" id="focusSub">Start, then press Start working the moment you begin</div></div></header>
+  <section class="card session" id="sessionCard">
+    <div id="sIdle">
+      <button class="startBig" id="sStartBtn"><span class="play">▶</span><span><b>Start a focus session</b><small>The clock starts in procrastination mode</small></span></button>
+      <div id="sAsk" hidden>
+        <div class="row between"><h3 style="margin:0">New focus session</h3><a class="small" id="sCancel">Cancel</a></div>
+        <label class="t" for="sGoal">Working on</label>
+        <select id="sGoal"></select>
+        <div id="sNew" hidden class="subPanel">
+          <input type="text" id="sNewName" maxlength="80" placeholder="New ticket, e.g. Fix the car insurance" />
+          <div class="row" style="margin-top:6px">
+            <input type="number" id="sNewSize" min="0" step="0.5" placeholder="est. h" title="Estimate in hours (optional)" style="width:84px" />
+            <select id="sNewHabit" style="flex:1"></select>
+          </div>
+          <div class="hint">Joins this sprint as unplanned. Its time also counts toward the habit you pick.</div>
+        </div>
+        <input type="text" id="sTask" maxlength="80" placeholder="What exactly? (optional) e.g. Mock system-design round" style="margin-top:8px" />
+        <div id="sRitual" class="expBox" hidden></div>
+        <label class="t" style="margin-top:12px">Length (minutes of work)</label>
+        <div class="row lenRow">
+          <div class="seg lenChips" id="sLenChips"></div>
+          <input type="number" id="sMin" min="5" max="240" step="5" title="Custom length" />
+        </div>
+        <button class="primary goBtn" id="sGo">▶ Start</button>
+      </div>
+      <div class="todayLine" id="sToday"></div>
+    </div>
+    <div id="sRun" hidden>
+      <div class="fsTop"><button type="button" class="ghost fsMin" id="sMinimize" title="Minimise">⌄</button><span class="fsBrand">Focus</span><span class="fsSpacer"></span></div>
+      <div class="row between"><span class="status" id="sPhase"></span><span class="small muted" id="sStarted"></span></div>
+      <div class="timer">
+        <svg viewBox="0 0 220 220" class="tRing" aria-hidden="true">
+          <circle class="tTrack" cx="110" cy="110" r="96" />
+          <circle class="tArc" id="tArc" cx="110" cy="110" r="96" />
+        </svg>
+        <div class="tCenter">
+          <div class="tLabel" id="sClockLabel"></div>
+          <div class="clock" id="sClock">0:00</div>
+          <div class="tSub" id="sClockSub"></div>
+        </div>
+      </div>
+      <div class="sTask" id="sTaskName"></div>
+      <div class="sGoalName" id="sGoalName"></div>
+      <div class="firstStep" id="sFirst" hidden></div>
+      <div class="split" title="How this session's time has gone so far"><i class="p" id="spP"></i><i class="w" id="spW"></i><i class="z" id="spZ"></i></div>
+      <div class="legend"><span><i class="dot p"></i>Procrastinating <b id="lgP">0:00</b></span><span><i class="dot w"></i>Working <b id="lgW">0:00</b></span><span><i class="dot z"></i>Paused <b id="lgZ">0:00</b></span></div>
+      <div class="hint center" id="sSub"></div>
+      <div class="tBtns">
+        <button class="primary" id="sWork">▶ Start working</button>
+        <button id="sPause">⏸ Pause</button>
+        <button id="sEnd">■ End</button>
+      </div>
+    </div>
+    <div class="hint ok" id="sSaved"></div>
+    <div id="sNext" hidden style="margin-top:8px">
+      <div class="small" style="font-weight:700">🗓️ When will you do the next session?</div>
+      <div class="row" style="margin-top:4px"><input type="datetime-local" id="sNextAt" style="flex:1" /><button id="sNextSet">Set</button><a class="small" id="sNextSkip">Skip</a></div>
+    </div>
+    <div id="sDone" hidden style="margin-top:6px"><button id="sDoneBtn" style="padding:4px 12px;font-size:12px"></button></div>
+    <div id="sWhy" hidden>
+      <div class="t" id="sWhyQ" style="margin-top:10px"></div>
+      <div class="whyChips" id="sWhyChips"></div>
+      <div class="row" style="margin-top:6px">
+        <input type="text" id="sWhyNote" maxlength="140" placeholder="Anything specific? (optional)" />
+        <a id="sWhySkip" class="small">Skip</a>
+      </div>
+    </div>
+  </section>
+  </main>
+
+  <!-- TASKS -->
+  <main class="view" id="view-tasks" hidden>
+    <header class="topbar"><div><div class="tbDay">Tasks</div><div class="tbDate" id="tkSub"></div></div></header>
+    <div class="seg scopeSeg" id="tkScope"><button type="button" data-scope="sprint" class="on">This week</button><button type="button" data-scope="backlog">Backlog</button></div>
+    <form class="quickAdd" id="tkAdd"><span class="qaPlus">＋</span><input type="text" id="tkTitle" maxlength="80" placeholder="Add a task…" /></form>
+    <div id="tkList"></div>
+  </main>
+
+  <!-- ME -->
+  <main class="view" id="view-me" hidden>
+    <header class="topbar"><div><div class="tbDay">This week</div><div class="tbDate" id="meSub"></div></div>
+      <a data-open="rewards" class="wallet" title="Rewards: open the marketplace"><b id="rwBal">—</b><span id="rwSub">💰 rewards</span></a></header>
+    <section class="card hero-bg statsCard">
+      <div class="stats">
+        <div class="stat"><b id="weekAvg">—</b><span>week score</span></div>
+        <div class="stat"><b id="avg7">—</b><span>7-day avg</span></div>
+        <div class="stat"><b id="streak">0</b><span>🔥 day streak</span></div>
+        <div class="stat" title="Minutes procrastinated this week"><b id="procWeek">—</b><span>⏳ procrast. min</span></div>
+        <div class="stat" title="A vote = a session started within 2 min, or a habit on target that day"><b id="votesWeek">0</b><span>🗳️ votes</span></div>
+        <div class="stat" title="Days in a row with at least one session started within 2 min"><b id="quickStreak">0</b><span>⚡ quick starts</span></div>
+      </div>
+    </section>
+    <section class="card">
+      <h3>Plan and review</h3>
+      <div class="linkList">
+        <a data-open="board"><span>🗂️</span>Week board<small>tasks board, habit targets</small></a>
+        <a data-open="retro"><span>🔁</span>Retro<small>this sprint's numbers, the coach</small></a>
+        <a data-open="rewards"><span>💰</span>Rewards<small>wallet and marketplace</small></a>
+        <a data-open="trends"><span>📈</span>Trends<small>last 28 days</small></a>
+        <a data-open="today"><span>📅</span>Any day<small>calendar, past check-ins, sessions</small></a>
+        <a data-open="settings"><span>⚙️</span>Settings<small>reminders, tags, backups</small></a>
+      </div>
+    </section>
+    <section class="card"><h3>☁️ Account &amp; sync</h3><div id="meAccount"></div><div id="meNotif"></div></section>
+  </main>
+
+  <!-- the running session, minimised -->
+  <button type="button" class="miniBar" id="miniBar" hidden>
+    <span class="mbDot" id="mbDot"></span><span class="mbTask" id="mbTask"></span><b class="mbClock" id="mbClock"></b><span class="mbOpen">⌃</span>
+  </button>
+
+  <nav class="tabbar" id="tabbar">
+    <button type="button" data-view="today"><span>☀️</span>Today</button>
+    <button type="button" data-view="focus"><span>🎯</span>Focus</button>
+    <button type="button" data-view="tasks"><span>✅</span>Tasks</button>
+    <button type="button" data-view="me"><span>🧭</span>Me</button>
+  </nav>
+
+  <script type="module" src="popup.js"></script>
+</body>
+</html>

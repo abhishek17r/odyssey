@@ -1,0 +1,12 @@
+{
+  "name": "odyssey",
+  "private": true,
+  "type": "module",
+  "description": "Odyssey: habits, a personal sprint board and a procrastination-aware focus timer (Chrome extension + phone web app).",
+  "scripts": {
+    "build": "node scripts/build-web.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
