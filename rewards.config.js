@@ -48,6 +48,9 @@ export const POINTS = {
   streakMilestones: { 3: 20, 7: 75, 14: 150, 30: 400, 60: 800, 100: 1500 },
   streakBroken: -20,                       // a day with no check-in after a logged one
   greenWeek: 75,                           // a week that ends with a green score (67+)
+  comeback: 15,                            // logging again after two or more missed days (not paused)
+  urgeResisted: 5, urgeDailyCap: 5,        // riding out an urge with the urge pause, up to 5 a day
+  tinyStartBonus: 5,                       // a habit done during its tiny-start trial, in the first two weeks
   ranks: [
     [0, 'Deckhand'], [250, 'Oarsman'], [750, 'Helmsman'], [1500, 'Navigator'], [3000, 'Captain'],
     [6000, 'Hero'], [12000, 'Legend of Ithaca'],

@@ -9,7 +9,11 @@ import { openReviewSheet } from './lib/reviewSheet.js';
 import { openRewardsSheet } from './lib/rewardsSheet.js';
 import { insights, daysText } from './lib/insights.js';
 import { kleos, plannedOn, POINTS } from './lib/points.js';
-import { moveTicket, startPause, endPause } from './lib/storage.js';
+import { moveTicket, startPause, endPause, saveOnboarding, saveTactics, logUrge } from './lib/storage.js';
+import { openOnboarding } from './lib/onboarding.js';
+import { openUrgePause } from './lib/urgePause.js';
+import { runEngine, tacticLine } from './lib/engine.js';
+import { isOnboarded, habitType } from './lib/profile.js';
 import { openDrawer } from './lib/controls.js';
 import { currentUser } from './lib/cloud.js';
 import { VERSION } from './version.js';
@@ -62,6 +66,12 @@ async function init() {
   renderExtras();
   renderMusic();
   renderNotifPanel($('#meNotif'));
+  await engineTick();
+  render();
+  // first launch: set your course (once per launch until done; the splash covers it until it fades)
+  let asked = false;
+  try { asked = !!sessionStorage.getItem('onbAsked'); sessionStorage.setItem('onbAsked', '1'); } catch { /* fine */ }
+  if (!isOnboarded(state) && !asked) startOnboarding();
   // links from notifications: ?open=review | plan | rewards | week
   const open = new URLSearchParams(location.search).get('open');
   if (open) {
@@ -83,6 +93,7 @@ function render() {
   renderWeek();
   renderMe();
   renderPause();
+  renderCourse();
 }
 
 // ---------- header ----------
@@ -118,7 +129,40 @@ function renderBanner() {
   el.onclick = () => openReview();
 }
 
-$('#planNow').onclick = () => openPlan(weekKeyOf(today));
+$('#planNow').onclick = () => (isOnboarded(state) ? openPlan(weekKeyOf(today)) : startOnboarding());
+
+// ---------- onboarding, the behaviour engine, the urge pause ----------
+function startOnboarding() {
+  const had = isOnboarded(state);
+  openOnboarding({
+    state, todayKey: today, weekKey: weekKeyOf(today),
+    onDone: async ({ profile, plan, settings }) => {
+      await saveOnboarding({ profile, weekKey: weekKeyOf(today), plan, settings });
+      state = await load();
+      await engineTick(true);
+      render();
+      showView('today');
+      toast(had ? 'Course updated' : 'Course set. Your first step is today.');
+    },
+  });
+}
+// once a day (or after onboarding): finish week-long tactic trials, start the next ones
+async function engineTick(force = false) {
+  try {
+    if (!force && sessionStorage.getItem('engineDay') === today) return;
+    sessionStorage.setItem('engineDay', today);
+  } catch { /* private mode: run anyway */ }
+  const recs = runEngine(state, today);
+  if (recs.length) { await saveTactics(recs); state = await load(); }
+}
+function urgeFor(g) {
+  openUrgePause({ goal: g, onDone: async (outcome) => {
+    await logUrge(today, g, outcome);
+    state = await load();
+    renderForm(); renderHeader(); renderWeek();
+    toast(outcome === 'resisted' ? 'You rode it out' : 'Logged. The next one is a fresh chance.');
+  } });
+}
 
 // ---------- sheets: plan, review, rewards (in the app) ----------
 const refreshAll = async () => { state = await load(); render(); if (view === 'trends') renderTrends(); };
@@ -132,7 +176,8 @@ let form = null;
 
 function renderForm() {
   $('#note').value = state.days[today]?.note ?? '';
-  form = buildCheckin({ box: $('#goalQs'), dayKey: today, getState: () => state, onSaved: () => { renderHeader(); renderProgress(); }, compact: true });
+  form = buildCheckin({ box: $('#goalQs'), dayKey: today, getState: () => state, onSaved: () => { renderHeader(); renderProgress(); }, compact: true,
+    getTactic: (g) => tacticLine(state, g, today), onUrge: urgeFor, onPlan: () => openPlan() });
   renderProgress();
 }
 $('#note').addEventListener('change', () => form?.saveNote($('#note').value.trim()));
@@ -570,6 +615,7 @@ chrome.storage.onChanged.addListener(async () => {
   renderWeek();
   renderMe();
   renderPause();
+  renderCourse();
   if (view === 'trends') renderTrends();
   refreshDrawer();
   if (!state.activeSession) document.body.classList.remove('focusing');
@@ -1260,6 +1306,24 @@ function renderMe() {
   currentUser().then((u) => { $('#meSub').textContent = u ? `Signed in as ${u.username}` : 'Not signed in'; }).catch(() => {});
 }
 $('#meRank').onclick = () => openRewards();
+
+// Me → Your course: your Ithaca and focus habits; edit the answers any time.
+function renderCourse() {
+  const box = $('#meCourse');
+  const p = state.profile;
+  box.innerHTML = '';
+  if (!p?.onboardedAt) {
+    box.innerHTML = '<h3>Your course</h3><p class="small muted pauseText">Pick up to three habits and Odyssey sets an easy first week, then adapts to what works for you.</p>';
+  } else {
+    const plan = planOf(today, state);
+    const names = (p.habits || []).map((h) => plan?.goals.find((g) => g.id === h.goalId)?.name || habitType(h.type).label);
+    box.innerHTML = `<h3>Your course</h3>${p.identity ? `<p class="courseIthaca">${esc(p.identity)}</p>` : ''}<p class="small muted pauseText">Focus: ${esc(names.join(', ') || 'none yet')}</p>`;
+  }
+  const b = Object.assign(document.createElement('button'), { type: 'button', className: p?.onboardedAt ? '' : 'primary', textContent: p?.onboardedAt ? 'Edit your answers' : 'Set your course' });
+  b.onclick = startOnboarding;
+  b.style.width = '100%';
+  box.append(b);
+}
 
 // ---------- pause (sick, travelling): no penalties, streaks kept ----------
 const pauseUntilText = (p) => (p.endDay ? `until ${parseKey(p.endDay).toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'short' })}` : 'until you resume');
