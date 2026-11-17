@@ -730,6 +730,7 @@ function renderPlan() {
       estimateMin: g?.estimateMin ?? null,
       cueTime: g?.cueTime || '',
       targets: Object.fromEntries(p.metrics.map((m) => [m.id, g?.metrics.find((x) => x.id === m.id)?.target ?? m.target])),
+      days: Object.fromEntries(p.metrics.map((m) => [m.id, g?.metrics.find((x) => x.id === m.id)?.days])),
     };
   });
   adhocDraft = src.goals
@@ -744,7 +745,7 @@ function renderPlan() {
       cueTime: g.cueTime || '',
       picks: Object.fromEntries(ADHOC_METRICS.map((am) => {
         const m = g.metrics.find((x) => x.id === am.id);
-        return [am.id, { on: !!m, target: m?.target ?? '' }];
+        return [am.id, { on: !!m, target: m?.target ?? '', days: m?.days }];
       })),
     }));
   renderPresetCards();
@@ -954,13 +955,14 @@ $('#savePlan').onclick = async () => {
       intention: d.intention.trim(),
       ...(d.estimateMin > 0 ? { estimateMin: d.estimateMin } : {}),
       ...(d.cueTime ? { cueTime: d.cueTime } : {}),
-      metrics: d.preset.metrics.map((m) => ({ ...m, target: num(d.targets[m.id], m.kind === 'daysPerWeek' ? 7 : null) })),
+      metrics: d.preset.metrics.map((m) => ({ ...m, target: num(d.targets[m.id], m.kind === 'daysPerWeek' ? 7 : null), ...(d.days?.[m.id]?.length ? { days: d.days[m.id] } : {}) })),
     }));
   for (const d of adhocDraft) {
     if (!d.name.trim()) continue;
     const metrics = ADHOC_METRICS.filter((am) => d.picks[am.id].on).map((am) => ({
       ...am,
       target: num(d.picks[am.id].target, am.kind === 'daysPerWeek' ? 7 : null),
+      ...(d.picks[am.id].days?.length ? { days: d.picks[am.id].days } : {}),
     }));
     if (!metrics.length) {
       flash($('#planMsg'), `Pick at least one metric for “${d.name.trim()}”`);

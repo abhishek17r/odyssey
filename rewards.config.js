@@ -27,3 +27,36 @@ export const REWARDS = {
     { id: 'whoop', name: 'Whoop', icon: '⌚', price: 25000 },
   ],
 };
+
+// Kleos ⚡ (glory): points for the behaviour behind the habits. Worked out from your data every time
+// (never stored), from `start` on, so they can't drift. Negative numbers take points away.
+export const POINTS = {
+  name: 'Kleos',
+  icon: '⚡',
+  start: '2026-11-14',
+  // tasks
+  taskCreated: 5, taskCreatedDailyCap: 5, // planning counts, up to 5 new tasks a day
+  taskDone: 20, subtaskDone: 5,
+  perHourEstimate: 10, sizeBonusMax: 40,   // bigger tasks pay more (their estimate in hours × 10, up to 40)
+  onTime: 15,                              // done on or before its deadline
+  overduePerDay: -5, overdueMax: -30,      // each day a task sits past its deadline (done late counts too)
+  // habits (per day)
+  habitDone: 10,                           // an either/or habit done
+  habitSkipped: -5,                        // skipped (with or without a reason)
+  habitMissedPlannedDay: -10,              // a day you planned it passed and it wasn't logged
+  limitKept: 10, limitBroken: -15,         // bad habits: within the limit / over it
+  dailyGoalMet: 10,                        // good habits with a daily minimum
+  weeklyGoalMet: 30,                       // a weekly total reached
+  // focus
+  per5MinFocus: 1, focusMaxPerSession: 30,
+  quickStart: 5,                           // started within 2 minutes
+  procrastFreeMin: 15, procrastPer10Min: -5, procrastMaxPerSession: -20,
+  // streaks (days in a row with a check-in)
+  streakMilestones: { 3: 20, 7: 75, 14: 150, 30: 400, 60: 800, 100: 1500 },
+  streakBroken: -20,                       // a day with no check-in after a logged one
+  greenWeek: 75,                           // a week that ends with a green score (67+)
+  ranks: [
+    [0, 'Deckhand'], [250, 'Oarsman'], [750, 'Helmsman'], [1500, 'Navigator'], [3000, 'Captain'],
+    [6000, 'Hero'], [12000, 'Legend of Ithaca'],
+  ],
+};

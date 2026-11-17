@@ -92,3 +92,17 @@ on, the Chrome extension stops its own scheduled reminders (it keeps the session
 2. To add someone: **Authentication → Users → Add user → Create new user**: email `theirname@odyssey.test`,
    a password, tick **Auto Confirm User**. Send them the app link, username `theirname` and the password.
    (Or turn “Allow new users to sign up” back on and they can use “Create your account”.)
+
+## 6. Invite people by email (SendGrid, free)
+
+1. **SendGrid** (https://sendgrid.com, free plan: 100 emails a day): sign up →
+   **Settings → Sender Authentication → Verify a Single Sender** (your email; click the link they send) →
+   **Settings → API Keys → Create API Key** (“Restricted”, turn on *Mail Send*), copy it.
+2. **Supabase → Authentication → Emails → SMTP Settings → Enable custom SMTP**:
+   host `smtp.sendgrid.net`, port `587`, username `apikey`, password = the API key,
+   sender email = the address you verified, sender name `Odyssey`. **Save**.
+3. **Supabase → Authentication → URL Configuration**: Site URL `https://odyssey.abhishek17r.workers.dev`,
+   and under Redirect URLs add `https://odyssey.abhishek17r.workers.dev/**`.
+4. In the app: **Me → Account & sync → ✉️ Invite someone** (only the owner sees it). They get an email,
+   tap the link, pick a password, and sign in with their email from then on.
+   “Forgot password?” on the sign-in screen works too, for accounts with a real email.
