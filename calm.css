@@ -202,3 +202,5 @@ body.focusing #sWork { background: rgba(127, 191, 159, .18) !important; color: v
 body.focusing .switch span { background: rgba(255, 255, 255, .2); }
 body.focusing .switch input:checked + span { background: var(--f-go); }
 body.focusing .rBtn.rPlay { background: #8db4d6; color: #0e1116; }
+
+.appVersion { text-align: center; color: var(--ios-label-3); font-size: 12px; margin: 6px 0 24px; }

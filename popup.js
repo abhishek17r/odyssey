@@ -12,6 +12,7 @@ import { kleos, plannedOn, POINTS } from './lib/points.js';
 import { moveTicket } from './lib/storage.js';
 import { openDrawer } from './lib/controls.js';
 import { currentUser } from './lib/cloud.js';
+import { VERSION } from './version.js';
 import { weekMetrics } from './lib/metrics.js';
 import { ledger, money } from './lib/rewards.js';
 import { esc, tagChips } from './lib/ui.js';
@@ -1260,6 +1261,7 @@ function renderMe() {
   currentUser().then((u) => { $('#meSub').textContent = u ? `Signed in as ${u.username}` : 'Not signed in'; }).catch(() => {});
 }
 $('#meRank').onclick = () => openRewards();
+$('#appVersion').textContent = `Odyssey ${VERSION}`;
 
 // ---------- nav ----------
 

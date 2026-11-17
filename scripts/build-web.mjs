@@ -8,11 +8,16 @@ import { fileURLToPath } from 'node:url';
 const root = join(fileURLToPath(new URL('.', import.meta.url)), '..');
 const out = join(root, 'dist', 'web');
 
+// one version everywhere: version.js and manifest.json must agree
+const { VERSION } = await import(join(root, 'version.js'));
+const manifestVersion = JSON.parse(await readFile(join(root, 'manifest.json'), 'utf8')).version;
+if (manifestVersion !== VERSION) { console.error(`Version mismatch: version.js says ${VERSION}, manifest.json says ${manifestVersion}.`); process.exit(1); }
+
 await rm(out, { recursive: true, force: true });
 await mkdir(out, { recursive: true });
 
 const copy = (from, to = from) => cp(join(root, from), join(out, to), { recursive: true });
-for (const f of ['lib', 'icons', 'config.js', 'rewards.config.js', 'styles.css', 'popup.css', 'ios.css', 'calm.css', 'splash.js', 'dashboard.css', 'popup.js', 'dashboard.js']) await copy(f);
+for (const f of ['lib', 'icons', 'config.js', 'version.js', 'rewards.config.js', 'styles.css', 'popup.css', 'ios.css', 'calm.css', 'splash.js', 'dashboard.css', 'popup.js', 'dashboard.js']) await copy(f);
 for (const f of ['platform.js', 'app.js', 'web.css', 'manifest.webmanifest']) await copy(join('web', f), f);
 await cp(join(root, 'web', 'icons'), join(out, 'icons'), { recursive: true });
 
@@ -58,5 +63,5 @@ const sw = (await readFile(join(root, 'web', 'sw.js'), 'utf8'))
 await writeFile(join(out, 'sw.js'), sw);
 
 const { CLOUD } = await import(join(root, 'config.js'));
-console.log(`Built dist/web (${files.length + 1} files, build ${build}).`);
+console.log(`Built Odyssey ${VERSION} into dist/web (${files.length + 1} files, build ${build}).`);
 if (!CLOUD.url || !CLOUD.anonKey) console.log('Note: config.js has no Supabase URL / key yet, so the app runs local-only until you add them.');
