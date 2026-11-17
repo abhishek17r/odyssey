@@ -1,0 +1,204 @@
+/* =====================================================================================================
+   Odyssey · calm. Loaded last: a quieter palette (paper, ink, one sea-blue accent, muted status colours),
+   flatter cards, plainer type. Colour only where it means something.
+   ===================================================================================================== */
+
+:root {
+  --ios-bg: #f5f3ee;               /* warm paper */
+  --ios-cell: #ffffff;
+  --ios-fill: rgba(31, 36, 48, .05);
+  --ios-fill-2: rgba(31, 36, 48, .09);
+  --ios-sep: rgba(31, 36, 48, .08);
+  --ios-label: #1f2430;            /* ink */
+  --ios-label-2: rgba(31, 36, 48, .56);
+  --ios-label-3: rgba(31, 36, 48, .3);
+  --ios-blue: #3d6b8f;             /* calm sea */
+  --ios-green: #4f8f72;            /* sage */
+  --ios-orange: #b9833f;           /* muted amber */
+  --ios-red: #b6604f;              /* terracotta */
+  --ios-yellow: #c9a24a;
+  --accent-tint: rgba(61, 107, 143, .1);
+  --card-2: #f5f3ee;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --ios-bg: #0e1116;
+    --ios-cell: #171b22;
+    --ios-fill: rgba(255, 255, 255, .06);
+    --ios-fill-2: rgba(255, 255, 255, .1);
+    --ios-sep: rgba(255, 255, 255, .07);
+    --ios-label: #ebe8e1;
+    --ios-label-2: rgba(235, 232, 225, .58);
+    --ios-label-3: rgba(235, 232, 225, .3);
+    --ios-blue: #8db4d6;
+    --ios-green: #7fbf9f;
+    --ios-orange: #d8a865;
+    --ios-red: #d98a7a;
+    --accent-tint: rgba(141, 180, 214, .14);
+    --card-2: #1d222b;
+  }
+}
+
+body { font-size: 15px; line-height: 1.4; }
+
+/* ---------- headers and section titles: quieter ---------- */
+.topbar { padding: 10px 4px 18px; }
+.tbDay { font-size: 30px !important; font-weight: 700; letter-spacing: -.01em; }
+.tbDate { font-size: 15px; }
+.tbProg { font-size: 13px; color: var(--ios-label-2); margin-top: 4px; }
+.tbProg b { color: var(--ios-label); font-weight: 600; }
+.miniRing { transform: scale(.78); transform-origin: top right; }
+h3, .subHead, .habitGroup, .groupHead, .cellHead { text-transform: none !important; letter-spacing: 0; font-size: 13px; font-weight: 600; color: var(--ios-label-2); }
+.habitGroup.done, .habitGroup.off, .habitGroup.rest { color: var(--ios-label-3); }
+.card { margin-bottom: 14px; }
+.card > h3:first-child { margin: 0 0 12px; }
+
+/* ---------- habits: one flat card each, no boxes inside ---------- */
+.habit { padding: 14px 16px; }
+.habits { gap: 10px; }
+.habit .hIcon { background: transparent !important; width: 28px; height: 28px; font-size: 20px; }
+.habit .hName { font-size: 16px; font-weight: 600; }
+.habit .hSub { font-size: 13px; color: var(--ios-label-2); }
+.habit .hSub:empty { display: none; }
+.hNote, .hNote.ok, .hNote.plan, .hNote.never { background: none !important; color: var(--ios-label-2); padding: 0; font-weight: 500; }
+.hNote.ok { color: var(--ios-green); }
+.never { background: none !important; color: var(--ios-orange) !important; padding: 0 !important; font-weight: 500; font-size: 12.5px; }
+.track, .habit.reached .track.reached, .habit.over .track.over { background: transparent !important; padding: 10px 0 0 !important; border-radius: 0; margin: 0; }
+.track + .track { border-top: 1px solid var(--ios-sep); margin-top: 10px; }
+.trLbl { display: none; }
+.track .trTop:has(.trName:empty) { display: none; }
+.trName { font-size: 12.5px; font-weight: 600; color: var(--ios-label-2); }
+.trMsg { font-size: 13px; font-weight: 500; color: var(--ios-label-2); }
+.trMsg.tone-good { color: var(--ios-label-2); }
+.trMsg.tone-bad { color: var(--ios-red); }
+.trMsg.tone-warn { color: var(--ios-orange); }
+.meter { height: 3px; background: var(--ios-fill-2); margin-bottom: 6px; }
+.meter i, .meter.tone-good i { background: var(--ios-green); }
+.habit.done { box-shadow: none !important; }
+.habit.done .hIcon, .habit.skipped .hIcon { background: transparent !important; }
+.habit.skipped { opacity: .5; }
+.restDay { opacity: .55; }
+.synced { background: var(--ios-fill); color: var(--ios-label-2); }
+
+/* ---------- tasks ---------- */
+.task { padding: 12px 14px; }
+.tTitle { font-weight: 500; }
+.tMeta { font-size: 12.5px; color: var(--ios-label-2); gap: 0; }
+.due, .due.today, .due.soon, .due.overdue, .due.late { background: none !important; color: var(--ios-label-2); padding: 0; font-weight: 500; border-radius: 0; }
+.due.today, .due.soon { color: var(--ios-orange); }
+.due.overdue, .due.late { color: var(--ios-red); }
+.okText { color: var(--ios-green); }
+.playBtn { background: transparent !important; color: var(--ios-blue); box-shadow: inset 0 0 0 1.5px var(--ios-blue) !important; width: 32px; height: 32px; font-size: 11px; }
+.playBtn:hover { background: var(--accent-tint) !important; }
+.playBtn:disabled { opacity: .3; }
+.checkBtn, .habit .checkBtn, .task .checkBtn { border-width: 1.5px; border-color: var(--ios-label-3); }
+.checkBtn.on { background: var(--ios-green); border-color: var(--ios-green); }
+.habit .skip { background: transparent; color: var(--ios-label-2); font-weight: 500; }
+
+/* ---------- the focus line on Today ---------- */
+.quickTimer { padding: 6px 6px 6px 16px; margin-bottom: 18px; }
+.quickTimer input::placeholder { color: var(--ios-label-3); }
+.qtGo { width: 40px; height: 40px; padding: 0; border-radius: 50%; background: var(--ios-blue) !important; color: #fff; font-size: 13px; flex: none; }
+.qtMore { background: transparent !important; color: var(--ios-label-3); }
+#todayCard { margin-top: 4px; }
+
+/* reflection: one quiet row that opens */
+.reflect { padding: 0; }
+.reflect > summary { list-style: none; display: flex; justify-content: space-between; align-items: center; padding: 14px 16px; cursor: pointer; color: var(--ios-label-2); font-weight: 500; }
+.reflect > summary::-webkit-details-marker { display: none; }
+.reflect > summary::after { content: '›'; font-size: 20px; color: var(--ios-label-3); transition: transform .2s; }
+.reflect[open] > summary::after { transform: rotate(90deg); }
+.reflect .reflectBox { margin: 0 16px 16px; width: calc(100% - 32px); box-sizing: border-box; }
+
+/* ---------- Week ---------- */
+.kleosChip { background: none !important; padding: 4px 0; }
+.kleosChip b { color: var(--ios-label); font-size: 17px; }
+.wkHero { padding: 16px 14px 14px; }
+.wkDay i { width: 32px; height: 32px; font-size: 11.5px; font-weight: 600; }
+.wkDay i.fill-green { background: color-mix(in srgb, var(--ios-green) 18%, transparent); color: var(--ios-green); }
+.wkDay i.fill-yellow { background: color-mix(in srgb, var(--ios-orange) 18%, transparent); color: var(--ios-orange); }
+.wkDay i.fill-red { background: color-mix(in srgb, var(--ios-red) 16%, transparent); color: var(--ios-red); }
+.wkDay.today i { box-shadow: 0 0 0 1.5px var(--ios-blue); }
+.wkKpis { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0; margin-top: 16px; border-top: 1px solid var(--ios-sep); padding-top: 12px; }
+.wkKpi { background: none; padding: 2px 4px; }
+.wkKpi b { font-size: 20px; font-weight: 600; }
+.wkKpi b.band.red { color: var(--ios-red); }
+.wkActions { display: flex; gap: 0; background: var(--ios-cell); border-radius: 12px; margin: 0 0 14px; overflow: hidden; }
+.wkActions button { flex: 1; background: transparent; color: var(--ios-blue); font-size: 15px; font-weight: 500; padding: 12px 4px; border-radius: 0; }
+.wkActions button + button { box-shadow: inset 1px 0 0 var(--ios-sep); }
+.whIcon { background: transparent; font-size: 19px; }
+.whMain b { font-weight: 500; }
+.hd { width: 10px; height: 10px; }
+.wkHabit .status { background: none !important; padding: 0; font-size: 12.5px; font-weight: 500; }
+.status.st-on { color: var(--ios-label-2); }
+.quickAdd { background: var(--ios-bg); border: 0 !important; }
+.backlogLink { background: transparent; padding: 12px 0 2px; border-top: 1px solid var(--ios-sep); border-radius: 0; margin-top: 12px; }
+#view-week .task { background: transparent; padding: 10px 0; margin: 0; border-radius: 0; }
+#view-week .task + .task { border-top: 1px solid var(--ios-sep); }
+.doneToggle { color: var(--ios-label-2); }
+
+/* ---------- Trends ---------- */
+.insights .insight { display: grid; grid-template-columns: 10px minmax(0, 1fr); gap: 2px 12px; padding: 10px 0; margin: 0; border: 0; background: none; border-radius: 0; }
+.insights .insight + .insight, .moreIns .insight { border-top: 1px solid var(--ios-sep); }
+.inDot { width: 8px; height: 8px; border-radius: 50%; margin-top: 6px; background: var(--ios-blue); }
+.insight.bad .inDot { background: var(--ios-red); }
+.insight.warn .inDot { background: var(--ios-orange); }
+.inMain b { font-size: 15px; font-weight: 600; }
+.inMain .small { color: var(--ios-label-2); }
+.inGo { grid-column: 2; justify-self: start; background: none !important; color: var(--ios-blue); padding: 4px 0 0; font-size: 14px; font-weight: 600; }
+.moreIns > summary { color: var(--ios-blue); font-weight: 500; padding: 10px 0 2px; cursor: pointer; list-style: none; border-top: 1px solid var(--ios-sep); }
+.moreIns > summary::-webkit-details-marker { display: none; }
+.moreIns[open] > summary { display: none; }
+.wins { list-style: none; margin: 0; padding: 0; }
+.wins li { padding: 6px 0 6px 18px; position: relative; color: var(--ios-label); }
+.wins li::before { content: ''; position: absolute; left: 0; top: 13px; width: 8px; height: 8px; border-radius: 50%; background: var(--ios-green); }
+.statsCard .stats { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; }
+.stat, .hero-bg .stat { background: transparent !important; padding: 4px; }
+.stat b, .hero-bg .stat b { font-size: 20px; font-weight: 600; }
+
+/* ---------- Me ---------- */
+#view-me .notifRow .nIc { display: none; }
+#view-me .notifRow b { font-size: 16px; }
+.meRank { padding: 14px 16px; }
+.mrBadge { width: 40px; height: 40px; font-size: 18px; border-radius: 11px; }
+.moreStations > summary { color: var(--ios-blue); font-weight: 500; padding: 12px 2px 4px; cursor: pointer; list-style: none; }
+.moreStations > summary::-webkit-details-marker { display: none; }
+.moreStations .radioList { margin-top: 8px; }
+.radioList .cell.on { box-shadow: none; }
+.radioList .cell.on small { color: var(--ios-label-2); }
+.musicSeg { margin-bottom: 14px; }
+.credit { font-size: 12px; }
+
+/* ---------- tab bar ---------- */
+.tabbar button.on { color: var(--ios-blue); }
+
+/* ---------- last neon bits ---------- */
+#g-green stop { stop-color: var(--ios-green); }
+#g-yellow stop { stop-color: var(--ios-orange); }
+#g-red stop { stop-color: var(--ios-red); }
+#g-none stop { stop-color: var(--ios-blue); }
+.thBar i, .thBar i.fill-green { background: var(--ios-green) !important; }
+.thBar i.fill-yellow { background: var(--ios-orange) !important; }
+.thBar i.fill-red, .trReason .thBar i { background: var(--ios-red) !important; opacity: .75; }
+.thDelta.up { color: var(--ios-green); } .thDelta.down { color: var(--ios-red); }
+.b28 i.fill-green { background: color-mix(in srgb, var(--ios-green) 70%, transparent); }
+.reflect > summary::before { display: none !important; content: none !important; }
+.reflect > summary { text-align: left; }
+.mrBadge { background: var(--accent-tint) !important; color: var(--ios-blue); }
+.rkBar i { background: var(--ios-orange) !important; }
+.mrWallet b { color: var(--ios-label); }
+#view-me .iosGroup .cIcon { display: none; }
+#view-me .notifRow input[type=time] { width: 116px; }
+.sessionBar .mbDot.work { background: var(--ios-orange); }
+
+/* ---------- focus screen: the same calm, on black ---------- */
+body.focusing { --f-work: #d8a865; --f-proc: #d98a7a; --f-go: #7fbf9f; }
+body.focusing .split .w, body.focusing .dot.w { background: var(--f-work); }
+body.focusing .split .p, body.focusing .dot.p { background: var(--f-proc); }
+body.focusing .session.working { --phase: var(--f-work); }
+body.focusing .session.procrast { --phase: var(--f-proc); }
+body.focusing #sPause { background: rgba(216, 168, 101, .16) !important; color: var(--f-work) !important; box-shadow: 0 0 0 2px #000, 0 0 0 4px rgba(216, 168, 101, .16); }
+body.focusing #sWork { background: rgba(127, 191, 159, .18) !important; color: var(--f-go) !important; box-shadow: 0 0 0 2px #000, 0 0 0 4px rgba(127, 191, 159, .18); }
+body.focusing .switch span { background: rgba(255, 255, 255, .2); }
+body.focusing .switch input:checked + span { background: var(--f-go); }
+body.focusing .rBtn.rPlay { background: #8db4d6; color: #0e1116; }

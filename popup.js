@@ -173,15 +173,13 @@ function dueRow(t) {
   const chk = checkBtn({ state: done ? true : null, title: done ? 'Mark not done' : 'Mark done', onChange: (v) => tickTask(row, chk, t, 'doing')(v) });
   const main = document.createElement('div');
   main.className = 'tMain';
-  main.innerHTML = `<div class="tTitle">${esc(ticketTitle(t, state))}</div><div class="tMeta">${done ? '<span class="pill okPill">✓ done today</span>' : `<span class="due ${d.cls}">${esc(d.text)}</span>`}${t.sizeH ? `<span>⏱ ${t.sizeH} h</span>` : ''}${!done && t.status === 'doing' ? '<span>in progress</span>' : ''}</div>`;
+  main.innerHTML = `<div class="tTitle">${esc(ticketTitle(t, state))}</div><div class="tMeta">${[done ? '<span class="okText">Done today</span>' : `<span class="due ${d.cls}">${esc(d.text)}</span>`, t.sizeH ? `${t.sizeH} h` : '', !done && t.status === 'doing' ? 'in progress' : ''].filter(Boolean).join(' · ')}</div>`;
   row.append(chk, main);
   if (!done) {
-    const cal = Object.assign(document.createElement('button'), { className: 'ghost iconBtn', title: 'Block time for this in Google Calendar', textContent: '📅' });
-    cal.onclick = () => openUrl(gcalUrl({ title: `🎯 ${ticketTitle(t, state)}`, details: `Focus block from Odyssey · due ${t.due}`, start: (() => { const x = new Date(); x.setMinutes(0, 0, 0); x.setHours(x.getHours() + 1); return x; })(), minutes: Math.round((t.sizeH || 1) * 60) }));
     const go = Object.assign(document.createElement('button'), { className: 'playBtn', title: 'Start a focus session on this', innerHTML: '▶' });
     go.disabled = !!state.activeSession;
     go.onclick = () => startOn(`t:${t.id}`);
-    row.append(cal, go);
+    row.append(go);
   }
   return row;
 }
@@ -217,7 +215,7 @@ const reflection = bindReflection({
   getDayKey: () => today,
   getState: () => state,
 });
-const renderReflection = () => reflection.refresh();
+const renderReflection = () => { reflection.refresh(); $('#reflectCard').open = !!$('#reflection').value.trim(); };
 
 // ---------- implementation intention: when is the next session? ----------
 
@@ -720,7 +718,7 @@ function renderMusic() {
   box.innerHTML = '';
   const seg = document.createElement('div');
   seg.className = 'seg musicSeg';
-  for (const [k, t] of [['radio', '📻 Focus radio'], ['playlist', '🎵 Your playlist']]) {
+  for (const [k, t] of [['radio', 'Focus radio'], ['playlist', 'Your playlist']]) {
     const b = Object.assign(document.createElement('button'), { type: 'button', className: musicSource() === k ? 'on' : '', textContent: t });
     b.onclick = () => setSetting({ musicSource: k });
     seg.append(b);
@@ -816,15 +814,22 @@ function playerToggleRow() {
 function renderRadioSettings(box) {
   const chosen = stationById(state.settings, state.settings.radioStation).id;
   const st = radioState();
-  box.append(Object.assign(document.createElement('p'), { className: 'small muted musicHow', textContent: 'Real radio played by Odyssey itself: it keeps playing with the screen locked, and your lock screen shows the station with your focus time. Tap a station to make it the focus card’s.' }));
   const g = document.createElement('div');
   g.className = 'iosGroup radioList';
-  for (const x of stationsOf(state.settings)) {
+  const others = document.createElement('details');
+  others.className = 'moreStations';
+  others.open = !!renderRadioSettings.open;
+  others.ontoggle = () => { renderRadioSettings.open = others.open; };
+  others.innerHTML = '<summary>Other stations</summary>';
+  const og = document.createElement('div');
+  og.className = 'iosGroup radioList';
+  others.append(og);
+  for (const x of [...stationsOf(state.settings)].sort((a, b) => (b.id === chosen) - (a.id === chosen))) {
     const on = x.id === chosen;
     const playing = st.station?.id === x.id && (st.playing || st.loading);
     const row = document.createElement('div');
     row.className = `cell ${on ? 'on' : ''}`;
-    row.innerHTML = `<span class="cIcon">${x.icon}</span><span class="cMain"><b>${esc(x.name)}</b><small>${on ? '✓ On the focus card · ' : ''}${esc(x.vibe)} · ${esc(x.by)}</small></span>`;
+    row.innerHTML = `<span class="cMain"><b>${esc(x.name)}</b><small>${esc(x.vibe)}${on ? ' · plays on the focus card' : ''}</small></span>`;
     const play = Object.assign(document.createElement('button'), { type: 'button', className: `rBtn ${playing ? 'on' : ''}`, textContent: playing ? '⏸' : '▶', title: playing ? 'Pause' : 'Listen' });
     play.onclick = (e) => { e.stopPropagation(); if (playing) radioPause(); else startRadio(x); };
     row.append(play);
@@ -834,9 +839,9 @@ function renderRadioSettings(box) {
       row.append(rm);
     }
     row.onclick = () => { if (!on) setSetting({ radioStation: x.id }); };
-    g.append(row);
+    (on ? g : og).append(row);
   }
-  box.append(g);
+  box.append(g, others);
   // your own stream
   const form = document.createElement('form');
   form.className = 'inviteRow addStream';
@@ -854,8 +859,8 @@ function renderRadioSettings(box) {
     toast('Station added');
   };
   form.append(url, add);
-  box.append(form, msg);
-  box.append(Object.assign(document.createElement('p'), { className: 'small muted credit', innerHTML: 'SomaFM and Radio Paradise are free and listener-supported: <a href="https://somafm.com/support/" target="_blank" rel="noopener">support SomaFM</a> · <a href="https://radioparadise.com/support" target="_blank" rel="noopener">Radio Paradise</a>. Raagam is All India Radio’s classical channel.' }));
+  others.append(form, msg);
+  others.append(Object.assign(document.createElement('p'), { className: 'small muted credit', innerHTML: 'SomaFM and Radio Paradise are free and listener-supported: <a href="https://somafm.com/support/" target="_blank" rel="noopener">support SomaFM</a> · <a href="https://radioparadise.com/support" target="_blank" rel="noopener">Radio Paradise</a>. Raagam is All India Radio’s classical channel.' }));
   box.append(playerToggleRow());
 }
 
@@ -986,8 +991,8 @@ function taskRow(t) {
   const main = document.createElement('div');
   main.className = 'tMain';
   main.innerHTML = `<div class="tTitle">${parent ? `<span class="muted">${esc(parent.title)} › </span>` : ''}${esc(t.title)}</div>
-    <div class="tMeta">${[d ? `<span class="due ${d.cls}">${esc(d.text)}</span>` : '', t.sizeH ? `⏱ ${round1(lh)}/${t.sizeH} h` : lh ? `⏱ ${round1(lh)} h` : '',
-      kids.length ? `☑ ${kids.filter((k) => k.status === 'done').length}/${kids.length}` : '', t.status === 'doing' ? '<span class="pill">in progress</span>' : ''].filter(Boolean).join(' · ')}</div>`;
+    <div class="tMeta">${[d ? `<span class="due ${d.cls}">${esc(d.text)}</span>` : '', t.sizeH ? `${round1(lh)} of ${t.sizeH} h` : lh ? `${round1(lh)} h` : '',
+      kids.length ? `${kids.filter((k) => k.status === 'done').length} of ${kids.length} steps` : '', t.status === 'doing' ? 'in progress' : ''].filter(Boolean).join(' · ')}</div>`;
   row.append(chk, main);
   if (t.status !== 'done') {
     const go = Object.assign(document.createElement('button'), { className: 'playBtn', title: 'Focus on this', innerHTML: '▶' });
@@ -1007,7 +1012,7 @@ function renderWeek() {
   const left = days.filter((k) => k > today).length;
   $('#wkSub').textContent = `${f(days[0])} – ${f(days[6])} · ${left ? `${left} day${left > 1 ? 's' : ''} left` : 'last day'}`;
   const K = kleos(state, today);
-  $('#wkKleos').innerHTML = `<b>${K.week >= 0 ? '+' : '−'}${Math.abs(K.week)} ${POINTS.icon}</b><span>${esc(K.rank.name)}</span>`;
+  $('#wkKleos').innerHTML = `<b>${K.week >= 0 ? '+' : '−'}${Math.abs(K.week)}</b><span>${POINTS.name} this week</span>`;
 
   // the 7 days, coloured by score
   $('#wkDays').innerHTML = days.map((k) => {
@@ -1026,16 +1031,13 @@ function renderWeek() {
   const overdue = tasks.filter((t) => t.status !== 'done' && t.due && t.due < today).length;
   const L = ledger(state, today);
   $('#wkKpis').innerHTML = [
-    [sum.avg ?? '—', 'week score', band(sum.avg)],
-    [`${sts.filter((x) => x === 'done' || x === 'on').length}/${goals.length}`, 'habits on track', sts.some((x) => x === 'missed') ? 'red' : sts.some((x) => x === 'risk') ? 'yellow' : 'green'],
-    [`${doneT}/${tasks.length}`, overdue ? `tasks · ${overdue} late` : 'tasks done', overdue ? 'red' : ''],
-    [hm(tm.totalMin), 'focused', ''],
-    [streak(state, today), '🔥 streak', ''],
-    [money(L.atStake), '💰 in play', ''],
+    [sum.avg ?? '—', 'week score', ''],
+    [`${sts.filter((x) => x === 'done' || x === 'on').length} of ${goals.length}`, 'habits on track', ''],
+    [`${doneT} of ${tasks.length}`, overdue ? `tasks · ${overdue} late` : 'tasks done', overdue ? 'red' : ''],
   ].map(([v, l, c]) => `<div class="wkKpi"><b class="${c ? `band ${c}` : ''}">${v}</b><span>${l}</span></div>`).join('');
 
   // habits: where each one stands this week
-  $('#wkHabSub').textContent = goals.length ? `${sts.filter((x) => x === 'done').length} hit · ${sts.filter((x) => x === 'risk' || x === 'missed').length} need attention` : '';
+  $('#wkHabSub').textContent = '';
   const hb = $('#wkHabits');
   hb.innerHTML = '';
   if (!goals.length) hb.innerHTML = '<div class="emptyLine">No habits planned. Tap ✎ Plan.</div>';
@@ -1080,7 +1082,7 @@ function renderWeek() {
   box.innerHTML = '';
   const open = tops.filter((t) => t.status !== 'done');
   const done = tops.filter((t) => t.status === 'done');
-  $('#tkSub').textContent = `${done.length}/${tops.length} done · ${round1(open.reduce((a, t) => a + (t.sizeH || 0), 0))} h left`;
+  $('#tkSub').textContent = open.length ? `${round1(open.reduce((a, t) => a + (t.sizeH || 0), 0))} h left` : '';
   const group = (label, items) => {
     if (!items.length) return;
     box.append(Object.assign(document.createElement('div'), { className: 'subHead', textContent: `${label} · ${items.length}` }));
@@ -1099,7 +1101,7 @@ function renderWeek() {
     if (tkOpen.done) for (const x of done.sort((a, b) => (b.doneAt || 0) - (a.doneAt || 0))) box.append(taskRow(x));
   }
   const bl = backlogTickets(state).filter((t) => t.status !== 'done' && !t.parentId);
-  $('#wkBacklog').innerHTML = `<span>🗂️</span><span class="blMain"><b>Backlog</b><small>${bl.length ? `${bl.length} task${bl.length > 1 ? 's' : ''} parked for later` : 'Park future tasks here'}</small></span><span class="chev">›</span>`;
+  $('#wkBacklog').innerHTML = `<span class="blMain"><b>Backlog</b><small>${bl.length ? `${bl.length} task${bl.length > 1 ? 's' : ''} for later` : 'Park future tasks here'}</small></span><span class="chev">›</span>`;
 }
 
 // The backlog: parked tasks; pull one into this week, or add more.
@@ -1141,20 +1143,42 @@ function renderTrends() {
   const ins = insights(state, today);
   const box = $('#trInsights');
   box.innerHTML = '';
-  if (!ins.length) box.innerHTML = '<section class="card"><div class="emptyLine">Log a few days and run some focus sessions; tips show up here.</div></section>';
-  for (const x of ins.slice(0, 10)) {
-    const c = document.createElement('section');
-    c.className = `card insight ${x.tone}`;
-    c.innerHTML = `<span class="inIcon">${x.icon}</span><div class="inMain"><b>${esc(x.title)}</b><div class="small">${esc(x.body)}</div></div>`;
+  const todo = ins.filter((x) => x.tone !== 'good');
+  const good = ins.filter((x) => x.tone === 'good');
+  const cell = (x) => {
+    const c = document.createElement('div');
+    c.className = `insight ${x.tone}`;
+    c.innerHTML = `<span class="inDot"></span><div class="inMain"><b>${esc(x.title)}</b><div class="small">${esc(x.body)}</div></div>`;
     if (x.action) {
       const b = document.createElement('button');
       b.type = 'button';
-      b.className = x.tone === 'bad' || x.tone === 'warn' ? 'primary small' : 'small';
+      b.className = 'inGo';
       b.textContent = x.action.label;
       b.onclick = () => insightGo(x.action);
       c.append(b);
     }
-    box.append(c);
+    return c;
+  };
+  if (!ins.length) box.innerHTML = '<section class="card"><div class="emptyLine">Log a few days and run some focus sessions; what matters shows up here.</div></section>';
+  if (todo.length) {
+    const card = document.createElement('section');
+    card.className = 'card insights';
+    card.innerHTML = '<h3>Worth your attention</h3>';
+    todo.slice(0, 3).forEach((x) => card.append(cell(x)));
+    if (todo.length > 3) {
+      const more = document.createElement('details');
+      more.className = 'moreIns';
+      more.innerHTML = `<summary>${todo.length - 3} more</summary>`;
+      todo.slice(3).forEach((x) => more.append(cell(x)));
+      card.append(more);
+    }
+    box.append(card);
+  }
+  if (good.length) {
+    const card = document.createElement('section');
+    card.className = 'card insights good';
+    card.innerHTML = `<h3>Going well</h3><ul class="wins">${good.map((x) => `<li>${esc(x.title)}</li>`).join('')}</ul>`;
+    box.append(card);
   }
   const last7 = lastNDays(today, 7);
   const last28 = lastNDays(today, 28);
@@ -1164,8 +1188,7 @@ function renderTrends() {
   const a7 = rollingAvg(state, today, 7);
   const a28 = rollingAvg(state, today, 28);
   $('#trKpis').innerHTML = [
-    [a7 ?? '—', '7-day score'], [a28 ?? '—', '28-day score'], [streak(state, today), '🔥 day streak'],
-    [hm(t7.totalMin), '⏱ time · 7 d'], [st7.avgStartMin == null ? '—' : hm(st7.avgStartMin), '⏳ to start'], [done7, '✅ tasks · 7 d'],
+    [a7 ?? '—', '7-day score'], [streak(state, today), 'day streak'], [hm(t7.totalMin), 'focused · 7 days'],
   ].map(([v, l]) => `<div class="stat"><b>${v}</b><span>${l}</span></div>`).join('');
 
   // 28 bars, coloured by band

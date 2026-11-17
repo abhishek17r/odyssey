@@ -6,6 +6,7 @@
   <link rel="stylesheet" href="styles.css" />
   <link rel="stylesheet" href="popup.css" />
   <link rel="stylesheet" href="ios.css" />
+  <link rel="stylesheet" href="calm.css" />
 </head>
 <body>
   <!-- launch splash (phone app only): Odysseus' ship sailing at sunset -->
@@ -91,6 +92,7 @@
       <div>
         <div class="tbDay" id="tbDay"></div>
         <div class="tbDate" id="dateLabel"></div>
+        <div class="tbProg" id="todayProg"></div>
       </div>
       <button type="button" class="miniRing" id="miniRing" title="Today's score">
         <div class="ring">
@@ -108,13 +110,12 @@
         </div>
       </button>
     </header>
-    <div class="cheerLine"><span class="band" id="bandLabel"></span> <span class="cheer" id="cheer"></span></div>
+    <div class="cheerLine" hidden><span class="band" id="bandLabel"></span> <span class="cheer" id="cheer"></span></div>
 
     <form class="quickTimer" id="qtForm" autocomplete="off">
-      <span class="qtIcon">⏱</span>
-      <input type="text" id="qtWhat" maxlength="80" placeholder="Ad hoc timer: what now?" />
+      <input type="text" id="qtWhat" maxlength="80" placeholder="What will you focus on?" />
       <button type="button" class="qtMore" id="qtMore" title="More options: pick a task, set the length">⋯</button>
-      <button type="submit" class="qtGo" title="Start the timer">▶ Start</button>
+      <button type="submit" class="qtGo" title="Start focusing" aria-label="Start focusing">▶</button>
     </form>
   <section class="card session" id="sessionCard">
     <div id="sIdle">
@@ -197,17 +198,16 @@
     </section>
 
     <section class="card" id="todayCard" hidden>
-      <div class="checkinHead"><h3 style="margin:0">Today</h3><span class="progressPill" id="todayProg"></span></div>
-      <div id="dueBox"></div>
+            <div id="dueBox"></div>
       <div class="subHead" id="habitsHead">Habits</div>
       <div id="goalQs"></div>
-      <input type="text" id="note" maxlength="140" placeholder="📝 Note: a win, a lesson (optional)" style="margin-top:10px" />
+      <input type="text" id="note" maxlength="140" hidden />
     </section>
 
-    <section class="card" id="reflectCard">
-      <div class="row between"><h3>Reflection</h3><span class="small" id="reflectMsg"></span></div>
-      <textarea id="reflection" class="reflectBox" rows="4" placeholder="How was today, really? What went well, what got in the way, how you felt…"></textarea>
-    </section>
+    <details class="card reflect" id="reflectCard">
+      <summary><span>Reflect on today</span><span class="small" id="reflectMsg"></span></summary>
+      <textarea id="reflection" class="reflectBox" rows="4" placeholder="How was today, really? What went well, what got in the way?"></textarea>
+    </details>
   </main>
 
   <!-- WEEK -->
@@ -219,9 +219,9 @@
       <div class="wkKpis" id="wkKpis"></div>
     </section>
     <div class="wkActions">
-      <button type="button" id="wkPlan"><span>✎</span>Plan</button>
-      <button type="button" id="wkReview"><span>🔁</span>Review</button>
-      <button type="button" id="wkRewards"><span>⚡</span>Rewards</button>
+      <button type="button" id="wkPlan">Plan</button>
+      <button type="button" id="wkReview">Review</button>
+      <button type="button" id="wkRewards">Rewards</button>
     </div>
     <section class="card"><div class="cardHead"><h3>Habits</h3><span class="small muted" id="wkHabSub"></span></div><div id="wkHabits"></div></section>
     <section class="card"><div class="cardHead"><h3>Tasks</h3><span class="small muted" id="tkSub"></span></div>
@@ -246,10 +246,10 @@
   <main class="view" id="view-me" hidden>
     <header class="topbar"><div><div class="tbDay">Me</div><div class="tbDate" id="meSub"></div></div></header>
     <button type="button" class="card meRank" id="meRank"></button>
-    <section class="card"><h3>☁️ Account &amp; sync</h3><div id="meAccount"></div></section>
-    <section class="card"><h3>🎵 Focus music</h3><div id="meMusic"></div></section>
-    <section class="card"><h3>🔔 Notifications</h3><div id="meNotif"></div></section>
-    <section class="card"><h3>🖥️ On the dashboard</h3>
+    <section class="card"><h3>Account &amp; sync</h3><div id="meAccount"></div></section>
+    <section class="card"><h3>Focus music</h3><div id="meMusic"></div></section>
+    <section class="card"><h3>Notifications</h3><div id="meNotif"></div></section>
+    <section class="card"><h3>On the dashboard</h3>
       <p class="small muted" style="margin:0 0 8px">Bigger views, best on a computer.</p>
       <div class="iosGroup">
         <a class="cell" data-open="today"><span class="cIcon">📅</span><span class="cMain"><b>Any day</b><small>Calendar, past check-ins, sessions</small></span><span class="chev">›</span></a>
