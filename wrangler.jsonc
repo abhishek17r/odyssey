@@ -1,0 +1,11 @@
+// Cloudflare Workers deploy settings (Workers Builds runs `npm run build`, then `npx wrangler deploy`).
+// The phone web app is plain static files: wrangler serves dist/web as the Worker's assets.
+// "name" must match the Worker's name in the Cloudflare dashboard.
+{
+  "name": "odyssey",
+  "compatibility_date": "2026-06-01",
+  "assets": {
+    "directory": "./dist/web",
+    "not_found_handling": "404-page"
+  }
+}
