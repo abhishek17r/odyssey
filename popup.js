@@ -154,8 +154,7 @@ function renderDue() {
 function startOn(value) {
   showView('focus');
   if ($('#sAsk').hidden) $('#sStartBtn').click();
-  const sel = $('#sGoal');
-  if ([...sel.options].some((o) => o.value === value)) { sel.value = value; sel.dispatchEvent(new Event('change')); }
+  if (value?.startsWith('t:') && state.tickets[value.slice(2)]) setPicked(value);
 }
 
 // ---------- reflection ----------
@@ -336,7 +335,7 @@ $('#sStartBtn').onclick = () => {
   renderLenChips();
   fillGoalSelect();
   renderRitual();
-  $('#sGoal').focus();
+  if (!picked) $('#sWhat').focus();
 };
 // The active experiment's start ritual (first action, environment checklist, two-minute rule, blocker).
 function renderRitual() {
@@ -354,41 +353,80 @@ function renderRitual() {
   box.innerHTML = html;
 }
 
-const NEW_TICKET = '__new';
+// ---------- what to focus on: type anything, or pick a task ----------
+// picked = 't:<ticketId>' when a task is chosen; otherwise the typed text is an ad hoc session whose time
+// counts toward the habit in "Time counts toward" (and, if ticked, becomes an unplanned task).
+let picked = null;
 
-// This sprint's open tickets, habit time without a ticket, then "new ticket". The last pick is preselected.
+function openTasks() {
+  const wk = weekKeyOf(today);
+  const rank = { doing: 0, todo: 1 };
+  return ticketsInSprint(wk, state).filter((t) => t.status !== 'done')
+    .sort((a, b) => rank[a.status] - rank[b.status] || (a.due || '9999').localeCompare(b.due || '9999') || a.createdAt - b.createdAt);
+}
+
+function setPicked(v) {
+  picked = v;
+  const t = v && state.tickets[v.slice(2)];
+  document.querySelectorAll('#sPicks [data-pick]').forEach((c) => c.classList.toggle('on', c.dataset.pick === v));
+  if (t) $('#sWhat').value = ticketTitle(t, state);
+  $('#sAdhoc').hidden = !!t;
+}
+
 function fillGoalSelect() {
   const wk = weekKeyOf(today);
-  const sel = $('#sGoal');
+  // chips: what's in progress and next up
+  const chips = openTasks().slice(0, 6);
+  $('#sPicks').innerHTML = chips.map((t) => {
+    const d = dueInfo(t, today);
+    return `<button type="button" class="pick" data-pick="t:${esc(t.id)}">${t.status === 'doing' ? '◐ ' : ''}${esc(ticketTitle(t, state))}${d && ['overdue', 'today'].includes(d.cls) ? ` <span class="due ${d.cls}">${esc(d.text)}</span>` : ''}</button>`;
+  }).join('');
+  $('#sPicks').querySelectorAll('[data-pick]').forEach((c) => (c.onclick = () => {
+    if (picked === c.dataset.pick) { setPicked(null); $('#sWhat').value = ''; $('#sWhat').focus(); } else setPicked(c.dataset.pick);
+  }));
+  // the full list (backlog too)
+  $('#sGoal').innerHTML = '<option value="">Choose a task…</option>' + targetOptions(wk, null, state, { openOnly: true, withBacklog: true });
+  // habit for ad hoc time
+  const habits = timedHabits(wk, state);
+  const lastHabit = state.settings.lastAdhocHabit;
+  $('#sHabit').innerHTML = habits.map((g) => `<option value="${esc(g.id)}">${g.icon || '⭐'} ${esc(g.name)}</option>`).join('') + '<option value="">No habit</option>';
+  $('#sHabit').value = lastHabit !== undefined && (lastHabit === '' || habits.some((g) => g.id === lastHabit)) ? lastHabit : habits.some((g) => g.id === 'work') ? 'work' : (habits[0]?.id || '');
+  $('#sAddTask').checked = false;
+  $('#sWhat').value = '';
+  // start from the last task if it's still open
   const last = state.settings.lastGoalId;
-  sel.innerHTML = targetOptions(wk, null, state, { openOnly: true, withBacklog: true }) + `<option value="${NEW_TICKET}">＋ New ticket…</option>`;
-  const values = [...sel.options].map((o) => o.value);
-  sel.value = values.includes(last) ? last : values.includes('h:work') ? 'h:work' : values[0];
-  $('#sNewHabit').innerHTML = '<option value="">Counts toward no habit</option>' +
-    timedHabits(wk, state).map((g) => `<option value="${esc(g.id)}">Counts toward ${g.icon || '⭐'} ${esc(g.name)}</option>`).join('');
-  $('#sNewHabit').value = timedHabits(wk, state).some((g) => g.id === 'work') ? 'work' : '';
-  showNewGoal();
+  setPicked(last?.startsWith('t:') && chips.some((t) => `t:${t.id}` === last) ? last : null);
 }
-const showNewGoal = () => {
-  $('#sNew').hidden = $('#sGoal').value !== NEW_TICKET;
-  if (!$('#sNew').hidden) $('#sNewName').focus();
+$('#sGoal').onchange = () => {
+  const v = $('#sGoal').value;
+  if (v.startsWith('t:')) setPicked(v);
+  else if (v.startsWith('h:')) { setPicked(null); $('#sHabit').value = v.slice(2); }
+  else if (v === '') { setPicked(null); $('#sHabit').value = ''; }
+  $('#sAll').open = false;
+  $('#sGoal').value = '';
 };
-$('#sGoal').onchange = showNewGoal;
+$('#sWhat').addEventListener('input', () => {
+  const t = picked && state.tickets[picked.slice(2)];
+  if (t && $('#sWhat').value.trim() !== ticketTitle(t, state)) setPicked(null); // typing something else = ad hoc
+});
+$('#sWhat').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('#sGo').click(); });
 
 $('#sGo').onclick = async () => {
-  let pick = $('#sGoal').value;
   const wk = weekKeyOf(today);
-  if (pick === NEW_TICKET) {
-    const title = $('#sNewName').value.trim();
-    if (!title) { $('#sNewName').focus(); $('#sNewName').placeholder = 'Name the ticket first'; return; }
-    const size = Number($('#sNewSize').value);
-    const t = await addTicket({ title, sizeH: size > 0 ? size : null, habitId: $('#sNewHabit').value || null, sprint: wk, planned: false });
-    state = await load();
-    pick = `t:${t.id}`;
+  const text = $('#sWhat').value.trim();
+  let pick = picked;
+  if (!pick) {
+    const habit = $('#sHabit').value;
+    if ($('#sAddTask').checked && text) {
+      const t = await addTicket({ title: text, habitId: habit || null, sprint: wk, planned: false });
+      state = await load();
+      pick = `t:${t.id}`;
+    } else pick = habit ? `h:${habit}` : '';
+    state.settings.lastAdhocHabit = habit;
   }
   const target = resolveTarget(pick, wk, state);
   const tk = target.ticketId && state.tickets[target.ticketId];
-  const task = $('#sTask').value.trim() || (tk ? tk.title : target.goalName) || 'Focus session';
+  const task = text || (tk ? tk.title : target.goalName) || 'Focus session';
   const n = Number($('#sMin').value);
   const minutes = n >= 1 ? Math.round(n) : state.settings.sessionMinutes;
   const e = activeExperiment(state);
@@ -403,14 +441,14 @@ $('#sGo').onclick = async () => {
     extras.envChecked = boxes.filter((b) => b.checked).length === boxes.length;
   }
   if (e?.playId === 'twoMinute') extras.twoMinute = true;
+  const lastAdhocHabit = state.settings.lastAdhocHabit;
   state = await load();
   state.settings.lastGoalId = pick;
+  if (lastAdhocHabit !== undefined) state.settings.lastAdhocHabit = lastAdhocHabit;
   await save({ settings: state.settings });
   state.activeSession = await startSession(task, minutes, target, extras);
   state = await load();
-  $('#sTask').value = '';
-  $('#sNewName').value = '';
-  $('#sNewSize').value = '';
+  $('#sWhat').value = '';
   $('#sAsk').hidden = true;
   $('#sStartBtn').hidden = false;
   $('#sDone').hidden = true;
@@ -418,7 +456,6 @@ $('#sGo').onclick = async () => {
   showView('focus');
   setFullscreen(true);
 };
-$('#sTask').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('#sGo').click(); });
 $('#sMin').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('#sGo').click(); });
 $('#sWork').onclick = async () => {
   state.activeSession = await startWork();

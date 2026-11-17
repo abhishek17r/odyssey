@@ -198,13 +198,13 @@ body.focusing .tBtns button:not(.primary) { background: rgba(255, 255, 255, .08)
 body.focusing .status { background: rgba(255, 255, 255, .1); color: #fff; }
 body.focusing .whyChips button { background: rgba(255, 255, 255, .08); border-color: rgba(255, 255, 255, .14); color: #fff; }
 body.focusing #sWhy input { background: rgba(255, 255, 255, .06); border-color: rgba(255, 255, 255, .14); color: #fff; }
-body.focusing .tabbar, body.focusing .miniBar { display: none; }
+body.focusing .tabbar, body.focusing .sessionBar { display: none; }
 
 /* mini bar: the running session while you're elsewhere */
-.miniBar { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(66px + env(safe-area-inset-bottom)); z-index: 31;
+.sessionBar { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(66px + env(safe-area-inset-bottom)); z-index: 31;
   width: calc(100% - 20px); max-width: 540px; display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: 16px; border: 0;
   background: #0d1830; color: #fff; box-shadow: 0 10px 30px rgba(0, 0, 0, .3); text-align: left; }
-.miniBar:hover { background: #12204a; }
+.sessionBar:hover { background: #12204a; }
 .mbDot { width: 10px; height: 10px; border-radius: 50%; background: var(--accent); flex: none; }
 .mbDot.procrast { background: var(--red); animation: pulse 1.6s ease-in-out infinite; }
 .mbDot.work { background: var(--green); }
@@ -213,3 +213,16 @@ body.focusing .tabbar, body.focusing .miniBar { display: none; }
 .mbClock { font-family: var(--font-num); font-variant-numeric: tabular-nums; font-size: 15px; }
 .mbOpen { opacity: .6; }
 body.hasMini { padding-bottom: calc(132px + env(safe-area-inset-bottom)); }
+
+/* ---------- focus: what are you working on ---------- */
+.whatInput { font-size: 17px !important; font-weight: 650; padding: 12px 14px !important; border-radius: 14px !important; margin-top: 10px; }
+.pickChips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.pickChips:empty { display: none; }
+.pick { padding: 6px 12px; font-size: 12.5px; font-weight: 650; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pick.on { background: var(--accent-tint); color: var(--accent); border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 14%, transparent); }
+.pick .due { font-size: 10px; padding: 0 6px; margin-left: 4px; }
+.allTasks { margin-top: 6px; }
+.allTasks select { margin-top: 6px; }
+#sAdhoc { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+#sAdhoc[hidden] { display: none; }
+.addTask { display: flex; align-items: center; gap: 8px; color: var(--muted); font-weight: 600; cursor: pointer; }

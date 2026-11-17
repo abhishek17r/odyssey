@@ -62,17 +62,13 @@
       <button class="startBig" id="sStartBtn"><span class="play">▶</span><span><b>Start a focus session</b><small>The clock starts in procrastination mode</small></span></button>
       <div id="sAsk" hidden>
         <div class="row between"><h3 style="margin:0">New focus session</h3><a class="small" id="sCancel">Cancel</a></div>
-        <label class="t" for="sGoal">Working on</label>
-        <select id="sGoal"></select>
-        <div id="sNew" hidden class="subPanel">
-          <input type="text" id="sNewName" maxlength="80" placeholder="New ticket, e.g. Fix the car insurance" />
-          <div class="row" style="margin-top:6px">
-            <input type="number" id="sNewSize" min="0" step="0.5" placeholder="est. h" title="Estimate in hours (optional)" style="width:84px" />
-            <select id="sNewHabit" style="flex:1"></select>
-          </div>
-          <div class="hint">Joins this sprint as unplanned. Its time also counts toward the habit you pick.</div>
+        <input type="text" id="sWhat" class="whatInput" maxlength="80" placeholder="What are you working on?" autocomplete="off" />
+        <div class="pickChips" id="sPicks"></div>
+        <details class="allTasks" id="sAll"><summary class="small">All tasks and the backlog</summary><select id="sGoal"></select></details>
+        <div id="sAdhoc" class="subPanel">
+          <div class="row"><span class="small muted" style="white-space:nowrap">Time counts toward</span><select id="sHabit" style="flex:1"></select></div>
+          <label class="small addTask"><input type="checkbox" id="sAddTask" /> Also add it to this week’s tasks</label>
         </div>
-        <input type="text" id="sTask" maxlength="80" placeholder="What exactly? (optional) e.g. Mock system-design round" style="margin-top:8px" />
         <div id="sRitual" class="expBox" hidden></div>
         <label class="t" style="margin-top:12px">Length (minutes of work)</label>
         <div class="row lenRow">
@@ -163,7 +159,7 @@
   </main>
 
   <!-- the running session, minimised -->
-  <button type="button" class="miniBar" id="miniBar" hidden>
+  <button type="button" class="sessionBar" id="miniBar" hidden>
     <span class="mbDot" id="mbDot"></span><span class="mbTask" id="mbTask"></span><b class="mbClock" id="mbClock"></b><span class="mbOpen">⌃</span>
   </button>
 

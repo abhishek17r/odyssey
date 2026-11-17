@@ -234,12 +234,15 @@ On Friday, “Plan” (popup and reminder) opens the board on **next week**: Tas
 ## Daily check-in (~1 minute)
 
 Click the icon (or open the phone app). It's one app with four tabs: **☀️ Today** (due tasks and habits),
-**🎯 Focus** (the timer), **✅ Tasks** (this week's sprint and the backlog; tap a task for its sheet) and
+**🎯 Focus** (the timer: type anything you're about to work on, or tap one of your tasks), **✅ Tasks** (this week's sprint and the backlog; tap a task for its sheet) and
 **🧭 Me** (week stats, rewards, links to the full dashboard, account & sync). While a focus session runs it
 takes the whole screen; ⌄ shrinks it to a mini bar above the tabs. On **Today**:
 
 - **Due today:** sprint tasks due today or overdue. Tick ✓ to finish one, ▶ to start a focus session on it.
-- **Habits:** one card per habit. Tap ✓ for done (or *Skip*, then an optional why); counts and hours use −/+ steppers
+- **Habits:** one card per habit. Tap ✓ for done (a little celebration); *Skip* opens "Skipping … today? Why?" with quick
+  reasons (tired, no time, unwell, travel, rest day) or your own words, then *Skip today* (it shakes, greys out, and can be
+  undone). Done habits move to a **Done** group and skipped / over-the-limit ones to **Skipped or missed**, below the
+  ones still to log. Counts and hours use −/+ steppers
   (or type). Each card shows this week's dots (Sat → Fri) and progress to target. **Every change saves itself**;
   there are no Save buttons. Weekly totals (e.g. job hunting) don't need an entry every day.
 

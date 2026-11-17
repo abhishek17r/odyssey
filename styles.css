@@ -394,3 +394,48 @@ details > summary { cursor: pointer; padding: 6px 0; list-style: none; }
 details > summary::-webkit-details-marker { display: none; }
 details > summary::before { content: '›'; display: inline-block; margin-right: 8px; font-weight: 800; transition: transform .2s; color: var(--muted); }
 details[open] > summary::before { transform: rotate(90deg); }
+
+/* ================= habit states: done (positive), skipped / missed (muted), effects ================= */
+.habit { position: relative; }
+.habit.done { background: linear-gradient(135deg, color-mix(in srgb, var(--green) 16%, var(--card)), color-mix(in srgb, var(--green) 6%, var(--card))); border-color: color-mix(in srgb, var(--green) 45%, var(--line)); }
+.habit.done .hIcon { background: color-mix(in srgb, var(--green) 18%, var(--card)); border-color: color-mix(in srgb, var(--green) 40%, var(--line)); }
+.habit.done .hName::after, .habit.skipped .hName::after, .habit.missed .hName::after {
+  font-size: 10.5px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; padding: 1px 8px; border-radius: 99px; }
+.habit.done .hName::after { content: '✓ Done'; background: var(--green); color: #fff; }
+.habit.skipped, .habit.missed { background: var(--card-2); border-style: dashed; border-color: var(--line); }
+.habit.skipped .hIcon, .habit.missed .hIcon { filter: grayscale(1); opacity: .55; }
+.habit.skipped .hName, .habit.missed .hName { color: var(--muted); }
+.habit.skipped .hName { text-decoration: line-through; text-decoration-color: color-mix(in srgb, var(--muted) 60%, transparent); }
+.habit.skipped .hSub, .habit.missed .hSub, .habit.skipped .miniBar, .habit.missed .miniBar { opacity: .55; }
+.habit.skipped .hName::after { content: 'Skipped'; background: var(--none-tint); color: var(--muted); text-decoration: none; display: inline-block; }
+.habit.missed .hName::after { content: 'Missed'; background: var(--red-tint); color: color-mix(in srgb, var(--red) 70%, var(--muted)); }
+.habit.skipped .checkBtn { opacity: .6; }
+
+.habitGroup { font-size: 10.5px; font-weight: 800; text-transform: uppercase; letter-spacing: .08em; margin: 10px 2px 0; display: flex; align-items: center; gap: 8px; }
+.habitGroup::after { content: ''; flex: 1; height: 1px; background: var(--line); }
+.habitGroup.done { color: var(--green); }
+.habitGroup.off { color: var(--faint); }
+
+.habit.celebrate { animation: celebrate .75s cubic-bezier(.2, .9, .3, 1.2); }
+@keyframes celebrate {
+  0% { transform: scale(1); box-shadow: 0 0 0 0 color-mix(in srgb, var(--green) 45%, transparent); }
+  35% { transform: scale(1.025); box-shadow: 0 0 0 8px color-mix(in srgb, var(--green) 22%, transparent); }
+  100% { transform: none; box-shadow: 0 0 0 14px transparent; }
+}
+.spark { position: absolute; z-index: 2; pointer-events: none; font-size: 13px; color: var(--green); transform: translate(-50%, -50%); animation: spark .75s ease-out forwards; }
+.spark:nth-child(3n) { color: #f5b40b; } .spark:nth-child(3n+1) { color: var(--accent); }
+@keyframes spark { 0% { opacity: 1; transform: translate(-50%, -50%) scale(.6); } 100% { opacity: 0; transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) scale(1.1); } }
+.habit.shake { animation: shake .5s ease; }
+@keyframes shake { 15%, 75% { transform: translateX(-5px); } 30%, 60% { transform: translateX(5px); } 45% { transform: translateX(-3px); } 100% { transform: none; } }
+
+.skipPanel { margin-top: 10px; padding: 12px; border-radius: 14px; background: var(--card); border: 1px solid var(--line); box-shadow: var(--shadow); animation: viewIn .2s ease; }
+.spQ { font-weight: 750; font-size: 13px; margin-bottom: 8px; }
+.reasonChips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+.reasonChips .chip { font-size: 12px; padding: 5px 10px; }
+.skipPanel input { padding: 7px 10px; font-size: 13px; }
+.skipGo { background: color-mix(in srgb, var(--red) 12%, var(--card)); color: color-mix(in srgb, var(--red) 80%, var(--text)); border-color: color-mix(in srgb, var(--red) 35%, var(--line)); }
+.skipGo:hover { background: color-mix(in srgb, var(--red) 20%, var(--card)); }
+.skipLine { display: flex; align-items: center; gap: 8px; margin-top: 6px; font-size: 12px; color: var(--muted); }
+.skipLine .undo { padding: 2px 10px; color: var(--accent); }
+@keyframes viewIn { from { transform: translateY(4px); } to { transform: none; } }
+@media (prefers-reduced-motion: reduce) { .spark { display: none; } }
