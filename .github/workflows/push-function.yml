@@ -25,6 +25,6 @@ jobs:
           cp -R lib supabase/functions/odyssey-push/lib
           cp rewards.config.js supabase/functions/odyssey-push/
       - name: Deploy
-        run: supabase functions deploy odyssey-push --project-ref wotlxnvhhgtrgsaggvui --no-verify-jwt
+        run: supabase functions deploy odyssey-push --remote=wotlxnvhhgtrgsaggvui --no-verify-jwt --yes
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
