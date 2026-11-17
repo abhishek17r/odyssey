@@ -12,20 +12,13 @@
 // Weeks are paid once they're over (after Friday), from `startWeek` on. Paid amounts are worked
 // out from your check-ins every time, so fixing a past check-in changes what that week paid.
 
+// 0.2.0: money rewards are gone (Kleos is the only reward). REWARDS stays, empty, only so the deprecated
+// desktop dashboard still loads.
 export const REWARDS = {
   currency: '₹',
-  startWeek: '2026-11-14', // first week that pays (a Saturday)
-  rules: [
-    { goalId: 'gym', amount: 1500, minTarget: 4 },
-    { goalId: 'hiit', amount: 500, minTarget: 3 },
-    { goalId: 'snacking', amount: 500, maxTarget: 0 },
-  ],
-  marketplace: [
-    { id: 'gym-clothes', name: 'Gym clothes', icon: '🎽', price: 2500 },
-    { id: 'shoes', name: 'Shoes', icon: '👟', price: 7500 },
-    { id: 'glasses', name: 'Glasses', icon: '👓', price: 10000 },
-    { id: 'whoop', name: 'Whoop', icon: '⌚', price: 25000 },
-  ],
+  startWeek: '2026-11-14',
+  rules: [],
+  marketplace: [],
 };
 
 // Kleos ⚡ (glory): points for the behaviour behind the habits. Worked out from your data every time

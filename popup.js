@@ -2,19 +2,18 @@ import {
   BAND_LABEL, dateKey, weekDays, addDays, weekKeyOf, planOf, dayScore, band, rollingAvg, streak, weekSummary,
   weekSoFar, dayIndexInWeek, metricKey, targetText, round1, goalTags, sessionTotals, workedMs, phaseMs, procrastPct,
   DELAY_REASONS, ticketTitle, ticketsInSprint, dueInfo, timeOnDay, backlogTickets, TICKET_STATUS,
-  goalAvgs, goalTrendKey, lastNDays, reasonStats, reasonById, timeOnDays, parseKey, goalStatus, STATUS, metricWeek,
+  goalAvgs, goalTrendKey, lastNDays, reasonStats, reasonById, timeOnDays, parseKey, goalStatus, STATUS, metricWeek, pauseOn,
 } from './lib/score.js';
 import { openPlanSheet } from './lib/planSheet.js';
 import { openReviewSheet } from './lib/reviewSheet.js';
 import { openRewardsSheet } from './lib/rewardsSheet.js';
 import { insights, daysText } from './lib/insights.js';
 import { kleos, plannedOn, POINTS } from './lib/points.js';
-import { moveTicket } from './lib/storage.js';
+import { moveTicket, startPause, endPause } from './lib/storage.js';
 import { openDrawer } from './lib/controls.js';
 import { currentUser } from './lib/cloud.js';
 import { VERSION } from './version.js';
 import { weekMetrics } from './lib/metrics.js';
-import { ledger, money } from './lib/rewards.js';
 import { esc, tagChips } from './lib/ui.js';
 import { buildCheckin, bindReflection } from './lib/checkin.js';
 import { saveReadiness, addIntention } from './lib/storage.js';
@@ -83,6 +82,7 @@ function render() {
   renderReflection();
   renderWeek();
   renderMe();
+  renderPause();
 }
 
 // ---------- header ----------
@@ -569,6 +569,7 @@ chrome.storage.onChanged.addListener(async () => {
   renderProgress();
   renderWeek();
   renderMe();
+  renderPause();
   if (view === 'trends') renderTrends();
   refreshDrawer();
   if (!state.activeSession) document.body.classList.remove('focusing');
@@ -1030,7 +1031,6 @@ function renderWeek() {
   const sum = weekSummary(wk, state, today);
   const tm = timeOnDays(state, days.filter((k) => k <= today));
   const overdue = tasks.filter((t) => t.status !== 'done' && t.due && t.due < today).length;
-  const L = ledger(state, today);
   $('#wkKpis').innerHTML = [
     [sum.avg ?? '—', 'week score', ''],
     [`${sts.filter((x) => x === 'done' || x === 'on').length} of ${goals.length}`, 'habits on track', ''],
@@ -1253,14 +1253,45 @@ function insightGo(a) {
 
 function renderMe() {
   const K = kleos(state, today);
-  const L = ledger(state, today);
   const r = K.rank;
   $('#meRank').innerHTML = `<span class="mrBadge">${POINTS.icon}</span><span class="mrMain"><small>Rank ${r.level} · ${esc(r.name)}</small><b>${K.total.toLocaleString('en-IN')} ${POINTS.name}</b>
     <span class="rkBar"><i style="width:${Math.round(Math.min(1, r.frac) * 100)}%"></i></span><small>${r.next ? `${(r.next.at - K.total).toLocaleString('en-IN')} to ${esc(r.next.name)}` : 'Top rank'}</small></span>
-    <span class="mrWallet"><b>${money(L.balance)}</b><small>wallet</small></span><span class="chev">›</span>`;
+    <span class="chev">›</span>`;
   currentUser().then((u) => { $('#meSub').textContent = u ? `Signed in as ${u.username}` : 'Not signed in'; }).catch(() => {});
 }
 $('#meRank').onclick = () => openRewards();
+
+// ---------- pause (sick, travelling): no penalties, streaks kept ----------
+const pauseUntilText = (p) => (p.endDay ? `until ${parseKey(p.endDay).toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'short' })}` : 'until you resume');
+function renderPause() {
+  const p = pauseOn(state, today);
+  const box = $('#mePause');
+  box.innerHTML = '';
+  const banner = $('#pausedBanner');
+  banner.hidden = !p;
+  if (p) {
+    banner.innerHTML = `<div class="pbMain"><b>Paused ${esc(pauseUntilText(p))}</b><small>No penalties and your streak is kept. Log anything you like.</small></div>`;
+    const go = Object.assign(document.createElement('button'), { type: 'button', textContent: 'Resume' });
+    go.onclick = resumeNow;
+    banner.append(go);
+    box.innerHTML = `<h3>Pause</h3><p class="small muted pauseText">Paused ${esc(pauseUntilText(p))}. Reminders are off and nothing counts against you.</p>`;
+    const r = Object.assign(document.createElement('button'), { type: 'button', className: 'primary', textContent: 'Resume now' });
+    r.onclick = resumeNow;
+    box.append(r);
+    return;
+  }
+  box.innerHTML = '<h3>Pause</h3><p class="small muted pauseText">Sick or travelling? Pause: reminders stop, nothing counts against you, and your streak waits.</p>';
+  const row = document.createElement('div');
+  row.className = 'pauseBtns';
+  const until = (days) => { if (days == null) return null; const d = new Date(); d.setDate(d.getDate() + days - 1); return dateKey(d); };
+  for (const [label, days] of [['3 days', 3], ['1 week', 7], ['Until I resume', null]]) {
+    const b = Object.assign(document.createElement('button'), { type: 'button', textContent: label });
+    b.onclick = async () => { await startPause(until(days)); state = await load(); renderPause(); render(); toast('Paused. Take care.'); };
+    row.append(b);
+  }
+  box.append(row);
+}
+async function resumeNow() { await endPause(); state = await load(); renderPause(); render(); toast('Welcome back'); }
 $('#appVersion').textContent = `Odyssey ${VERSION}`;
 
 // ---------- nav ----------
