@@ -15,6 +15,7 @@ import { gcalUrl, openUrl } from './lib/gcal.js';
 import { setTicketContext, openTicket, refreshDrawer, kidsOf, loggedH } from './lib/tickets.js';
 import { renderAccount } from './lib/account.js';
 import { renderNotifPanel } from './lib/notifPanel.js';
+import { youtubeEmbed } from './lib/youtube.js';
 import { load, save, addTicket, updateTicket, startSession, startWork, pauseWork, resumeWork, endSession, setDelayReason } from './lib/storage.js';
 import { timedHabits, targetOptions, resolveTarget } from './lib/targets.js';
 import {
@@ -50,6 +51,7 @@ async function init() {
   if (state.activeSession) setFullscreen(true);
   renderAccount($('#meAccount'));
   renderExtras();
+  renderMusic();
   renderNotifPanel($('#meNotif'));
 }
 
@@ -563,24 +565,61 @@ const npHandlers = {
 // call at the start of a tap that starts a session (audio needs the tap)
 const lockScreenStart = () => { if (isWebApp && state.settings.lockScreen && nowPlayingSupported()) nowPlayingOn(npHandlers); };
 
-async function savePlaylist() {
-  const url = prompt('Paste the link to your Spotify or Apple Music playlist', state.settings.playlistUrl || '');
-  if (url == null) return false;
-  const v = url.trim();
-  if (v && !/^https?:\/\//.test(v)) { toast('That doesn’t look like a link', 'err'); return false; }
-  const st = await load();
-  st.settings.playlistUrl = v;
-  await save({ settings: st.settings });
-  state = await load();
-  renderExtras();
-  return !!v;
+// The focus playlist as a YouTube player on the focus card, loaded paused (Me → Focus music sets it).
+function renderPlayer() {
+  const on = state.settings.playerOn !== false;
+  const yt = on ? youtubeEmbed(state.settings.playlistUrl) : null;
+  $('#sPlayer').hidden = !yt;
+  document.body.classList.toggle('hasPlayer', !!yt);
+  $('#sAddMusic').hidden = !on || !!yt;
+  const frame = $('#sPlayerFrame');
+  if (yt && frame.dataset.src !== yt.src) { frame.dataset.src = yt.src; frame.src = yt.src; } // reload only when the link changes
+  if (!yt && frame.dataset.src) { frame.dataset.src = ''; frame.removeAttribute('src'); }
 }
-$('#sPlaylist').onclick = async (e) => {
-  if (e.target.closest('.edit') || !state.settings.playlistUrl) { if (!(await savePlaylist())) return; if (e.target.closest('.edit')) return; }
-  chrome.tabs.create({ url: state.settings.playlistUrl });
-};
+$('#sAddMusic').onclick = () => { setFullscreen(false); showView('me'); setTimeout(() => $('#meMusic').scrollIntoView({ behavior: 'smooth', block: 'center' }), 60); };
+
+// Me → Focus music: the playlist link, and whether the focus card shows the player.
+function renderMusic() {
+  const box = $('#meMusic');
+  box.innerHTML = '';
+  const input = Object.assign(document.createElement('input'), { type: 'url', inputMode: 'url', placeholder: 'Paste a YouTube or YouTube Music playlist link', value: state.settings.playlistUrl || '', autocomplete: 'off' });
+  input.className = 'musicInput';
+  const msg = document.createElement('div');
+  msg.className = 'small';
+  const say = () => {
+    const v = input.value.trim();
+    const yt = youtubeEmbed(v);
+    msg.className = `small ${v && !yt ? 'error' : 'muted'}`;
+    msg.textContent = !v ? 'Your focus playlist: it loads paused on the focus card, ready to play.' : yt ? `✓ YouTube ${yt.kind} · loads paused on the focus card` : 'That isn’t a YouTube link. Use a youtube.com, youtu.be or music.youtube.com link.';
+    return { v, yt };
+  };
+  say();
+  input.oninput = say;
+  input.onchange = async () => {
+    const { v, yt } = say();
+    if (v && !yt) return;
+    const st = await load();
+    st.settings.playlistUrl = v;
+    await save({ settings: st.settings });
+    state = await load();
+    renderPlayer();
+    toast(v ? 'Focus playlist saved' : 'Focus playlist removed');
+  };
+  const row = document.createElement('div');
+  row.className = 'notifRow';
+  row.innerHTML = '<div class="nIc">▶️</div><div class="nMain"><b>Player on the focus card</b><div class="small muted">Shows your playlist, paused, while you focus</div></div>';
+  row.append(toggle({ checked: state.settings.playerOn !== false, label: 'Player on the focus card', onChange: async (v) => {
+    const st = await load();
+    st.settings.playerOn = v;
+    await save({ settings: st.settings });
+    state = await load();
+    renderPlayer();
+  } }));
+  box.append(input, msg, row);
+}
+
 function renderExtras() {
-  $('#sPlaylist').innerHTML = state.settings.playlistUrl ? '🎵 My playlist <span class="edit" title="Change the playlist">✎</span>' : '🎵 Add my playlist';
+  renderPlayer();
   const can = isWebApp && nowPlayingSupported();
   $('#sLockRow').hidden = !can;
   if (can && !$('#sLockSw').childElementCount) {

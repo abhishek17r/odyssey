@@ -168,9 +168,10 @@
         <button id="sPause">⏸ Pause</button>
         <button id="sEnd">■ End</button>
       </div>
+      <div class="fsPlayer" id="sPlayer" hidden><iframe id="sPlayerFrame" title="Focus playlist" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe></div>
+      <a class="small fsAddMusic" id="sAddMusic" hidden>🎵 Add a focus playlist in Me → Focus music</a>
       <div class="fsExtras" id="sExtras">
-        <button type="button" class="extraBtn" id="sPlaylist">🎵 My playlist</button>
-        <div class="extraBtn lockRow" id="sLockRow"><span>🔒 Lock screen</span><span id="sLockSw"></span></div>
+        <div class="extraBtn lockRow" id="sLockRow"><span>🔒 Show on lock screen</span><span id="sLockSw"></span></div>
       </div>
     </div>
     <div class="hint ok" id="sSaved"></div>
@@ -255,6 +256,7 @@
       </div>
     </section>
     <section class="card"><h3>☁️ Account &amp; sync</h3><div id="meAccount"></div></section>
+    <section class="card"><h3>🎵 Focus music</h3><div id="meMusic"></div></section>
     <section class="card"><h3>🔔 Notifications</h3><div id="meNotif"></div></section>
   </main>
 

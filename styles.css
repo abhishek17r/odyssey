@@ -540,3 +540,5 @@ details[open] > summary::before { transform: rotate(90deg); }
 .notifRow.off .nMain, .notifRow.off input { opacity: .5; }
 .switch { display: inline-block; vertical-align: middle; }
 #sLockSw { display: inline-flex; flex: none; }
+input[type=url] { font: inherit; color: var(--text); background-color: var(--field); border: 1px solid var(--line); border-radius: 11px; padding: 8px 11px; width: 100%; }
+input[type=url]:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 16%, transparent); }
