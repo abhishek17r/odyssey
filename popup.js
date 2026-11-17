@@ -18,7 +18,8 @@ import { esc, tagChips } from './lib/ui.js';
 import { buildCheckin, bindReflection } from './lib/checkin.js';
 import { saveReadiness, addIntention } from './lib/storage.js';
 import { stepper, scale, checkBtn, toast, celebrate, toggle } from './lib/controls.js';
-import { nowPlayingOn, nowPlayingOff, nowPlayingUpdate, nowPlayingSupported } from './lib/nowPlaying.js';
+import { nowPlayingOn, nowPlayingOff, nowPlayingUpdate, nowPlayingSupported, setCarrier, bindHandlers } from './lib/nowPlaying.js';
+import { STATIONS, stationsOf, stationById, checkStream, radioPlay, radioPause, radioStop, radioState, radioAudio, onRadio } from './lib/radio.js';
 import { gcalUrl, openUrl } from './lib/gcal.js';
 import { setTicketContext, openTicket, refreshDrawer, kidsOf, loggedH } from './lib/tickets.js';
 import { renderAccount } from './lib/account.js';
@@ -341,12 +342,12 @@ function renderSession() {
     $('#spP').style.flexGrow = procrast;
     $('#spW').style.flexGrow = worked;
     $('#spZ').style.flexGrow = paused;
-    if (state.settings.lockScreen && a) {
+    if ((state.settings.lockScreen || radioState().playing) && a) {
       const lenMs = (a.minutes || state.settings.sessionMinutes) * 60000;
       if (!upd.last || now - upd.last > 15000 || upd.phase !== a.phase) {
         upd.last = now; upd.phase = a.phase;
         const tk2 = a.ticketId && state.tickets[a.ticketId];
-        nowPlayingUpdate({ task: tk2 ? ticketTitle(tk2, state) : a.task, phase: a.phase, leftMs: lenMs - worked, lengthMs: lenMs, workedMs: worked, todayMin: t.workMin + worked / 60000 });
+        nowPlayingUpdate({ task: tk2 ? ticketTitle(tk2, state) : a.task, phase: a.phase, leftMs: lenMs - worked, lengthMs: lenMs, workedMs: worked, todayMin: t.workMin + worked / 60000, station: radioState().playing ? radioState().station?.name : null });
       }
     }
     $('#lgP').textContent = clock(procrast);
@@ -541,6 +542,7 @@ $('#sPause').onclick = async () => {
 $('#sEnd').onclick = async () => {
   const rec = await endSession();
   nowPlayingOff();
+  radioStop();
   state = await load();
   setFullscreen(false);
   showView('today');
@@ -581,12 +583,16 @@ const isWebApp = !!globalThis.ODYSSEY_WEB;
 const npHandlers = {
   play: async () => {
     const a = state.activeSession;
+    if (radioResume) { radioResume = false; radioPlay(); }
     if (a?.phase === 'paused') await resumeWork();
     if ((await load()).activeSession?.phase === 'procrast') await startWork();
     state = await load(); renderSession();
   },
-  pause: async () => { if (state.activeSession?.phase === 'work') { pauseMusic(); await pauseWork(); state = await load(); renderSession(); } },
+  pause: async () => { if (radioState().playing) radioResume = true; pauseMusic(); if (state.activeSession?.phase === 'work') { await pauseWork(); state = await load(); renderSession(); } },
+  previoustrack: () => stepStation(-1),
+  nexttrack: () => stepStation(1),
 };
+let radioResume = false;
 // call at the start of a tap that starts a session (audio needs the tap)
 const lockScreenStart = () => { if (isWebApp && state.settings.lockScreen && nowPlayingSupported()) nowPlayingOn(npHandlers); };
 
@@ -596,22 +602,30 @@ const onIOS = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platfor
 // on iPhone, Spotify links open the app (the web player only plays previews unless you're signed in)
 const appLink = (m) => (m.service === 'spotify' && onIOS ? m.open.replace('https://open.spotify.com/', 'spotify:').replace(/\//g, ':') : m.open);
 const plName = (p, m) => p.name || (m && !m.error ? `${m.label} ${m.kind}` : 'Playlist');
+let hadSession = false;
+const musicSource = () => state.settings.musicSource || (state.settings.playlistUrl ? 'playlist' : 'radio');
 function renderPlayer() {
   const on = state.settings.playerOn !== false;
-  const m0 = musicEmbed(state.settings.playlistUrl);
+  const radio = musicSource() === 'radio';
+  $('#sRadio').hidden = !(on && radio);
+  if (on && radio) renderRadioCard();
+  if (hadSession && !state.activeSession) radioStop(); // the session ended (here or on another device): no music
+  hadSession = !!state.activeSession;
+  const m0 = radio ? null : musicEmbed(state.settings.playlistUrl);
   const m = m0 && !m0.error ? m0 : null;
   const show = !!(on && m && state.activeSession);
   $('#sPlayer').hidden = !(on && m);
   $('#sPlayer').className = `fsPlayer ${m ? m.service : ''}`;
   document.body.classList.toggle('hasPlayer', !!(on && m));
-  $('#sAddMusic').hidden = !on || !!m;
+  document.body.classList.toggle('hasRadio', !!(on && radio));
+  $('#sAddMusic').hidden = !on || !!m || radio;
   const open = $('#sOpenMusic');
   open.hidden = !m;
   if (m) { open.href = appLink(m); open.textContent = `↗ ${m.label}`; }
   // more than one saved: a picker on the focus card
   const list = playlistsOf(state.settings);
   const pick = $('#sMusicPick');
-  pick.hidden = list.length < 2;
+  pick.hidden = radio || list.length < 2;
   const sel = $('#sMusicSel');
   sel.innerHTML = '';
   for (const p of list) sel.append(new Option(plName(p, musicEmbed(p.url)), p.url, false, p.url === state.settings.playlistUrl));
@@ -621,6 +635,7 @@ function renderPlayer() {
 }
 // Pause whatever the player is playing (YouTube and Spotify both take a message).
 function pauseMusic() {
+  radioPause();
   const w = $('#sPlayerFrame').contentWindow;
   if (!w || !$('#sPlayerFrame').dataset.src) return;
   try {
@@ -628,6 +643,46 @@ function pauseMusic() {
     w.postMessage({ command: 'pause' }, '*');
   } catch { /* not loaded yet */ }
 }
+// ---------- focus radio: a compact player on the focus card ----------
+function renderRadioCard() {
+  const box = $('#sRadio');
+  const st = radioState();
+  const station = st.station && (st.playing || st.loading || st.error) ? st.station : stationById(state.settings, state.settings.radioStation);
+  const live = st.playing || st.loading;
+  box.innerHTML = `<span class="rIcon">${station.icon}</span><span class="rMain"><b>${esc(station.name)}</b><small>${st.error ? '⚠️ Not playing · try another' : st.loading ? 'Tuning in…' : st.playing ? `● Live · ${esc(station.by)}` : esc(station.vibe)}</small></span>
+    <button type="button" class="rBtn" data-r="-1" title="Previous station">⏮</button><button type="button" class="rBtn rPlay ${live ? 'on' : ''}" data-r="0" title="${live ? 'Pause' : 'Play'}">${live ? '⏸' : '▶'}</button><button type="button" class="rBtn" data-r="1" title="Next station">⏭</button>`;
+  box.querySelectorAll('[data-r]').forEach((b) => (b.onclick = () => {
+    const d = Number(b.dataset.r);
+    if (d) stepStation(d);
+    else if (radioState().playing || radioState().loading) { radioPause(); }
+    else startRadio(station);
+  }));
+}
+async function startRadio(station) {
+  if (!(await radioPlay(station))) return; // the error toast comes from onRadio
+  setCarrier(radioAudio());
+  bindHandlers(npHandlers);
+  renderSession(); // puts the focus time on the lock screen straight away
+}
+async function stepStation(d) {
+  const list = stationsOf(state.settings);
+  const cur = radioState().station || stationById(state.settings, state.settings.radioStation);
+  const next = list[(list.findIndex((x) => x.id === cur.id) + d + list.length) % list.length];
+  const st = await load();
+  st.settings.radioStation = next.id;
+  await save({ settings: st.settings });
+  state = await load();
+  const r = radioState();
+  if (r.playing || r.loading || r.error) await startRadio(next); else renderRadioCard();
+}
+let radioErr = false;
+onRadio((r) => {
+  if (r.error && !radioErr) toast(`${r.station?.name || 'That station'} isn’t playing right now. Try another.`, 'err');
+  radioErr = r.error;
+  renderRadioCard();
+  if (view === 'me') renderMusic();
+});
+
 $('#sAddMusic').onclick = () => { setFullscreen(false); showView('me'); setTimeout(() => $('#meMusic').scrollIntoView({ behavior: 'smooth', block: 'center' }), 60); };
 $('#sMusicSel').onchange = async (e) => { await setMusic({ active: e.target.value }); };
 
@@ -652,9 +707,26 @@ async function setMusic({ add, active, remove, rename } = {}) {
 
 // Me → Focus music: paste a link (one tap on iPhone), your saved playlists, and whether the focus card
 // shows the player.
+async function setSetting(patch) {
+  const st = await load();
+  Object.assign(st.settings, patch);
+  await save({ settings: st.settings });
+  state = await load();
+  renderPlayer();
+  renderMusic();
+}
 function renderMusic() {
   const box = $('#meMusic');
   box.innerHTML = '';
+  const seg = document.createElement('div');
+  seg.className = 'seg musicSeg';
+  for (const [k, t] of [['radio', '📻 Focus radio'], ['playlist', '🎵 Your playlist']]) {
+    const b = Object.assign(document.createElement('button'), { type: 'button', className: musicSource() === k ? 'on' : '', textContent: t });
+    b.onclick = () => setSetting({ musicSource: k });
+    seg.append(b);
+  }
+  box.append(seg);
+  if (musicSource() === 'radio') { renderRadioSettings(box); return; }
   const list = playlistsOf(state.settings);
   const msg = Object.assign(document.createElement('div'), { className: 'small muted musicMsg' });
   const tryLink = async (raw, how) => {
@@ -730,6 +802,61 @@ function renderMusic() {
     renderPlayer();
   } }));
   box.append(paste, how, apps, input, msg, row);
+}
+
+function playerToggleRow() {
+  const row = document.createElement('div');
+  row.className = 'notifRow';
+  row.innerHTML = '<div class="nIc">▶️</div><div class="nMain"><b>Music on the focus card</b><div class="small muted">Ready when a session starts, stops when it ends</div></div>';
+  row.append(toggle({ checked: state.settings.playerOn !== false, label: 'Music on the focus card', onChange: (v) => setSetting({ playerOn: v }) }));
+  return row;
+}
+
+// Me → Focus music → Focus radio: pick the station the focus card starts on, try one, add your own stream.
+function renderRadioSettings(box) {
+  const chosen = stationById(state.settings, state.settings.radioStation).id;
+  const st = radioState();
+  box.append(Object.assign(document.createElement('p'), { className: 'small muted musicHow', textContent: 'Real radio played by Odyssey itself: it keeps playing with the screen locked, and your lock screen shows the station with your focus time. Tap a station to make it the focus card’s.' }));
+  const g = document.createElement('div');
+  g.className = 'iosGroup radioList';
+  for (const x of stationsOf(state.settings)) {
+    const on = x.id === chosen;
+    const playing = st.station?.id === x.id && (st.playing || st.loading);
+    const row = document.createElement('div');
+    row.className = `cell ${on ? 'on' : ''}`;
+    row.innerHTML = `<span class="cIcon">${x.icon}</span><span class="cMain"><b>${esc(x.name)}</b><small>${on ? '✓ On the focus card · ' : ''}${esc(x.vibe)} · ${esc(x.by)}</small></span>`;
+    const play = Object.assign(document.createElement('button'), { type: 'button', className: `rBtn ${playing ? 'on' : ''}`, textContent: playing ? '⏸' : '▶', title: playing ? 'Pause' : 'Listen' });
+    play.onclick = (e) => { e.stopPropagation(); if (playing) radioPause(); else startRadio(x); };
+    row.append(play);
+    if (x.custom) {
+      const rm = Object.assign(document.createElement('button'), { type: 'button', className: 'ghost small', textContent: '✕', title: 'Remove' });
+      rm.onclick = (e) => { e.stopPropagation(); if (st.station?.id === x.id) radioStop(); setSetting({ radioCustom: (state.settings.radioCustom || []).filter((c) => c.id !== x.id), ...(on ? { radioStation: STATIONS[0].id } : {}) }); };
+      row.append(rm);
+    }
+    row.onclick = () => { if (!on) setSetting({ radioStation: x.id }); };
+    g.append(row);
+  }
+  box.append(g);
+  // your own stream
+  const form = document.createElement('form');
+  form.className = 'inviteRow addStream';
+  const url = Object.assign(document.createElement('input'), { type: 'url', placeholder: 'Add a stream link (https://…mp3)', autocomplete: 'off', className: 'musicInput' });
+  const add = Object.assign(document.createElement('button'), { type: 'submit', textContent: 'Add' });
+  const msg = Object.assign(document.createElement('div'), { className: 'small muted musicMsg' });
+  form.onsubmit = async (e) => {
+    e.preventDefault();
+    const err = checkStream(url.value);
+    if (err) { msg.className = 'small error musicMsg'; msg.textContent = err; return; }
+    const u = new URL(url.value.trim());
+    const name = prompt('Name this station', u.hostname.replace(/^www\./, '')) || u.hostname;
+    const id = `c-${Date.now().toString(36)}`;
+    await setSetting({ radioCustom: [...(state.settings.radioCustom || []), { id, name: name.trim(), url: u.href }], radioStation: id });
+    toast('Station added');
+  };
+  form.append(url, add);
+  box.append(form, msg);
+  box.append(Object.assign(document.createElement('p'), { className: 'small muted credit', innerHTML: 'SomaFM and Radio Paradise are free and listener-supported: <a href="https://somafm.com/support/" target="_blank" rel="noopener">support SomaFM</a> · <a href="https://radioparadise.com/support" target="_blank" rel="noopener">Radio Paradise</a>.' }));
+  box.append(playerToggleRow());
 }
 
 function renderExtras() {

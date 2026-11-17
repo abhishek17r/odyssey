@@ -488,3 +488,27 @@ html, body { max-width: 100%; overflow-x: hidden; }
 .inviteBox .row { gap: 8px; flex-wrap: nowrap; }
 .inviteBox input { flex: 1; min-width: 0; }
 .inviteBox .small { margin-top: 6px; }
+
+/* ================= focus radio ================= */
+.fsRadio { display: flex; align-items: center; gap: 10px; margin-top: 12px; padding: 10px 10px 10px 12px; border-radius: 14px; background: var(--ios-fill); min-width: 0; }
+.fsRadio[hidden] { display: none; }
+body.focusing .fsRadio { background: rgba(255, 255, 255, .1); color: #fff; }
+.rIcon { font-size: 24px; flex: none; }
+.rMain { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.rMain b { font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rMain small { font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+body.focusing .rMain small { color: rgba(255, 255, 255, .6); }
+.rBtn { flex: none; width: 38px; height: 38px; padding: 0; border-radius: 50%; font-size: 15px; display: grid; place-items: center; background: transparent; color: inherit; }
+body.focusing .rBtn { color: #fff; }
+.rBtn.rPlay { background: var(--ios-blue); color: #fff; width: 44px; height: 44px; font-size: 17px; }
+.rBtn.rPlay.on { background: var(--ios-orange); }
+.radioList .cell .rBtn { background: var(--ios-fill); color: var(--ios-blue); width: 34px; height: 34px; }
+.radioList .cell .rBtn.on { background: var(--ios-orange); color: #fff; }
+.radioList .cell.on { box-shadow: inset 3px 0 0 var(--ios-blue); }
+.radioList .cell.on small { color: var(--ios-blue); }
+.musicSeg { display: grid; grid-template-columns: 1fr 1fr; margin-bottom: 12px; }
+.addStream { display: flex; gap: 8px; margin-top: 12px; }
+.addStream input { flex: 1; min-width: 0; margin: 0; }
+.credit { margin: 10px 2px 4px; }
+.credit a { color: var(--ios-blue); }
+body.focusing.hasRadio .hint.center { display: none; }
