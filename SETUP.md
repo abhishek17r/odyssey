@@ -93,16 +93,26 @@ on, the Chrome extension stops its own scheduled reminders (it keeps the session
    a password, tick **Auto Confirm User**. Send them the app link, username `theirname` and the password.
    (Or turn “Allow new users to sign up” back on and they can use “Create your account”.)
 
-## 6. Invite people by email (SendGrid, free)
+## 6. Invite people by email (free, no expiry)
 
-1. **SendGrid** (https://sendgrid.com, free plan: 100 emails a day): sign up →
-   **Settings → Sender Authentication → Verify a Single Sender** (your email; click the link they send) →
-   **Settings → API Keys → Create API Key** (“Restricted”, turn on *Mail Send*), copy it.
-2. **Supabase → Authentication → Emails → SMTP Settings → Enable custom SMTP**:
-   host `smtp.sendgrid.net`, port `587`, username `apikey`, password = the API key,
-   sender email = the address you verified, sender name `Odyssey`. **Save**.
-3. **Supabase → Authentication → URL Configuration**: Site URL `https://odyssey.abhishek17r.workers.dev`,
+Supabase sends the invite and password-reset emails through any SMTP server. Two free-forever choices:
+
+**A. Your Gmail (simplest, no new account).** Invites come from your own Gmail address.
+1. Google Account → **Security → 2-Step Verification** (must be on) → **App passwords** → create one
+   named `Odyssey`, copy the 16 characters.
+2. **Supabase → Authentication → Emails → SMTP Settings → Enable custom SMTP**: host `smtp.gmail.com`,
+   port `587`, username = your Gmail address, password = the app password, sender email = the same
+   Gmail address, sender name `Odyssey`. **Save**.
+
+**B. Brevo (free plan: 300 emails a day).** https://www.brevo.com → sign up (they approve new accounts
+for sending, which can take a little while) → **Senders, Domains & Dedicated IPs → Senders → Add a sender**
+(verify your email) → **SMTP & API → SMTP → Generate a new SMTP key**. Then in Supabase's SMTP settings:
+host `smtp-relay.brevo.com`, port `587`, username = the SMTP login Brevo shows (looks like
+`xxxx@smtp-brevo.com`), password = the SMTP key, sender email = the sender you verified.
+
+Then, for either:
+1. **Supabase → Authentication → URL Configuration**: Site URL `https://odyssey.abhishek17r.workers.dev`,
    and under Redirect URLs add `https://odyssey.abhishek17r.workers.dev/**`.
-4. In the app: **Me → Account & sync → ✉️ Invite someone** (only the owner sees it). They get an email,
+2. In the app: **Me → Account & sync → ✉️ Invite someone** (only the owner sees it). They get an email,
    tap the link, pick a password, and sign in with their email from then on.
    “Forgot password?” on the sign-in screen works too, for accounts with a real email.

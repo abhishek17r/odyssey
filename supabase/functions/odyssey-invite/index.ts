@@ -1,5 +1,5 @@
 // odyssey-invite: the owner invites someone by email. Supabase sends the invite through the project's own
-// SMTP settings (SendGrid; see SETUP.md). The link opens the app, which asks them to pick a password.
+// SMTP settings (Gmail or Brevo; see SETUP.md). The link opens the app, which asks them to pick a password.
 // Only the owner (public.odyssey_owner) can call it.
 
 import { createClient } from 'npm:@supabase/supabase-js@2.45.4';
