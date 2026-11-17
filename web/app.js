@@ -9,7 +9,8 @@ import { el, openDrawer } from './lib/controls.js';
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
 
 // ---- sync: on open, when you come back, every 30 s while open, and soon after any edit ----
-syncNow();
+// the splash waits for this first sync (or 4 s, whichever is later)
+syncNow().catch(() => {}).finally(() => { window.odysseyReady = true; dispatchEvent(new Event('odyssey:ready')); });
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') syncNow(); });
 setInterval(() => { if (document.visibilityState === 'visible') syncNow(); }, 30000);
 chrome.storage.onChanged.addListener((changes) => { if (triggersSync(Object.keys(changes))) syncSoon(1500); });

@@ -15,7 +15,7 @@ import { gcalUrl, openUrl } from './lib/gcal.js';
 import { setTicketContext, openTicket, refreshDrawer, kidsOf, loggedH } from './lib/tickets.js';
 import { renderAccount } from './lib/account.js';
 import { renderNotifPanel } from './lib/notifPanel.js';
-import { youtubeEmbed } from './lib/youtube.js';
+import { musicEmbed, firstLink } from './lib/music.js';
 import { load, save, addTicket, updateTicket, startSession, startWork, pauseWork, resumeWork, endSession, setDelayReason } from './lib/storage.js';
 import { timedHabits, targetOptions, resolveTarget } from './lib/targets.js';
 import {
@@ -565,46 +565,88 @@ const npHandlers = {
 // call at the start of a tap that starts a session (audio needs the tap)
 const lockScreenStart = () => { if (isWebApp && state.settings.lockScreen && nowPlayingSupported()) nowPlayingOn(npHandlers); };
 
-// The focus playlist as a YouTube player on the focus card, loaded paused (Me → Focus music sets it).
+// The focus playlist (YouTube or Spotify) as a player on the focus card, loaded paused (Me → Focus music).
+const onIOS = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+// on iPhone, Spotify links open the app (the web player only plays previews unless you're signed in)
+const appLink = (m) => (m.service === 'spotify' && onIOS ? m.open.replace('https://open.spotify.com/', 'spotify:').replace(/\//g, ':') : m.open);
 function renderPlayer() {
   const on = state.settings.playerOn !== false;
-  const yt = on ? youtubeEmbed(state.settings.playlistUrl) : null;
-  $('#sPlayer').hidden = !yt;
-  document.body.classList.toggle('hasPlayer', !!yt);
-  $('#sAddMusic').hidden = !on || !!yt;
+  const m0 = musicEmbed(state.settings.playlistUrl);
+  const m = m0 && !m0.error ? m0 : null;
+  const show = on && m;
+  $('#sPlayer').hidden = !show;
+  $('#sPlayer').className = `fsPlayer ${m ? m.service : ''}`;
+  document.body.classList.toggle('hasPlayer', !!show);
+  $('#sAddMusic').hidden = !on || !!m;
+  const open = $('#sOpenMusic');
+  open.hidden = !m;
+  if (m) { open.href = appLink(m); open.textContent = `↗ ${m.label}`; }
   const frame = $('#sPlayerFrame');
-  if (yt && frame.dataset.src !== yt.src) { frame.dataset.src = yt.src; frame.src = yt.src; } // reload only when the link changes
-  if (!yt && frame.dataset.src) { frame.dataset.src = ''; frame.removeAttribute('src'); }
+  if (show && frame.dataset.src !== m.src) { frame.dataset.src = m.src; frame.src = m.src; } // reload only when the link changes
+  if (!show && frame.dataset.src) { frame.dataset.src = ''; frame.removeAttribute('src'); }
 }
 $('#sAddMusic').onclick = () => { setFullscreen(false); showView('me'); setTimeout(() => $('#meMusic').scrollIntoView({ behavior: 'smooth', block: 'center' }), 60); };
 
-// Me → Focus music: the playlist link, and whether the focus card shows the player.
+// Me → Focus music: paste a link (one tap on iPhone), see what's set, and choose whether the focus card
+// shows the player.
+async function setMusic(link) {
+  const st = await load();
+  st.settings.playlistUrl = link;
+  await save({ settings: st.settings });
+  state = await load();
+  renderPlayer();
+  renderMusic();
+}
 function renderMusic() {
   const box = $('#meMusic');
   box.innerHTML = '';
-  const input = Object.assign(document.createElement('input'), { type: 'url', inputMode: 'url', placeholder: 'Paste a YouTube or YouTube Music playlist link', value: state.settings.playlistUrl || '', autocomplete: 'off' });
-  input.className = 'musicInput';
-  const msg = document.createElement('div');
-  msg.className = 'small';
-  const say = () => {
-    const v = input.value.trim();
-    const yt = youtubeEmbed(v);
-    msg.className = `small ${v && !yt ? 'error' : 'muted'}`;
-    msg.textContent = !v ? 'Your focus playlist: it loads paused on the focus card, ready to play.' : yt ? `✓ YouTube ${yt.kind} · loads paused on the focus card` : 'That isn’t a YouTube link. Use a youtube.com, youtu.be or music.youtube.com link.';
-    return { v, yt };
+  const cur = musicEmbed(state.settings.playlistUrl);
+  const msg = Object.assign(document.createElement('div'), { className: 'small muted musicMsg' });
+  const tryLink = async (raw, how) => {
+    const v = firstLink(raw);
+    const m = musicEmbed(v);
+    if (!m) { msg.className = 'small error musicMsg'; msg.textContent = how === 'paste' ? 'The clipboard is empty. Copy a playlist link first.' : ''; return; }
+    if (m.error) { msg.className = 'small error musicMsg'; msg.textContent = m.error; return; }
+    await setMusic(v);
+    toast(`${m.label} ${m.kind} saved`);
   };
-  say();
-  input.oninput = say;
-  input.onchange = async () => {
-    const { v, yt } = say();
-    if (v && !yt) return;
-    const st = await load();
-    st.settings.playlistUrl = v;
-    await save({ settings: st.settings });
-    state = await load();
-    renderPlayer();
-    toast(v ? 'Focus playlist saved' : 'Focus playlist removed');
+
+  if (cur && !cur.error) {
+    const card = document.createElement('div');
+    card.className = 'musicNow';
+    card.innerHTML = `<div class="mIc ${cur.service}">${cur.service === 'spotify' ? '●' : '▶'}</div><div class="nMain"><b>${cur.label} ${cur.kind}</b><div class="small muted">Loads paused on the focus card</div></div>`;
+    const play = Object.assign(document.createElement('a'), { className: 'small', href: appLink(cur), target: '_blank', rel: 'noopener', textContent: 'Open' });
+    const rm = Object.assign(document.createElement('a'), { className: 'small danger', textContent: 'Remove' });
+    rm.onclick = async () => { await setMusic(''); toast('Focus music removed'); };
+    card.append(play, rm);
+    box.append(card);
+  }
+
+  const paste = Object.assign(document.createElement('button'), { type: 'button', className: 'primary musicPaste', textContent: cur && !cur.error ? '📋 Paste a different link' : '📋 Paste playlist link' });
+  const input = Object.assign(document.createElement('input'), { type: 'url', inputMode: 'url', placeholder: 'or paste / type it here', autocomplete: 'off', className: 'musicInput' });
+  paste.onclick = async () => {
+    try {
+      const text = await navigator.clipboard.readText();
+      await tryLink(text, 'paste');
+    } catch {
+      input.focus();
+      msg.className = 'small muted musicMsg';
+      msg.textContent = 'Long-press the box below and choose Paste.';
+    }
   };
+  input.onchange = () => tryLink(input.value, 'type');
+  input.onpaste = () => setTimeout(() => tryLink(input.value, 'type'), 0);
+
+  const how = document.createElement('div');
+  how.className = 'small muted musicHow';
+  how.innerHTML = 'In the app, open a playlist → <b>Share</b> → <b>Copy link</b>, come back, tap Paste.';
+  const apps = document.createElement('div');
+  apps.className = 'musicApps';
+  const APPS = onIOS
+    ? [['YouTube', 'youtube://'], ['YT Music', 'youtubemusic://'], ['Spotify', 'spotify://']]
+    : [['YouTube', 'https://www.youtube.com'], ['YT Music', 'https://music.youtube.com'], ['Spotify', 'https://open.spotify.com']];
+  for (const [label, href] of APPS) apps.append(Object.assign(document.createElement('a'), { className: 'pill', href, target: '_blank', rel: 'noopener', textContent: `${label} ↗` }));
+
   const row = document.createElement('div');
   row.className = 'notifRow';
   row.innerHTML = '<div class="nIc">▶️</div><div class="nMain"><b>Player on the focus card</b><div class="small muted">Shows your playlist, paused, while you focus</div></div>';
@@ -615,7 +657,7 @@ function renderMusic() {
     state = await load();
     renderPlayer();
   } }));
-  box.append(input, msg, row);
+  box.append(paste, how, apps, input, msg, row);
 }
 
 function renderExtras() {

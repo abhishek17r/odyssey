@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Odyssey — habits, sprints & focus",
   "description": "Habits, a personal sprint board and a procrastination-aware focus timer. Your data stays on this computer.",
-  "version": "10.1.0",
+  "version": "10.2.0",
   "action": {
     "default_popup": "popup.html",
     "default_title": "Odyssey check-in",

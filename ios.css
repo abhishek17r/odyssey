@@ -242,29 +242,31 @@ body.focusing .extraBtn { background: rgba(255, 255, 255, .1); border: 0; border
 .mbDot.work { background: var(--ios-orange); }
 
 /* ================= launch splash (phone app only) ================= */
-#splash { position: fixed; inset: 0; z-index: 100; background: #0e2a4f; overflow: hidden; transition: opacity .6s ease, transform .6s ease; cursor: pointer; }
+#splash { position: fixed; inset: 0; z-index: 100; background: #262c3d; overflow: hidden; transition: opacity .8s ease, transform .8s ease; cursor: pointer; }
 body:not(.web) #splash { display: none; }
-#splash.out { opacity: 0; transform: scale(1.04); pointer-events: none; }
+#splash.out { opacity: 0; transform: scale(1.03); pointer-events: none; }
 .spScene { position: absolute; inset: 0; width: 100%; height: 100%; }
-.spShip { animation: spBob 3.6s ease-in-out infinite; transform-origin: 195px 610px; transform-box: view-box; }
-@keyframes spBob { 0%, 100% { transform: translateY(0) rotate(-1.2deg); } 50% { transform: translateY(-5px) rotate(1.4deg); } }
-.spOars { animation: spRow 1.8s ease-in-out infinite; transform-box: fill-box; transform-origin: center top; }
-@keyframes spRow { 0%, 100% { transform: skewX(0deg); } 50% { transform: skewX(-14deg); } }
-.spWaves path { animation: spDrift 6s linear infinite; }
-.spWaves path:nth-child(2) { animation-duration: 8s; animation-direction: reverse; }
-.spWaves path:nth-child(3) { animation-duration: 10s; }
-@keyframes spDrift { from { transform: translateX(0); } to { transform: translateX(60px); } }
-.spGlint rect { animation: spShimmer 2.4s ease-in-out infinite; }
-.spGlint rect:nth-child(2n) { animation-delay: .6s; }
-.spGlint rect:nth-child(3n) { animation-delay: 1.2s; }
-@keyframes spShimmer { 0%, 100% { opacity: .2; } 50% { opacity: .9; } }
-.spSunDisc { animation: spSet 6s ease-in-out forwards; }
-@keyframes spSet { from { transform: translateY(-14px); } to { transform: translateY(6px); } }
-.spText { position: absolute; left: 0; right: 0; top: 17%; text-align: center; color: #fff6e3; animation: spRise 1.1s cubic-bezier(.2, .8, .2, 1) both .15s; }
-.spTitle { font-family: 'Iowan Old Style', 'Palatino', 'Palatino Linotype', Georgia, serif; font-size: 52px; font-weight: 700; letter-spacing: .06em; text-shadow: 0 2px 24px rgba(0, 0, 0, .25); }
-.spSub { font-family: 'Iowan Old Style', 'Palatino', Georgia, serif; font-style: italic; font-size: 16px; opacity: .85; margin-top: 4px; }
-@keyframes spRise { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
-@media (prefers-reduced-motion: reduce) { .spShip, .spOars, .spWaves path, .spGlint rect, .spSunDisc, .spText { animation: none; } }
+.spSail { fill: url(#spSailLit); }
+.spVoyage { animation: spSail 10s linear both; }
+@keyframes spSail { from { transform: translateX(34px); } to { transform: translateX(-30px); } }
+.spShip { animation: spBob 4s ease-in-out infinite; transform-box: fill-box; transform-origin: 50% 90%; }
+@keyframes spBob { 0%, 100% { transform: translateY(0) rotate(-.8deg); } 50% { transform: translateY(-2px) rotate(.9deg); } }
+.spOars line { animation: spRow 2.2s ease-in-out infinite; transform-box: fill-box; transform-origin: 100% 0; }
+@keyframes spRow { 0%, 100% { transform: rotate(0); } 50% { transform: rotate(-16deg); } }
+.spRip { animation: spShimmer 3.2s ease-in-out infinite; }
+.spRip1 { animation-delay: -1.1s; animation-duration: 3.8s; }
+.spRip2 { animation-delay: -2.2s; animation-duration: 2.8s; }
+@keyframes spShimmer { 0%, 100% { opacity: .55; transform: translateX(-3px); } 50% { opacity: 1; transform: translateX(3px); } }
+.spSun { animation: spBreathe 5s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+@keyframes spBreathe { 0%, 100% { opacity: .9; transform: scale(1); } 50% { opacity: 1; transform: scale(1.04); } }
+.spStar { animation: spTwinkle 2.6s ease-in-out infinite; }
+@keyframes spTwinkle { 0%, 100% { opacity: .45; } 50% { opacity: 1; } }
+.spText { position: absolute; left: 0; right: 0; top: 15%; text-align: center; color: #f6e6c8; animation: spRise 1.4s cubic-bezier(.2, .8, .2, 1) both .2s; }
+.spTitle { font-family: 'Iowan Old Style', 'Palatino', 'Palatino Linotype', Georgia, serif; font-size: 40px; font-weight: 600; letter-spacing: .34em; padding-left: .34em; text-shadow: 0 2px 30px rgba(0, 0, 0, .35); }
+.spKey { display: block; width: 108px; height: 9px; margin: 12px auto 10px; color: #e8b56a; opacity: .85; }
+.spSub { font-family: 'Iowan Old Style', 'Palatino', Georgia, serif; font-style: italic; font-size: 16px; opacity: .8; letter-spacing: .02em; }
+@keyframes spRise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .spVoyage, .spShip, .spOars line, .spRip, .spSun, .spStar, .spText { animation: none; } }
 body.focusing #sessionCard { margin: 0 !important; }
 .fsExtras { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
 .extraBtn { gap: 6px; padding: 10px; }
@@ -280,3 +282,25 @@ body.focusing #sessionCard { margin: 0 !important; }
 .notifRow input[type=time] { width: 92px; padding: 6px 8px; font-size: 15px; text-align: center; }
 input[type=url] { background-color: var(--ios-fill); border: 0; border-radius: 10px; padding: 10px 12px; font-size: 17px; }
 body.focusing .fsAddMusic { color: #0a84ff; }
+
+/* ================= focus music (Me) and the player on the focus card ================= */
+.musicNow { display: flex; align-items: center; gap: 12px; padding: 10px 12px; margin-bottom: 10px; border-radius: 12px; background: var(--ios-fill); }
+.musicNow .nMain { flex: 1; min-width: 0; }
+.musicNow .nMain b { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.musicNow a { color: var(--ios-blue, #0a84ff); font-weight: 600; cursor: pointer; flex: none; }
+.musicNow a.danger { color: var(--ios-red, #ff3b30); }
+.mIc { width: 36px; height: 36px; border-radius: 9px; display: grid; place-items: center; color: #fff; font-size: 15px; flex: none; }
+.mIc.youtube { background: #ff0033; }
+.mIc.spotify { background: #1db954; font-size: 22px; }
+.musicPaste { width: 100%; padding: 12px; font-size: 17px; border-radius: 12px; }
+.musicHow { margin: 8px 2px 8px; line-height: 1.35; }
+.musicApps { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+.musicApps .pill { padding: 6px 12px; font-size: 14px; text-decoration: none; color: var(--ios-blue, #0a84ff); }
+.musicInput { width: 100%; box-sizing: border-box; font-size: 16px !important; }
+.musicMsg:empty { display: none; }
+.musicMsg { margin-top: 6px; }
+.fsPlayer.spotify { aspect-ratio: auto; height: 152px; max-height: none !important; background: transparent; border-radius: 12px; }
+.fsExtras { display: flex !important; gap: 8px; }
+.fsExtras .lockRow { flex: 1; }
+.fsExtras .openMusic { flex: none; text-decoration: none; padding: 10px 14px; white-space: nowrap; }
+.fsExtras .openMusic[hidden] { display: none; }
