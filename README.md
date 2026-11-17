@@ -233,10 +233,17 @@ On Friday, “Plan” (popup and reminder) opens the board on **next week**: Tas
 
 ## Daily check-in (~1 minute)
 
-Click the icon (or open the phone app). It's one app with four tabs: **☀️ Today** (due tasks and habits),
-**🎯 Focus** (the timer: type anything you're about to work on, or tap one of your tasks), **✅ Tasks** (this week's sprint and the backlog; tap a task for its sheet) and
-**🧭 Me** (week stats, rewards, links to the full dashboard, account & sync). While a focus session runs it
-takes the whole screen; ⌄ shrinks it to a mini bar above the tabs. On **Today**:
+Click the icon (or open the phone app). It's one app with four tabs: **☀️ Today** (an ad hoc timer bar, due tasks and habits),
+**✅ Tasks** (this week's sprint and the backlog; tap a task for its sheet), **📈 Trends** (scores, habits, focus by
+week, reasons; last 4 weeks) and **🧭 Me** (rewards, links to the full dashboard, account & sync).
+The timer lives on Today: type what you're doing (or nothing, for "Ad hoc") and ▶ Start; ⋯ opens the full form
+(pick a task, length). While a session runs it takes the whole screen; ⌄ shrinks it to a mini bar above the tabs.
+
+**Two kinds of habit.** *Either/or* habits (Gym, HIIT) are done (✓) or skipped; once answered they move below, into
+Done or Skipped. *Through-the-day* habits are counted as the day goes and stay where they are: **good** ones have a
+goal to reach (hours, a weekly total) and say what's left; **bad** ones have a limit to stay under (snacking,
+scrolling) and celebrate restraint ("Clean so far 💪", your streak of days within the limit). Tasks are only
+complete when you tick them (time logged never completes a task); ticked tasks move down into Done. On **Today**:
 
 - **Due today:** sprint tasks due today or overdue. Tick ✓ to finish one, ▶ to start a focus session on it.
 - **Habits:** one card per habit. Tap ✓ for done (a little celebration); *Skip* opens "Skipping … today? Why?" with quick

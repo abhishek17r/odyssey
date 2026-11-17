@@ -2,12 +2,14 @@ import {
   BAND_LABEL, dateKey, weekDays, addDays, weekKeyOf, planOf, dayScore, band, rollingAvg, streak, weekSummary,
   weekSoFar, dayIndexInWeek, metricKey, targetText, round1, goalTags, sessionTotals, workedMs, phaseMs, procrastPct,
   DELAY_REASONS, ticketTitle, ticketsInSprint, dueInfo, timeOnDay, backlogTickets, TICKET_STATUS,
+  goalAvgs, goalTrendKey, lastNDays, reasonStats, reasonById, timeOnDays, parseKey,
 } from './lib/score.js';
+import { weekMetrics } from './lib/metrics.js';
 import { ledger, money } from './lib/rewards.js';
 import { esc, tagChips } from './lib/ui.js';
 import { buildCheckin, bindReflection } from './lib/checkin.js';
 import { saveReadiness, addIntention } from './lib/storage.js';
-import { stepper, scale, checkBtn, toast } from './lib/controls.js';
+import { stepper, scale, checkBtn, toast, celebrate } from './lib/controls.js';
 import { gcalUrl, openUrl } from './lib/gcal.js';
 import { setTicketContext, openTicket, refreshDrawer, kidsOf, loggedH } from './lib/tickets.js';
 import { renderAccount } from './lib/account.js';
@@ -41,7 +43,9 @@ async function init() {
   $('#tbDay').textContent = new Date().toLocaleDateString(undefined, { weekday: 'long' });
   $('#dateLabel').textContent = new Date().toLocaleDateString(undefined, { day: 'numeric', month: 'long' });
   render();
-  showView(state.activeSession ? 'focus' : (sessionStorage.getItem('view') || 'today'));
+  const v0 = sessionStorage.getItem('view');
+  showView(['today', 'tasks', 'trends', 'me'].includes(v0) ? v0 : 'today');
+  if (state.activeSession) setFullscreen(true);
   renderAccount($('#meAccount'));
 }
 
@@ -121,39 +125,58 @@ function renderProgress() {
 const dueToday = () => ticketsInSprint(weekKeyOf(today), state)
   .filter((x) => x.status !== 'done' && x.due && x.due <= today)
   .sort((a, b) => a.due.localeCompare(b.due));
+// due tasks you finished today stay visible, below, as done
+const doneToday = () => ticketsInSprint(weekKeyOf(today), state)
+  .filter((x) => x.status === 'done' && x.due && x.due <= today && x.doneAt && dateKey(new Date(x.doneAt)) === today);
+
+// Tick → a celebration on the row, then it's marked done (and moves down). Untick → back to open.
+const tickTask = (row, chk, t, reopenAs = 'todo') => async (v) => {
+  if (v) { celebrate(row, chk); await new Promise((r) => setTimeout(r, 650)); }
+  await updateTicket(t.id, { status: v ? 'done' : reopenAs });
+  if (v) toast('Done 🎉');
+};
+
+function dueRow(t) {
+  const done = t.status === 'done';
+  const d = dueInfo(t, today);
+  const row = document.createElement('div');
+  row.className = `task ${done ? 'isDone' : ''}`;
+  const chk = checkBtn({ state: done ? true : null, title: done ? 'Mark not done' : 'Mark done', onChange: (v) => tickTask(row, chk, t, 'doing')(v) });
+  const main = document.createElement('div');
+  main.className = 'tMain';
+  main.innerHTML = `<div class="tTitle">${esc(ticketTitle(t, state))}</div><div class="tMeta">${done ? '<span class="pill okPill">✓ done today</span>' : `<span class="due ${d.cls}">${esc(d.text)}</span>`}${t.sizeH ? `<span>⏱ ${t.sizeH} h</span>` : ''}${!done && t.status === 'doing' ? '<span>in progress</span>' : ''}</div>`;
+  row.append(chk, main);
+  if (!done) {
+    const cal = Object.assign(document.createElement('button'), { className: 'ghost iconBtn', title: 'Block time for this in Google Calendar', textContent: '📅' });
+    cal.onclick = () => openUrl(gcalUrl({ title: `🎯 ${ticketTitle(t, state)}`, details: `Focus block from Odyssey · due ${t.due}`, start: (() => { const x = new Date(); x.setMinutes(0, 0, 0); x.setHours(x.getHours() + 1); return x; })(), minutes: Math.round((t.sizeH || 1) * 60) }));
+    const go = Object.assign(document.createElement('button'), { className: 'playBtn', title: 'Start a focus session on this', innerHTML: '▶' });
+    go.disabled = !!state.activeSession;
+    go.onclick = () => startOn(`t:${t.id}`);
+    row.append(cal, go);
+  }
+  return row;
+}
 
 function renderDue() {
   const box = $('#dueBox');
   const list = dueToday();
+  const fin = doneToday();
   const soon = ticketsInSprint(weekKeyOf(today), state).filter((x) => x.status !== 'done' && x.due > today).sort((a, b) => a.due.localeCompare(b.due))[0];
   box.innerHTML = '';
-  box.append(Object.assign(document.createElement('div'), { className: 'subHead', textContent: list.length ? 'Due today' : 'Tasks' }));
-  if (!list.length) {
-    box.insertAdjacentHTML('beforeend', `<div class="emptyLine">✓ Nothing due today${soon ? ` · next: <b>${esc(ticketTitle(soon, state))}</b> ${esc(dueInfo(soon, today).text)}` : ''}</div>`);
-    return;
-  }
-  for (const t of list) {
-    const d = dueInfo(t, today);
-    const row = document.createElement('div');
-    row.className = 'task';
-    const chk = checkBtn({ state: null, title: 'Mark done', onChange: async () => { await updateTicket(t.id, { status: 'done' }); toast('Ticket done 🎉'); } });
-    const main = document.createElement('div');
-    main.className = 'tMain';
-    main.innerHTML = `<div class="tTitle">${esc(ticketTitle(t, state))}</div><div class="tMeta"><span class="due ${d.cls}">${esc(d.text)}</span>${t.sizeH ? ` · ${t.sizeH} h` : ''}${t.status === 'doing' ? ' · in progress' : ''}</div>`;
-    const go = Object.assign(document.createElement('button'), { className: 'playBtn', title: 'Start a focus session on this', innerHTML: '▶' });
-    go.disabled = !!state.activeSession;
-    go.onclick = () => startOn(`t:${t.id}`);
-    const cal = Object.assign(document.createElement('button'), { className: 'ghost calMini', title: 'Block time for this in Google Calendar', textContent: '📅' });
-    cal.onclick = () => openUrl(gcalUrl({ title: `🎯 ${ticketTitle(t, state)}`, details: `Focus block from Odyssey · due ${t.due}`, start: (() => { const d = new Date(); d.setMinutes(0, 0, 0); d.setHours(d.getHours() + 1); return d; })(), minutes: Math.round((t.sizeH || 1) * 60) }));
-    row.append(chk, main, cal, go);
-    box.append(row);
+  box.append(Object.assign(document.createElement('div'), { className: 'subHead', textContent: list.length ? `Due today · ${list.length}` : 'Tasks' }));
+  if (!list.length) box.insertAdjacentHTML('beforeend', `<div class="emptyLine">✓ Nothing due today${soon ? ` · next: <b>${esc(ticketTitle(soon, state))}</b> ${esc(dueInfo(soon, today).text)}` : ''}</div>`);
+  for (const t of list) box.append(dueRow(t));
+  if (fin.length) {
+    box.append(Object.assign(document.createElement('div'), { className: 'habitGroup done', textContent: `Done · ${fin.length}` }));
+    for (const t of fin) box.append(dueRow(t));
   }
 }
 
 // Open the timer's start panel with this target picked.
 function startOn(value) {
-  showView('focus');
+  showView('today');
   if ($('#sAsk').hidden) $('#sStartBtn').click();
+  setTimeout(() => $('#sessionCard').scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
   if (value?.startsWith('t:') && state.tickets[value.slice(2)]) setPicked(value);
 }
 
@@ -263,6 +286,7 @@ function renderSession() {
     ? `Today: ${t.count} session${t.count > 1 ? 's' : ''} · ${hm(t.procrastMin)} to get started · ${hm(t.workMin)} working`
     : '';
   card.classList.toggle('running', !!a);
+  $('#qtForm').hidden = !!a;
   clearInterval(tick);
   if (!a) return;
   $('#sSaved').textContent = '';
@@ -453,7 +477,7 @@ $('#sGo').onclick = async () => {
   $('#sStartBtn').hidden = false;
   $('#sDone').hidden = true;
   renderSession();
-  showView('focus');
+  showView('today');
   setFullscreen(true);
 };
 $('#sMin').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('#sGo').click(); });
@@ -479,7 +503,9 @@ $('#sEnd').onclick = async () => {
   const rec = await endSession();
   state = await load();
   setFullscreen(false);
+  showView('today');
   renderSession();
+  setTimeout(() => $('#sessionCard').scrollIntoView({ behavior: 'smooth', block: 'start' }), 60);
   askWhy(rec);
   offerDone(rec);
   offerNext(rec);
@@ -501,10 +527,37 @@ chrome.storage.onChanged.addListener(async () => {
   form?.applyTimer();
   renderProgress();
   renderTasks();
+  if (view === 'trends') renderTrends();
   refreshDrawer();
   if (!state.activeSession) document.body.classList.remove('focusing');
   renderMini();
 });
+
+// ---------- ad hoc timer (top of Today): a description, or just "Ad hoc", and go ----------
+$('#qtForm').onsubmit = async (e) => {
+  e.preventDefault();
+  if (state.activeSession) { setFullscreen(true); return; }
+  const text = $('#qtWhat').value.trim() || 'Ad hoc';
+  const ex = activeExperiment(state);
+  if (ex?.playId === 'firstStep') { // this week's experiment asks for a first step: use the full start form
+    startOn(null);
+    $('#sWhat').value = text;
+    setPicked(null);
+    return;
+  }
+  const wk = weekKeyOf(today);
+  const habits = timedHabits(wk, state);
+  const last = state.settings.lastAdhocHabit;
+  const habit = last !== undefined && (last === '' || habits.some((g) => g.id === last)) ? last : habits.some((g) => g.id === 'work') ? 'work' : '';
+  const target = resolveTarget(habit ? `h:${habit}` : '', wk, state);
+  const extras = ex ? { experimentId: ex.id, ...(ex.playId === 'twoMinute' ? { twoMinute: true } : {}) } : {};
+  state.activeSession = await startSession(text, state.settings.sessionMinutes, target, extras);
+  state = await load();
+  $('#qtWhat').value = '';
+  renderSession();
+  showView('today');
+  setFullscreen(true);
+};
 
 // ---------- views: Today · Focus · Tasks · Me ----------
 
@@ -512,11 +565,9 @@ let view = 'today';
 function showView(v) {
   view = v;
   try { sessionStorage.setItem('view', v); } catch { /* fine */ }
-  for (const x of ['today', 'focus', 'tasks', 'me']) $(`#view-${x}`).hidden = x !== v;
+  for (const x of ['today', 'tasks', 'trends', 'me']) $(`#view-${x}`).hidden = x !== v;
   document.querySelectorAll('#tabbar [data-view]').forEach((b) => b.classList.toggle('on', b.dataset.view === v));
-  // idle on Focus: go straight to the start form (unless the last session's questions are showing)
-  if (v === 'focus' && !state.activeSession && $('#sAsk').hidden && $('#sWhy').hidden && $('#sNext').hidden && $('#sDone').hidden) $('#sStartBtn').click();
-  if (v === 'focus' && state.activeSession) setFullscreen(true);
+  if (v === 'trends') renderTrends();
   window.scrollTo(0, 0);
   renderMini();
 }
@@ -532,11 +583,20 @@ function setFullscreen(on) {
   renderMini();
 }
 $('#sMinimize').onclick = () => setFullscreen(false);
-$('#miniBar').onclick = () => { showView('focus'); setFullscreen(true); };
+$('#miniBar').onclick = () => setFullscreen(true);
+// ⋯ in the ad hoc bar: the full start form (pick a task, length), right here on Today
+$('#qtMore').onclick = () => {
+  if (state.activeSession) { setFullscreen(true); return; }
+  const text = $('#qtWhat').value.trim();
+  if ($('#sAsk').hidden) $('#sStartBtn').click();
+  if (text) { setPicked(null); $('#sWhat').value = text; }
+  $('#qtWhat').value = '';
+  $('#sessionCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
+};
 let miniTick = null;
 function renderMini() {
   const a = state.activeSession;
-  const show = !!a && (minimized || view !== 'focus') && !document.body.classList.contains('focusing');
+  const show = !!a && !document.body.classList.contains('focusing');
   $('#miniBar').hidden = !show;
   document.body.classList.toggle('hasMini', show);
   clearInterval(miniTick);
@@ -557,7 +617,7 @@ function renderMini() {
 // ---------- Tasks: this week's sprint or the backlog; tap one for its sheet ----------
 
 let tkScope = 'sprint';
-const tkOpen = { done: false };
+const tkOpen = { done: true }; // finished tasks stay visible, below
 document.querySelectorAll('#tkScope [data-scope]').forEach((b) => (b.onclick = () => {
   tkScope = b.dataset.scope;
   document.querySelectorAll('#tkScope [data-scope]').forEach((x) => x.classList.toggle('on', x === b));
@@ -577,7 +637,7 @@ $('#tkAdd').onsubmit = async (e) => {
 function taskRow(t) {
   const row = document.createElement('div');
   row.className = `task tkRow ${t.status === 'done' ? 'isDone' : ''}`;
-  const chk = checkBtn({ state: t.status === 'done' ? true : null, title: 'Done', onChange: async (v) => { await updateTicket(t.id, { status: v ? 'done' : 'todo' }); if (v) toast('Done 🎉'); } });
+  const chk = checkBtn({ state: t.status === 'done' ? true : null, title: 'Done', onChange: (v) => tickTask(row, chk, t)(v) });
   const kids = kidsOf(t);
   const d = t.status !== 'done' && dueInfo(t, today);
   const lh = loggedH(t.id);
@@ -630,6 +690,70 @@ function renderTasks() {
     box.append(t);
     if (tkOpen.done) for (const x of done.sort((a, b) => (b.doneAt || 0) - (a.doneAt || 0))) box.append(taskRow(x));
   }
+}
+
+// ---------- Trends: the last 4 weeks, in the app ----------
+
+const bandOf = (sc) => band(sc);
+function renderTrends() {
+  const last7 = lastNDays(today, 7);
+  const last28 = lastNDays(today, 28);
+  const t7 = timeOnDays(state, last7);
+  const st7 = sessionTotals(last7, state);
+  const done7 = Object.values(state.tickets || {}).filter((t) => t.status === 'done' && t.doneAt && last7.includes(dateKey(new Date(t.doneAt)))).length;
+  const a7 = rollingAvg(state, today, 7);
+  const a28 = rollingAvg(state, today, 28);
+  $('#trKpis').innerHTML = [
+    [a7 ?? '—', '7-day score'], [a28 ?? '—', '28-day score'], [streak(state, today), '🔥 day streak'],
+    [hm(t7.totalMin), '⏱ time · 7 d'], [st7.avgStartMin == null ? '—' : hm(st7.avgStartMin), '⏳ to start'], [done7, '✅ tasks · 7 d'],
+  ].map(([v, l]) => `<div class="stat"><b>${v}</b><span>${l}</span></div>`).join('');
+
+  // 28 bars, coloured by band
+  const scores = last28.map((k) => ({ k, sc: dayScore(k, state)?.score ?? null }));
+  const logged = scores.filter((x) => x.sc != null);
+  $('#trChartSub').textContent = logged.length ? `${logged.length} of 28 days logged` : 'No check-ins yet';
+  $('#trChart').innerHTML = scores.map(({ k, sc }, i) => {
+    const d = parseKey(k);
+    const lbl = i % 7 === 0 || k === today ? `${d.getDate()}` : '';
+    return `<div class="b28 ${k === today ? 'today' : ''}" title="${d.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' })}${sc == null ? '' : ` · ${sc}`}"><i class="fill-${bandOf(sc)}" style="height:${sc == null ? 4 : Math.max(6, sc)}%"></i><span>${lbl}</span></div>`;
+  }).join('');
+
+  // habits: 7-day average, and the change from the 28-day one
+  const plan = planOf(today, state);
+  const g7 = goalAvgs(state, today, 7);
+  const g28 = goalAvgs(state, today, 28);
+  $('#trHabits').innerHTML = (plan?.goals || []).map((g) => {
+    const k = goalTrendKey(g);
+    const v7 = g7.get(k)?.avg ?? null;
+    const v28 = g28.get(k)?.avg ?? null;
+    const dlt = v7 != null && v28 != null ? v7 - v28 : null;
+    return `<div class="trHab"><span class="thIcon">${g.icon || '⭐'}</span><span class="thName">${esc(g.name)}</span>
+      <div class="thBar"><i class="fill-${band(v7)}" style="width:${v7 ?? 0}%"></i></div>
+      <b class="thVal band ${band(v7)}">${v7 ?? '—'}</b>
+      <span class="thDelta ${dlt == null || Math.abs(dlt) < 3 ? 'flat' : dlt > 0 ? 'up' : 'down'}">${dlt == null || Math.abs(dlt) < 3 ? '·' : dlt > 0 ? `▲${Math.round(dlt)}` : `▼${Math.round(-dlt)}`}</span></div>`;
+  }).join('') || '<div class="emptyLine">No habits planned yet.</div>';
+
+  // the last 4 weeks of focus
+  const wk = weekKeyOf(today);
+  const weeks = [0, 1, 2, 3].map((n) => dateKey(addDays(parseKey(wk), -7 * n)));
+  const rows = weeks.map((w) => {
+    const end = dateKey(addDays(parseKey(w), 6));
+    const m = weekMetrics(w, state, end < today ? end : today);
+    return { w, h: m.time.totalH, pp: m.focus.procrastPct, ms: m.starting.medianStartMin, done: m.delivery.done };
+  });
+  const maxH = Math.max(1, ...rows.map((r) => r.h || 0));
+  $('#trWeeks').innerHTML = `<div class="trWeek head"><span>Week</span><span>Time</span><span title="% of session time procrastinating">Procr.</span><span title="Median time to start">Start</span><span title="Tasks done">Done</span></div>` + rows.map((r, i) => `
+    <div class="trWeek"><span>${i === 0 ? 'This week' : parseKey(r.w).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}</span>
+      <span class="twTime"><i style="width:${Math.round(((r.h || 0) / maxH) * 100)}%"></i><b>${r.h ?? 0} h</b></span>
+      <span>${r.pp == null ? '—' : `${r.pp}%`}</span><span>${r.ms == null ? '—' : `${r.ms} min`}</span><span>${r.done}</span></div>`).join('');
+
+  // reasons
+  const rs = reasonStats(last28, state).filter((x) => x.min > 0).slice(0, 6);
+  const tot = rs.reduce((a, x) => a + x.min, 0);
+  $('#trReasons').innerHTML = rs.length ? rs.map((x) => {
+    const r = x.id === 'unrecorded' ? { icon: '❔', label: 'No reason given' } : reasonById(x.id) || { icon: '', label: x.id };
+    return `<div class="trReason"><span class="trrName">${r.icon} ${esc(r.label)}</span><div class="thBar"><i style="width:${Math.round((100 * x.min) / tot)}%"></i></div><b>${Math.round(x.min)} min</b></div>`;
+  }).join('') : '<div class="emptyLine">No procrastination logged in 4 weeks. 👏</div>';
 }
 
 // ---------- Me ----------

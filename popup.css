@@ -117,8 +117,6 @@ body { width: 400px; min-height: 560px; padding: 0 12px calc(78px + env(safe-are
 /* ---------- today: due tasks + habits ---------- */
 .subHead { font-size: 10.5px; font-weight: 800; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin: 4px 0 8px; }
 #habitsHead { margin-top: 14px; }
-#todayCard .habit { padding: 10px; }
-#todayCard .habit .hIcon { width: 36px; height: 36px; font-size: 18px; border-radius: 11px; }
 .calMini { width: 34px; height: 34px; padding: 0; font-size: 15px; flex: none; }
 #sSaved a { white-space: nowrap; }
 
@@ -226,3 +224,66 @@ body.hasMini { padding-bottom: calc(132px + env(safe-area-inset-bottom)); }
 #sAdhoc { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
 #sAdhoc[hidden] { display: none; }
 .addTask { display: flex; align-items: center; gap: 8px; color: var(--muted); font-weight: 600; cursor: pointer; }
+
+/* ---------- ad hoc timer bar (top of Today) ---------- */
+.quickTimer { display: flex; align-items: center; gap: 8px; padding: 6px 6px 6px 14px; margin: 0 0 14px; border-radius: 16px;
+  background: var(--card); border: 1px solid var(--line); box-shadow: var(--shadow); transition: border-color .15s, box-shadow .15s; }
+.quickTimer:focus-within { border-color: var(--accent); box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 14%, transparent); }
+.quickTimer[hidden] { display: none; }
+.qtIcon { font-size: 17px; }
+.quickTimer input { flex: 1; min-width: 0; border: 0 !important; background: transparent !important; box-shadow: none !important; padding: 9px 0; font-size: 15px; font-weight: 600; }
+.qtGo { flex: none; border: 0; border-radius: 12px; padding: 10px 16px; font-weight: 800; color: #fff; white-space: nowrap;
+  background: linear-gradient(135deg, #16c793, #0fa678); box-shadow: 0 6px 16px color-mix(in srgb, var(--green) 35%, transparent); }
+.qtGo:hover { filter: brightness(1.06); background: linear-gradient(135deg, #16c793, #0fa678); }
+
+/* ---------- consistency: cards, headers, chips never spill ---------- */
+.card { min-width: 0; overflow-wrap: anywhere; }
+.checkinHead { gap: 10px; min-width: 0; }
+.checkinHead h3 { white-space: nowrap; }
+.progressPill { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.tbDay { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.topbar > div:first-child { min-width: 0; }
+.subHead { margin: 6px 2px 8px; }
+.emptyLine { border-radius: 14px; }
+.pick { max-width: 100%; }
+#dueBox .habitGroup { margin: 4px 2px 8px; }
+
+/* ---------- the timer lives on Today ---------- */
+#sStartBtn { display: none !important; } /* the ad hoc bar starts sessions; ⋯ opens the full form */
+#sessionCard:not(.running):has(#sAsk[hidden]):has(#sWhy[hidden]):has(#sNext[hidden]):has(#sDone[hidden]):has(#sSaved:empty) { display: none; }
+#view-today #sessionCard { margin-bottom: 14px; }
+.qtMore { flex: none; width: 38px; height: 38px; padding: 0; border-radius: 12px; font-size: 18px; font-weight: 900; line-height: 1; color: var(--muted); }
+
+/* ---------- Trends ---------- */
+.bars28 { display: grid; grid-template-columns: repeat(28, minmax(0, 1fr)); gap: 3px; align-items: end; height: 120px; margin-top: 12px; }
+.b28 { display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; min-width: 0; }
+.b28 i { display: block; width: 100%; border-radius: 4px 4px 2px 2px; min-height: 3px; }
+.b28 i.fill-none { background: var(--none-tint); }
+.b28 span { font-size: 9.5px; color: var(--muted); height: 12px; line-height: 12px; margin-top: 3px; white-space: nowrap; overflow: visible; }
+.b28.today i { outline: 2px solid color-mix(in srgb, var(--accent) 45%, transparent); outline-offset: 1px; }
+.trHab, .trReason { display: grid; align-items: center; gap: 8px; padding: 7px 0; border-bottom: 1px solid var(--line-2); min-width: 0; }
+.trHab:last-child, .trReason:last-child { border-bottom: 0; }
+.trHab { grid-template-columns: 22px minmax(0, 1fr) 70px 30px 34px; }
+.thIcon { font-size: 16px; }
+.thName, .trrName { font-weight: 650; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.thBar { height: 7px; border-radius: 99px; background: var(--none-tint); overflow: hidden; }
+.thBar i { display: block; height: 100%; border-radius: 99px; background: var(--accent-grad); }
+.trReason .thBar i { background: linear-gradient(90deg, #ff9aae, var(--red)); }
+.thVal { text-align: right; font-size: 13px; font-variant-numeric: tabular-nums; }
+.thDelta { font-size: 11px; font-weight: 800; text-align: right; }
+.thDelta.up { color: var(--green); } .thDelta.down { color: var(--red); } .thDelta.flat { color: var(--faint); }
+.trReason { grid-template-columns: minmax(0, 1fr) 90px 52px; }
+.trReason b { text-align: right; font-size: 12px; font-variant-numeric: tabular-nums; }
+.trWeek { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1.3fr) minmax(0, .9fr) minmax(0, .9fr) minmax(0, .6fr); gap: 8px; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--line-2); font-size: 12.5px; font-variant-numeric: tabular-nums; }
+.trWeek:last-child { border-bottom: 0; }
+.trWeek.head { font-size: 10.5px; font-weight: 800; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); padding-top: 0; }
+.trWeek > span { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.trWeek > span:not(:first-child) { text-align: right; }
+.twTime { position: relative; display: flex; align-items: center; justify-content: flex-end; }
+.twTime i { position: absolute; left: 0; top: 50%; transform: translateY(-50%); height: 6px; border-radius: 99px; background: var(--accent-grad); opacity: .35; }
+.twTime b { position: relative; }
+.moreLink { text-align: center; margin: 4px 0 16px; font-size: 13px; }
+.thBar i.fill-green { background: linear-gradient(90deg, #4fd6a8, var(--green)); }
+.thBar i.fill-yellow { background: linear-gradient(90deg, #ffd36b, var(--yellow)); }
+.thBar i.fill-red { background: linear-gradient(90deg, #ff9aae, var(--red)); }
+.thBar i.fill-none { background: var(--none); }

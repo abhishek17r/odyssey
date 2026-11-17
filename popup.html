@@ -32,31 +32,12 @@
     </header>
     <div class="cheerLine"><span class="band" id="bandLabel"></span> <span class="cheer" id="cheer"></span></div>
 
-    <section class="card banner" id="planBanner" hidden></section>
-
-    <section class="card" id="noPlan" hidden>
-      <h3>No plan for this week</h3>
-      <p class="muted" style="margin-top:0">Set this week’s habits first. Your built-in ones are ready; it takes a minute.</p>
-      <button class="primary" id="planNow" style="width:100%">Plan this week</button>
-    </section>
-
-    <section class="card" id="todayCard" hidden>
-      <div class="checkinHead"><h3 style="margin:0">Today</h3><span class="progressPill" id="todayProg"></span></div>
-      <div id="dueBox"></div>
-      <div class="subHead" id="habitsHead">Habits</div>
-      <div id="goalQs"></div>
-      <input type="text" id="note" maxlength="140" placeholder="📝 Note: a win, a lesson (optional)" style="margin-top:10px" />
-    </section>
-
-    <section class="card" id="reflectCard">
-      <div class="row between"><h3>Reflection</h3><span class="small" id="reflectMsg"></span></div>
-      <textarea id="reflection" class="reflectBox" rows="4" placeholder="How was today, really? What went well, what got in the way, how you felt…"></textarea>
-    </section>
-  </main>
-
-  <!-- FOCUS -->
-  <main class="view" id="view-focus" hidden>
-    <header class="topbar"><div><div class="tbDay">Focus</div><div class="tbDate" id="focusSub">Start, then press Start working the moment you begin</div></div></header>
+    <form class="quickTimer" id="qtForm" autocomplete="off">
+      <span class="qtIcon">⏱</span>
+      <input type="text" id="qtWhat" maxlength="80" placeholder="Ad hoc timer: what now?" />
+      <button type="button" class="qtMore" id="qtMore" title="More options: pick a task, set the length">⋯</button>
+      <button type="submit" class="qtGo" title="Start the timer">▶ Start</button>
+    </form>
   <section class="card session" id="sessionCard">
     <div id="sIdle">
       <button class="startBig" id="sStartBtn"><span class="play">▶</span><span><b>Start a focus session</b><small>The clock starts in procrastination mode</small></span></button>
@@ -120,6 +101,27 @@
       </div>
     </div>
   </section>
+
+    <section class="card banner" id="planBanner" hidden></section>
+
+    <section class="card" id="noPlan" hidden>
+      <h3>No plan for this week</h3>
+      <p class="muted" style="margin-top:0">Set this week’s habits first. Your built-in ones are ready; it takes a minute.</p>
+      <button class="primary" id="planNow" style="width:100%">Plan this week</button>
+    </section>
+
+    <section class="card" id="todayCard" hidden>
+      <div class="checkinHead"><h3 style="margin:0">Today</h3><span class="progressPill" id="todayProg"></span></div>
+      <div id="dueBox"></div>
+      <div class="subHead" id="habitsHead">Habits</div>
+      <div id="goalQs"></div>
+      <input type="text" id="note" maxlength="140" placeholder="📝 Note: a win, a lesson (optional)" style="margin-top:10px" />
+    </section>
+
+    <section class="card" id="reflectCard">
+      <div class="row between"><h3>Reflection</h3><span class="small" id="reflectMsg"></span></div>
+      <textarea id="reflection" class="reflectBox" rows="4" placeholder="How was today, really? What went well, what got in the way, how you felt…"></textarea>
+    </section>
   </main>
 
   <!-- TASKS -->
@@ -128,6 +130,17 @@
     <div class="seg scopeSeg" id="tkScope"><button type="button" data-scope="sprint" class="on">This week</button><button type="button" data-scope="backlog">Backlog</button></div>
     <form class="quickAdd" id="tkAdd"><span class="qaPlus">＋</span><input type="text" id="tkTitle" maxlength="80" placeholder="Add a task…" /></form>
     <div id="tkList"></div>
+  </main>
+
+  <!-- TRENDS -->
+  <main class="view" id="view-trends" hidden>
+    <header class="topbar"><div><div class="tbDay">Trends</div><div class="tbDate">The last 4 weeks</div></div></header>
+    <section class="card hero-bg statsCard"><div class="stats" id="trKpis"></div></section>
+    <section class="card"><div class="row between"><h3 style="margin:0">Daily score</h3><span class="small muted" id="trChartSub"></span></div><div class="bars28" id="trChart"></div></section>
+    <section class="card"><div class="row between"><h3 style="margin:0">Habits</h3><span class="small muted">7 days · vs 28</span></div><div id="trHabits" style="margin-top:8px"></div></section>
+    <section class="card"><h3>Focus by week</h3><div id="trWeeks"></div></section>
+    <section class="card"><h3>Why you procrastinated · 28 days</h3><div id="trReasons"></div></section>
+    <div class="moreLink"><a data-open="trends">Full trends on the dashboard →</a></div>
   </main>
 
   <!-- ME -->
@@ -150,7 +163,6 @@
         <a data-open="board"><span>🗂️</span>Week board<small>tasks board, habit targets</small></a>
         <a data-open="retro"><span>🔁</span>Retro<small>this sprint's numbers, the coach</small></a>
         <a data-open="rewards"><span>💰</span>Rewards<small>wallet and marketplace</small></a>
-        <a data-open="trends"><span>📈</span>Trends<small>last 28 days</small></a>
         <a data-open="today"><span>📅</span>Any day<small>calendar, past check-ins, sessions</small></a>
         <a data-open="settings"><span>⚙️</span>Settings<small>reminders, tags, backups</small></a>
       </div>
@@ -165,8 +177,8 @@
 
   <nav class="tabbar" id="tabbar">
     <button type="button" data-view="today"><span>☀️</span>Today</button>
-    <button type="button" data-view="focus"><span>🎯</span>Focus</button>
     <button type="button" data-view="tasks"><span>✅</span>Tasks</button>
+    <button type="button" data-view="trends"><span>📈</span>Trends</button>
     <button type="button" data-view="me"><span>🧭</span>Me</button>
   </nav>
 
