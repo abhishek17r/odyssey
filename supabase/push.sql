@@ -1,4 +1,4 @@
--- Odyssey push notifications. Run in Supabase → SQL Editor after schema.sql.
+-- Odyssey push notifications. Run in Supabase → SQL Editor after schema.sql. Safe to run again.
 -- The ready-to-run copy with your real secret is .secrets/push-setup.sql on your Mac (not in git).
 
 -- Phones that turned push on, and what's been sent (so each notification goes out once).
@@ -7,31 +7,38 @@ create table if not exists public.odyssey_push_subs (
   sub        jsonb not null,           -- the browser's push subscription
   tz         text,                     -- the phone's time zone
   created_at timestamptz not null default now(),
-  last_ok    timestamptz
+  last_ok    timestamptz,
+  user_id    uuid references auth.users (id) on delete cascade  -- whose phone
 );
 create table if not exists public.odyssey_push_log (
-  key     text primary key,            -- e.g. morning:2026-11-18, end:<session id>
+  key     text primary key,            -- <user id>:<what>, e.g. <user id>:morning:2026-11-18
   sent_at timestamptz not null default now()
 );
+-- upgrade from the one-owner version: phones and sent-log entries belong to an account
+alter table public.odyssey_push_subs add column if not exists user_id uuid references auth.users (id) on delete cascade;
+update public.odyssey_push_subs set user_id = (select user_id from public.odyssey_owner where id = 1) where user_id is null;
+update public.odyssey_push_log set key = (select user_id from public.odyssey_owner where id = 1)::text || ':' || key
+  where key !~ '^[0-9a-f]{8}-[0-9a-f]{4}-' and exists (select 1 from public.odyssey_owner);
+create index if not exists odyssey_push_subs_user on public.odyssey_push_subs (user_id);
 alter table public.odyssey_push_subs enable row level security;
 alter table public.odyssey_push_log  enable row level security;
 revoke all on public.odyssey_push_subs from anon, authenticated;
 revoke all on public.odyssey_push_log  from anon, authenticated;
 
--- Owner only: save / remove this phone's subscription.
+-- The signed-in account saves / removes this phone's subscription.
 create or replace function public.odyssey_push_subscribe(sub jsonb, tz text)
 returns void language plpgsql security definer set search_path = public as $$
+declare uid uuid := public.odyssey_uid();
 begin
-  if not public.odyssey_is_owner() then raise exception 'not signed in as the owner' using errcode = '28000'; end if;
-  insert into public.odyssey_push_subs (endpoint, sub, tz) values (sub->>'endpoint', sub, tz)
-  on conflict (endpoint) do update set sub = excluded.sub, tz = excluded.tz;
+  insert into public.odyssey_push_subs (endpoint, sub, tz, user_id) values (sub->>'endpoint', sub, tz, uid)
+  on conflict (endpoint) do update set sub = excluded.sub, tz = excluded.tz, user_id = excluded.user_id;
 end; $$;
 
 create or replace function public.odyssey_push_unsubscribe(endpoint text)
 returns void language plpgsql security definer set search_path = public as $$
+declare uid uuid := public.odyssey_uid();
 begin
-  if not public.odyssey_is_owner() then raise exception 'not signed in as the owner' using errcode = '28000'; end if;
-  delete from public.odyssey_push_subs s where s.endpoint = odyssey_push_unsubscribe.endpoint;
+  delete from public.odyssey_push_subs s where s.endpoint = odyssey_push_unsubscribe.endpoint and s.user_id = uid;
 end; $$;
 
 revoke all on function public.odyssey_push_subscribe(jsonb, text) from public, anon;

@@ -84,3 +84,11 @@ on, the Chrome extension stops its own scheduled reminders (it keeps the session
 - ✅ Keeps the screen awake while you're working; a notification when the session ends **while the app is open**.
 - ⏳ Next: web push, so "session done", the morning brief and the day-end nudge arrive with the app closed.
 - ❌ Not on the phone: the site blocker, Apple Health, Screen Time.
+
+## 5. More people (each with their own private data)
+
+1. Once: **Supabase → SQL Editor → New query**, paste all of `.secrets/upgrade-accounts.sql` (on your Mac), **Run**.
+   It gives every record an account (your existing data stays yours) and makes push per account.
+2. To add someone: **Authentication → Users → Add user → Create new user**: email `theirname@odyssey.test`,
+   a password, tick **Auto Confirm User**. Send them the app link, username `theirname` and the password.
+   (Or turn “Allow new users to sign up” back on and they can use “Create your account”.)
