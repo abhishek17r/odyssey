@@ -855,7 +855,7 @@ function renderRadioSettings(box) {
   };
   form.append(url, add);
   box.append(form, msg);
-  box.append(Object.assign(document.createElement('p'), { className: 'small muted credit', innerHTML: 'SomaFM and Radio Paradise are free and listener-supported: <a href="https://somafm.com/support/" target="_blank" rel="noopener">support SomaFM</a> · <a href="https://radioparadise.com/support" target="_blank" rel="noopener">Radio Paradise</a>.' }));
+  box.append(Object.assign(document.createElement('p'), { className: 'small muted credit', innerHTML: 'SomaFM and Radio Paradise are free and listener-supported: <a href="https://somafm.com/support/" target="_blank" rel="noopener">support SomaFM</a> · <a href="https://radioparadise.com/support" target="_blank" rel="noopener">Radio Paradise</a>. Raagam is All India Radio’s classical channel.' }));
   box.append(playerToggleRow());
 }
 
