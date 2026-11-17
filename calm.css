@@ -291,3 +291,23 @@ body.onboarding { overflow: hidden; }
   button.primary, .qtGo, .onbGo { color: #0e1116 !important; }
   .playBtn { color: var(--ios-blue) !important; }
 }
+
+/* ================= Athena ================= */
+.athenaLine { position: relative; margin: -4px 0 16px; padding: 2px 36px 2px 14px; border-left: 2px solid var(--ios-blue); }
+.athenaLine[hidden] { display: none; }
+.athenaLine.slip, .athenaLine.comeback { border-left-color: var(--ios-orange); }
+.alWho { display: block; font-size: 11.5px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--ios-label-3); margin-bottom: 2px; }
+.athenaLine p { margin: 0; font-family: Georgia, 'Iowan Old Style', serif; font-size: 16px; line-height: 1.45; color: var(--ios-label); }
+.alX { position: absolute; top: 0; right: 0; background: none !important; color: var(--ios-label-3); font-size: 18px; padding: 2px 8px; }
+.athenaReply { margin: 0 16px 16px; font-family: Georgia, 'Iowan Old Style', serif; font-style: italic; font-size: 14.5px; line-height: 1.45; color: var(--ios-label-2); }
+.athenaReply[hidden] { display: none; }
+.athenaRead { background: var(--ios-cell); border-radius: 12px; padding: 12px 16px; }
+#view-trends .athenaRead { padding: 0; background: none; }
+.athenaRead p { margin: 0 0 8px; font-family: Georgia, 'Iowan Old Style', serif; font-size: 15.5px; line-height: 1.5; color: var(--ios-label); }
+.athenaRead p:last-child { margin-bottom: 0; color: var(--ios-label-2); font-style: italic; }
+.proposal { flex-wrap: wrap; align-items: flex-start; }
+.proposal .cMain span { font-size: 15px; line-height: 1.4; }
+.propBtns { display: flex; gap: 8px; margin-left: auto; padding-top: 6px; }
+.propBtns button { padding: 6px 12px; font-size: 14px; }
+.planTop { margin-bottom: 4px; }
+.athenaToggle { margin-top: 12px; border-top: .5px solid var(--ios-sep); padding-top: 12px; }
