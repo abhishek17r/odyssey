@@ -8,10 +8,8 @@ import { fileURLToPath } from 'node:url';
 const root = join(fileURLToPath(new URL('.', import.meta.url)), '..');
 const out = join(root, 'dist', 'web');
 
-// one version everywhere: version.js and manifest.json must agree
+// the app's version (version.js). The Chrome extension (manifest.json) is deprecated and frozen at 0.2.0.
 const { VERSION } = await import(join(root, 'version.js'));
-const manifestVersion = JSON.parse(await readFile(join(root, 'manifest.json'), 'utf8')).version;
-if (manifestVersion !== VERSION) { console.error(`Version mismatch: version.js says ${VERSION}, manifest.json says ${manifestVersion}.`); process.exit(1); }
 
 await rm(out, { recursive: true, force: true });
 await mkdir(out, { recursive: true });

@@ -1,3 +1,3 @@
-// Odyssey's version, shown in Me. Bump it with every update (and manifest.json's "version" to match:
-// the build stops if they differ). Semantic: major.minor.patch.
+// Odyssey's version, shown in Me. Bump it with every update. Semantic: major.minor.patch.
+// (The Chrome extension's manifest.json is deprecated and frozen at 0.2.0; don't bump it.)
 export const VERSION = '0.2.0';

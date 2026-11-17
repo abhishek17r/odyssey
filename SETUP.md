@@ -15,14 +15,11 @@ can read or write your data.
 3. Optional tidy-up: **Authentication → Users**. If there's an unconfirmed user from the earlier email-code
    try, delete it.
 
-## 2. The Chrome extension
+## 2. The Chrome extension (deprecated)
 
-1. `chrome://extensions` → **↻ Reload** Odyssey (Chrome may ask to allow access to `supabase.co`).
-2. Make your account in Supabase (section 5, step 2), then Dashboard → **Settings → ☁️ Account & sync** →
-   sign in with that username and password. Let Chrome save the password. The first sync uploads everything
-   on this computer; after that it syncs every minute and a few seconds after each change.
-3. Keep Supabase → **Authentication → Sign In / Providers** → “Allow new users to sign up” **off**: accounts
-   are only the ones you add.
+Odyssey is a phone web app only. The Chrome extension is frozen at 0.2.0 and no longer maintained:
+remove it from Chrome (`chrome://extensions` → Odyssey → **Remove**) so its old code stops syncing in the
+background.
 
 ## 3. The phone app (PWA)
 
@@ -60,8 +57,7 @@ your Mac into `.secrets/` (never committed).
    From then on it redeploys by itself whenever its code changes.
 4. **On the iPhone** (the home-screen app): **Me → Notifications → 🔔 Turn on push** → Allow → **Send a test**.
 
-Times and switches are in Me → Notifications; habit cue times in This week → ✎ Edit habits. Once push is
-on, the Chrome extension stops its own scheduled reminders (it keeps the session ones).
+Times and switches are in Me → Notifications; habit cue times in Week → Plan.
 
 ## How sync works
 

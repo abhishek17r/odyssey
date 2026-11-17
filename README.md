@@ -1,4 +1,8 @@
-# Odyssey — habits, sprint tickets, procrastination data (personal Chrome extension)
+# Odyssey — habits, sprint tickets, procrastination data
+
+> **Odyssey is a phone web app (PWA) only.** The Chrome extension (`manifest.json`, `background.js`) and the
+> desktop dashboard (`dashboard.*`) are deprecated as of 0.2.0: frozen, not maintained, not part of the app.
+> The app is `popup.html` / `popup.js` / `lib/`, built by `scripts/build-web.mjs` into `dist/web`.
 
 *Every day, a step toward Ithaca.* Brand: a sail under a guiding star on a night sea (`icons/logo.svg`;
 the PNG icons are rendered from it). Colours: night-sea navy for hero panels, Aegean blue for actions,
