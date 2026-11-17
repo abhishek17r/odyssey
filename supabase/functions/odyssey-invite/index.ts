@@ -1,4 +1,5 @@
-// odyssey-invite: the owner invites someone by email. Supabase sends the invite through the project's own
+// odyssey-invite: the owner adds someone: { username, password } creates a ready account (no email), or
+// { email } invites them by email. Supabase sends the invite through the project's own
 // SMTP settings (Mailjet, Brevo …; see SETUP.md). The link opens the app, which asks them to pick a password.
 // Only the owner (public.odyssey_owner) can call it.
 
@@ -20,8 +21,29 @@ Deno.serve(async (req) => {
   const { data: owner } = await db.from('odyssey_owner').select('user_id').eq('id', 1).maybeSingle();
   if (owner?.user_id !== who.user.id) return json({ error: 'Only the owner can invite people.' }, 403);
 
-  const { email } = await req.json().catch(() => ({}));
-  const e = String(email || '').trim().toLowerCase();
+  const body = await req.json().catch(() => ({}));
+
+  // The owner makes the account: a username (or email) and a password, ready to sign in with. No email sent.
+  if (body.username != null) {
+    const u = String(body.username || '').trim().toLowerCase();
+    const pw = String(body.password || '');
+    if (!/^[a-z0-9._-]{3,40}$/.test(u) && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(u)) return json({ error: 'Username: 3–40 letters, numbers, dots, dashes or underscores.' }, 400);
+    if (pw.length < 8) return json({ error: 'Use a password of at least 8 characters.' }, 400);
+    const login = u.includes('@') ? u : `${u}@odyssey.test`;
+    if (body.reset) { // a forgotten password: the owner sets a new one
+      const { data: list } = await db.auth.admin.listUsers({ page: 1, perPage: 1000 });
+      const found = list?.users?.find((x) => (x.email || '').toLowerCase() === login);
+      if (!found) return json({ error: 'No account with that username.' }, 404);
+      if (found.id === who.user.id) return json({ error: 'Change your own password under Account & sync.' }, 400);
+      const { error: upErr } = await db.auth.admin.updateUserById(found.id, { password: pw });
+      return upErr ? json({ error: upErr.message }, 400) : json({ ok: true, reset: true });
+    }
+    const { error } = await db.auth.admin.createUser({ email: login, password: pw, email_confirm: true });
+    if (error) return json({ error: /already.*registered|exists/i.test(error.message) ? 'That username is taken.' : error.message }, 400);
+    return json({ ok: true, created: true });
+  }
+
+  const e = String(body.email || '').trim().toLowerCase();
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e) || e.endsWith('@odyssey.test')) return json({ error: 'Use a real email address.' }, 400);
   // Inviting again someone who never accepted: start over (they have no data yet), so the email goes out again.
   const { data: list } = await db.auth.admin.listUsers({ page: 1, perPage: 1000 });

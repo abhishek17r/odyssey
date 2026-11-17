@@ -512,3 +512,10 @@ body.focusing .rBtn { color: #fff; }
 .credit { margin: 10px 2px 4px; }
 .credit a { color: var(--ios-blue); }
 body.focusing.hasRadio .hint.center { display: none; }
+.pwRow { margin-top: 10px; }
+.pwRow > a { color: var(--ios-blue); cursor: pointer; }
+.stackInputs { display: grid; gap: 8px; margin-bottom: 8px; }
+.stackInputs input { width: 100%; box-sizing: border-box; font-size: 16px !important; }
+.inviteBox > .primary { width: 100%; }
+.shareBox { margin-top: 10px; background: var(--ios-bg); border-radius: 10px; padding: 10px 12px; }
+.shareBox pre { white-space: pre-wrap; overflow-wrap: anywhere; font: 13px/1.45 var(--font); margin: 0 0 8px; }

@@ -89,11 +89,14 @@ on, the Chrome extension stops its own scheduled reminders (it keeps the session
 
 1. Once: **Supabase → SQL Editor → New query**, paste all of `.secrets/upgrade-accounts.sql` (on your Mac), **Run**.
    It gives every record an account (your existing data stays yours) and makes push per account.
-2. To add someone: **Authentication → Users → Add user → Create new user**: email `theirname@odyssey.test`,
-   a password, tick **Auto Confirm User**. Send them the app link, username `theirname` and the password.
-   (Or turn “Allow new users to sign up” back on and they can use “Create your account”.)
+2. To add someone: in the app, **Me → Account & sync → 👤 Add someone** (only the owner sees it). Pick their
+   username; a password is suggested. **Create account**, then **Copy** or **Share** the login details to them.
+   No email is involved. They can change the password under Account & sync. Forgot it? Same box →
+   *Someone forgot their password?* sets a new one.
 
-## 6. Invite people by email (free, no expiry)
+## 6. Optional: invite people by email (free, no expiry)
+
+Not needed: Add someone (section 5) works without email. Only if you want email invites or password-reset emails later.
 
 Supabase sends the invite and password-reset emails through any SMTP server. Two free-forever choices:
 
