@@ -188,7 +188,7 @@ h3, .subHead, .habitGroup, .groupHead, .cellHead { text-transform: none !importa
 .rkBar i { background: var(--ios-orange) !important; }
 .mrWallet b { color: var(--ios-label); }
 #view-me .iosGroup .cIcon { display: none; }
-#view-me .notifRow input[type=time] { width: 116px; }
+#view-me .notifRow input[type=time] { width: 132px; }
 .sessionBar .mbDot.work { background: var(--ios-orange); }
 
 /* ---------- focus screen: the same calm, on black ---------- */
@@ -347,3 +347,104 @@ body.onboarding { overflow: hidden; }
 .foldGroup > summary::-webkit-details-marker { display: none; }
 .foldGroup > summary::after { content: ' ›'; }
 .foldGroup[open] > summary::after { content: ' ⌄'; }
+
+/* the account: a quiet row */
+.acct.quiet { display: flex; align-items: center; gap: 12px; }
+.acct.quiet .acctAvatar { width: 34px; height: 34px; font-size: 15px; background: var(--ios-fill-2); color: var(--ios-label); }
+.acct.quiet .acctMain { flex: 1; min-width: 0; }
+.acctOut { color: var(--ios-red); cursor: pointer; flex: none; }
+.rkSpend { font-size: 13px; opacity: .85; margin-top: 4px; }
+.market .mIcon { width: 30px; text-align: center; font-size: 20px; flex: none; }
+.market .cell.dim .mIcon { font-size: 15px; opacity: .6; }
+.vmGift circle { fill: var(--ios-cell); stroke: var(--ios-label-3); stroke-width: 1; stroke-dasharray: 2 2; }
+.vmGift text { font-size: 9px; opacity: .45; }
+.vmGift.on circle { stroke: var(--ios-orange); stroke-dasharray: none; }
+.vmGift.on text { opacity: 1; }
+
+/* ================= the cast: Greek figures, gently alive ================= */
+.fig { display: inline-block; vertical-align: middle; flex: none; overflow: visible; }
+.figAthena { border-radius: 50%; box-shadow: 0 0 0 1.5px color-mix(in srgb, var(--ios-blue) 35%, transparent); }
+.athEyes { transform-box: fill-box; transform-origin: center; animation: athBlink 5.5s infinite; }
+@keyframes athBlink { 0%, 93%, 100% { transform: scaleY(1); } 95% { transform: scaleY(.1); } }
+.athCrest { transform-box: view-box; transform-origin: 32px 16px; animation: athCrest 6s ease-in-out infinite; }
+@keyframes athCrest { 0%, 100% { transform: rotate(-2deg); } 50% { transform: rotate(2.5deg); } }
+.galleyRock { transform-box: view-box; transform-origin: 32px 50px; animation: galleyRock 4s ease-in-out infinite; }
+@keyframes galleyRock { 0%, 100% { transform: rotate(-3deg) translateY(0); } 50% { transform: rotate(3deg) translateY(-1.5px); } }
+.owlWingL { transform-box: view-box; transform-origin: 18px 32px; }
+.owlWingR { transform-box: view-box; transform-origin: 46px 32px; }
+.owlEyes { transform-box: fill-box; transform-origin: center; animation: athBlink 4s infinite; }
+
+/* Athena beside her words */
+.athenaLine { display: flex; gap: 12px; align-items: flex-start; border-left: 0; padding: 0 30px 0 0; animation: alIn .5s cubic-bezier(.2, .8, .2, 1) both; }
+.alAvatar { flex: none; }
+.alBody { min-width: 0; }
+@keyframes alIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+.athenaReply { display: flex; gap: 10px; align-items: flex-start; }
+.athenaReply .arAvatar { flex: none; margin-top: 2px; }
+.athenaReply[hidden] { display: none; }
+.arHead { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.arHead b { font-family: var(--font); font-size: 14px; font-weight: 600; color: var(--ios-label); }
+.arHead small { font-size: 11.5px; color: var(--ios-label-3); margin-left: auto; }
+.athenaHead { display: flex; align-items: center; gap: 8px; }
+.onbCast { display: flex; align-items: flex-end; gap: 6px; margin-top: 14px; }
+.onbCast .figAthena { margin-bottom: 4px; }
+
+/* the voyage: the galley on the strip and the map */
+.vsShip { display: flex; align-items: center; }
+.vmShipHalo { fill: var(--ios-cell); stroke: var(--ios-blue); stroke-width: 1.2; }
+.rkShields { gap: 3px; }
+.rkShields .figShield { color: rgba(255, 255, 255, .7); }
+.figShield.on { filter: drop-shadow(0 0 3px rgba(226, 180, 90, .5)); }
+.laurels .lIcon { display: flex; align-items: center; justify-content: center; }
+.laurels .cell.dim .lIcon { font-size: 15px; }
+
+/* the owl cheers when something is done */
+.owlPop { position: fixed; right: 16px; bottom: calc(84px + env(safe-area-inset-bottom)); z-index: 80; display: flex; align-items: center; gap: 8px; flex-direction: row-reverse;
+  pointer-events: none; animation: owlFly 2.2s cubic-bezier(.3, .7, .3, 1) forwards; }
+.owlSays { background: var(--ios-cell); color: var(--ios-label); font-weight: 600; font-size: 14px; padding: 7px 12px; border-radius: 14px 14px 4px 14px; box-shadow: 0 6px 20px rgba(0, 0, 0, .12); }
+.owlPop .owlWingL { animation: wingL .3s ease-in-out 4; }
+.owlPop .owlWingR { animation: wingR .3s ease-in-out 4; }
+@keyframes wingL { 50% { transform: rotate(28deg); } }
+@keyframes wingR { 50% { transform: rotate(-28deg); } }
+@keyframes owlFly {
+  0% { opacity: 0; transform: translate(40px, 30px) scale(.6); }
+  15% { opacity: 1; transform: translate(0, -6px) scale(1); }
+  25% { transform: translate(0, 0); }
+  75% { opacity: 1; transform: translate(0, 0); }
+  100% { opacity: 0; transform: translate(60px, -80px) scale(.7); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .athEyes, .athCrest, .galleyRock, .owlEyes, .athenaLine, .owlPop, .owlPop .owlWingL, .owlPop .owlWingR { animation: none !important; }
+}
+
+/* ================= finger-sized targets ================= */
+.checkBtn { position: relative; }
+.checkBtn::after { content: ''; position: absolute; inset: -9px; } /* a 48px tap area around the round button */
+.stepper .stepBtn, .track .stepper.sm .stepBtn { min-width: 44px; height: 40px; }
+.habit .skip { min-height: 36px; padding: 0 14px; }
+.tapTick { cursor: pointer; }
+.notifRow { cursor: pointer; min-height: 48px; }
+.insight.tappable { cursor: pointer; }
+.quickAdd, .quickTimer { cursor: text; min-height: 48px; }
+.quickAdd input { font-size: 16px !important; }
+.todayAdd { margin-top: 8px; background: var(--ios-cell); }
+.cell, .wkHabit, .task { min-height: 48px; }
+.playBtn { position: relative; }
+.playBtn::after { content: ''; position: absolute; inset: -8px; }
+.tMore { margin-top: 14px; }
+.tMore > summary { list-style: none; cursor: pointer; color: var(--ios-blue); font-weight: 500; padding: 12px 2px; }
+.tMore > summary::-webkit-details-marker { display: none; }
+.drawerActions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+.drawerActions button { min-height: 44px; flex: 1; }
+.dangerBtn { background: color-mix(in srgb, var(--ios-red) 12%, transparent) !important; color: var(--ios-red) !important; }
+.statusSeg button { min-height: 40px; }
+
+/* swipe a task left to delete */
+.swipeRow { position: relative; overflow: visible; }
+.swipeDel { position: absolute; top: 0; bottom: 0; right: -96px; width: 88px; border-radius: 12px; background: var(--ios-red) !important; color: #fff !important; font-weight: 600; }
+#view-week .task.swipeRow .swipeDel, #dueBox .task.swipeRow .swipeDel { border-radius: 10px; }
+.undoToast { display: flex; align-items: center; gap: 14px; }
+.undoToast button { background: none !important; color: #8db4d6 !important; font-weight: 700; padding: 4px 6px; }
+.swipeDel { visibility: hidden; }
+.swipeRow.swiping .swipeDel, .swipeRow.open .swipeDel { visibility: visible; }
+html, body { overflow-x: hidden; }

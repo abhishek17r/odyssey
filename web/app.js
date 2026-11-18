@@ -67,7 +67,7 @@ function accountSheet() {
   };
   drawNotif();
   const wrap = el('div', {}, box, notif);
-  openDrawer('Account & sync', wrap);
+  openDrawer('Sign in', wrap);
   renderAccount(box, { onSignedIn: () => location.reload() });
 }
 
@@ -80,7 +80,7 @@ async function setupAccountUi() {
     const top = document.querySelector('header');
     if (top) {
       const user = cloudOn() ? await currentUser() : null;
-      const b = el('button', { type: 'button', className: 'cloudBtn', title: 'Account & sync', textContent: user ? '☁️' : '☁️ Sign in' });
+      const b = el('button', { type: 'button', className: 'cloudBtn', title: 'Account', textContent: user ? '☁️' : '☁️ Sign in' });
       b.onclick = accountSheet;
       top.append(b);
       chrome.storage.onChanged.addListener(async (c) => { if (c.auth) b.textContent = (await currentUser()) ? '☁️' : '☁️ Sign in'; });

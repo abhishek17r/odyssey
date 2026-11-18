@@ -63,3 +63,19 @@ test('laurels earn Kleos', () => {
   const s = { weeks: weeksOf('2026-11-14'), days: done('2026-11-16'), sessions: {}, tickets: {}, settings: {} };
   assert.ok(pointEvents(s, '2026-11-17').some((e) => e.kind === 'laurel' && e.pts === POINTS.laurel));
 });
+
+import { market, nextUnlock } from '../lib/voyage.js';
+import { kleos, MARKET } from '../lib/points.js';
+test('marketplace: items unlock at their port; Kleos spent lowers the balance, not the rank', () => {
+  const s = { weeks: weeksOf('2026-10-24', '2026-10-31', '2026-11-07', '2026-11-14'), profile, days: done('2026-10-26', '2026-10-29', '2026-11-02', '2026-11-05', '2026-11-09', '2026-11-12'), purchases: [], tickets: {}, sessions: {}, settings: {} };
+  const m = market(s, '2026-11-17', 5000);
+  assert.equal(m.find((x) => x.id === 'gym-clothes').unlocked, true); // 3 legs sailed
+  assert.equal(m.find((x) => x.id === 'shoes').unlocked, false);
+  assert.equal(nextUnlock(s, '2026-11-17').id, 'shoes');
+  const before = kleos(s, '2026-11-17');
+  s.purchases = [{ id: 'p', itemId: 'gym-clothes', price: 100, currency: 'kleos' }, { id: 'old', itemId: 'shoes', price: 7500 }];
+  const after = kleos(s, '2026-11-17');
+  assert.equal(after.total, before.total);
+  assert.equal(after.balance, Math.max(0, before.total - 100));
+  assert.equal(MARKET.length, 4);
+});

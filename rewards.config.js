@@ -58,3 +58,13 @@ export const POINTS = {
     [6000, 'Hero'], [12000, 'Legend of Ithaca'],
   ],
 };
+
+// The marketplace: real things you treat yourself to, bought with Kleos. Each one unlocks when the voyage
+// reaches its port (legs sailed, counted across voyages). Spending Kleos never lowers your rank.
+// Edit freely: name, icon, price (Kleos) and the leg it unlocks at (1–12; 12 = Ithaca).
+export const MARKET = [
+  { id: 'gym-clothes', name: 'Gym clothes', icon: '🎽', price: 1000, unlockLeg: 3 },
+  { id: 'shoes', name: 'Shoes', icon: '👟', price: 2500, unlockLeg: 6 },
+  { id: 'glasses', name: 'Glasses', icon: '👓', price: 3500, unlockLeg: 9 },
+  { id: 'whoop', name: 'Whoop', icon: '⌚', price: 6000, unlockLeg: 12 },
+];

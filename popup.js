@@ -9,13 +9,16 @@ import { openReviewSheet } from './lib/reviewSheet.js';
 import { openRewardsSheet } from './lib/rewardsSheet.js';
 import { insights, daysText } from './lib/insights.js';
 import { kleos, plannedOn, POINTS } from './lib/points.js';
-import { moveTicket, startPause, endPause, saveOnboarding, saveTactics, logUrge } from './lib/storage.js';
+import { moveTicket, startPause, endPause, saveOnboarding, saveTactics, logUrge, deleteTicket } from './lib/storage.js';
+import { parseQuickAdd } from './lib/quickAdd.js';
+import { swipeToDelete, undoToast } from './lib/controls.js';
 import { openOnboarding } from './lib/onboarding.js';
 import { openUrgePause } from './lib/urgePause.js';
 import { runEngine, tacticLine } from './lib/engine.js';
 import { morningLine, eveningReply, weeklyRead, proposals, applyProposal, decide, lineDismissed, dismissLine } from './lib/athena.js';
 import { athenaRead } from './lib/reviewSheet.js';
 import { voyage, LEGS } from './lib/voyage.js';
+import { athena, galley } from './lib/figures.js';
 import { isOnboarded, habitType } from './lib/profile.js';
 import { openDrawer } from './lib/controls.js';
 import { currentUser } from './lib/cloud.js';
@@ -179,7 +182,7 @@ function renderAthena() {
   box.hidden = !l;
   if (!l) return;
   box.className = `athenaLine ${l.kind}`;
-  box.innerHTML = `<span class="alWho">Athena</span><p>${esc(l.text)}</p>`;
+  box.innerHTML = `<span class="alAvatar">${athena(40)}</span><div class="alBody"><span class="alWho">Athena</span><p>${esc(l.text)}</p></div>`;
   const x = Object.assign(document.createElement('button'), { type: 'button', className: 'alX', textContent: '×', title: 'Hide for today', ariaLabel: 'Hide for today' });
   x.onclick = async () => { await save(dismissLine(state, today)); state = await load(); renderAthena(); };
   box.append(x);
@@ -187,13 +190,13 @@ function renderAthena() {
 function renderReply() {
   const r = eveningReply(state, today);
   $('#athenaReply').hidden = !r;
-  $('#athenaReply').textContent = r ? `Athena: ${r}` : '';
+  $('#athenaReply').innerHTML = r ? `<span class="arAvatar">${athena(26)}</span><span>${esc(r)}</span>` : '';
 }
 // Plan sheet, top: Athena's suggestions, each Accept or Not now
 function proposalsInto(box, redraw) {
   const list = proposals(state, today);
   if (!list.length) return;
-  box.append(Object.assign(document.createElement('div'), { className: 'groupHead', textContent: 'Athena suggests' }));
+  box.append(Object.assign(document.createElement('div'), { className: 'groupHead athenaHead', innerHTML: `${athena(24)}<span>Athena suggests</span>` }));
   const g = document.createElement('div');
   g.className = 'iosGroup proposals';
   for (const p of list) {
@@ -272,7 +275,42 @@ function dueRow(t) {
     go.onclick = () => startOn(`t:${t.id}`);
     row.append(go);
   }
+  row.onclick = (e) => { if (!e.target.closest('button')) openTicket(t.id); };
+  swipeToDelete(row, () => removeTask(t));
   return row;
+}
+
+// Delete a task (and its subtasks), with a few seconds to undo.
+async function removeTask(t) {
+  const before = structuredClone(state.tickets);
+  const ids = [t.id, ...Object.values(before).filter((x) => x.parentId === t.id).map((x) => x.id)];
+  await deleteTicket(t.id);
+  state = await load();
+  undoToast(`Deleted “${t.title}”`, async () => {
+    const st = await load();
+    for (const id of ids) st.tickets[id] = before[id];
+    await save({ tickets: st.tickets });
+    state = await load();
+    toast('Back');
+  });
+}
+// Add a task from plain words ("Call the bank tomorrow 30m"); `defaults` fills what the words don't say.
+async function quickAddTask(text, defaults = {}) {
+  const q = parseQuickAdd(text, today);
+  if (!q.title) return;
+  const wk = 'sprint' in defaults ? defaults.sprint : weekKeyOf(today);
+  await addTicket({ title: q.title, due: q.due ?? defaults.due ?? null, sizeH: q.sizeH, sprint: wk, planned: true,
+    habitId: wk && timedHabits(wk, state).some((g) => g.id === 'work') ? 'work' : null });
+  toast(q.due ? `Added · due ${dueInfo({ due: q.due }, today).text.replace(/^due /, '')}` : 'Added');
+}
+function addTaskForm(placeholder, defaults) {
+  const form = document.createElement('form');
+  form.className = 'quickAdd todayAdd';
+  form.innerHTML = `<span class="qaPlus">＋</span><input type="text" maxlength="100" placeholder="${placeholder}" enterkeyhint="done" />`;
+  const input = form.querySelector('input');
+  form.onclick = () => input.focus();
+  form.onsubmit = async (e) => { e.preventDefault(); const v = input.value.trim(); if (!v) return; input.value = ''; await quickAddTask(v, defaults); input.focus(); };
+  return form;
 }
 
 function renderDue() {
@@ -284,6 +322,7 @@ function renderDue() {
   box.append(Object.assign(document.createElement('div'), { className: 'subHead', textContent: list.length ? `Due today · ${list.length}` : 'Tasks' }));
   if (!list.length) box.insertAdjacentHTML('beforeend', `<div class="emptyLine">✓ Nothing due today${soon ? ` · next: <b>${esc(ticketTitle(soon, state))}</b> ${esc(dueInfo(soon, today).text)}` : ''}</div>`);
   for (const t of list) box.append(dueRow(t));
+  box.append(addTaskForm('Add a task… (e.g. Call the bank tomorrow 30m)', { due: today }));
   if (fin.length) {
     box.append(Object.assign(document.createElement('div'), { className: 'habitGroup done', textContent: `Done · ${fin.length}` }));
     for (const t of fin) box.append(dueRow(t));
@@ -1066,8 +1105,7 @@ $('#tkAdd').onsubmit = async (e) => {
   if (!title) return;
   $('#tkTitle').value = '';
   const wk = weekKeyOf(today);
-  await addTicket({ title, sprint: wk, habitId: timedHabits(wk, state).some((g) => g.id === 'work') ? 'work' : null, planned: true });
-  toast('Task added');
+  await quickAddTask(title, { sprint: wk });
 };
 $('#wkPlan').onclick = () => openPlan();
 $('#wkReview').onclick = () => openReview();
@@ -1075,6 +1113,14 @@ $('#wkRewards').onclick = () => openRewards();
 $('#wkKleos').onclick = () => openRewards();
 $('#wkVoyage').onclick = () => openRewards();
 $('#wkBacklog').onclick = () => openBacklog();
+$('#tkAdd').onclick = () => $('#tkTitle').focus();
+$('#qtForm').addEventListener('click', (e) => { if (!e.target.closest('button')) $('#qtWhat').focus(); });
+// rows with a switch (settings): tap anywhere on the row to flip it
+document.addEventListener('click', (e) => {
+  const row = e.target.closest('.notifRow');
+  if (!row || e.target.closest('input, button, a, select, label')) return;
+  row.querySelector('.switch input')?.click();
+});
 
 function taskRow(t) {
   const row = document.createElement('div');
@@ -1097,6 +1143,7 @@ function taskRow(t) {
     row.append(go);
   }
   row.onclick = (e) => { if (!e.target.closest('button')) openTicket(t.id); };
+  swipeToDelete(row, () => removeTask(t));
   return row;
 }
 
@@ -1111,7 +1158,7 @@ function renderWeek() {
   $('#wkKleos').innerHTML = `<b>${K.week >= 0 ? '+' : '−'}${Math.abs(K.week)}</b><span>${POINTS.name} this week</span>`;
   // the voyage: where the ship is, and how this week is going toward the next port
   const V = voyage(state, today);
-  $('#wkVoyage').innerHTML = `<span class="vsShip">⛵</span><span class="vsMain"><b>${V.legsSailed % LEGS} of ${LEGS} legs · next: ${esc(V.next?.name || 'Ithaca')}</b>
+  $('#wkVoyage').innerHTML = `<span class="vsShip">${galley(30)}</span><span class="vsMain"><b>${V.legsSailed % LEGS} of ${LEGS} legs · next: ${esc(V.next?.name || 'Ithaca')}</b>
     <span class="vsBar"><i style="width:${Math.round(V.progress * 100)}%"></i></span></span><span class="chev">›</span>`;
   $('#wkVoyage').title = V.progress >= 1 ? 'A fair wind: this week sails a leg' : 'Keep your focus habits 60% of the week to sail the next leg';
 
@@ -1217,8 +1264,8 @@ function openBacklog() {
       e.preventDefault();
       const v = form.querySelector('input').value.trim();
       if (!v) return;
-      await addTicket({ title: v, sprint: null, planned: true });
-      state = await load(); toast('Added to the backlog'); draw();
+      await quickAddTask(v, { sprint: null });
+      state = await load(); draw();
     };
     body.append(form);
     const list = backlogTickets(state).filter((t) => t.status !== 'done' && !t.parentId);
@@ -1247,8 +1294,7 @@ function renderTrends() {
   if (read) {
     const card = document.createElement('section');
     card.className = 'card';
-    card.innerHTML = '<h3>Athena · this week</h3>';
-    card.append(athenaRead(read));
+    card.append(athenaRead(read, 'Athena · this week'));
     box.append(card);
   }
   const ins = read ? [] : insights(state, today);
@@ -1263,8 +1309,10 @@ function renderTrends() {
       b.type = 'button';
       b.className = 'inGo';
       b.textContent = x.action.label;
-      b.onclick = () => insightGo(x.action);
+      b.onclick = (e) => { e.stopPropagation(); insightGo(x.action); };
       c.append(b);
+      c.classList.add('tappable');
+      c.onclick = () => insightGo(x.action);
     }
     return c;
   };
