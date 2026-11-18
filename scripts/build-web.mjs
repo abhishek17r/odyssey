@@ -15,7 +15,7 @@ await rm(out, { recursive: true, force: true });
 await mkdir(out, { recursive: true });
 
 const copy = (from, to = from) => cp(join(root, from), join(out, to), { recursive: true });
-for (const f of ['lib', 'icons', 'config.js', 'version.js', 'rewards.config.js', 'styles.css', 'popup.css', 'ios.css', 'calm.css', 'splash.js', 'dashboard.css', 'popup.js', 'dashboard.js']) await copy(f);
+for (const f of ['lib', 'icons', 'config.js', 'version.js', 'rewards.config.js', 'styles.css', 'popup.css', 'ios.css', 'calm.css', 'splash.js', 'popup.js']) await copy(f);
 for (const f of ['platform.js', 'app.js', 'web.css', 'manifest.webmanifest']) await copy(join('web', f), f);
 // the owner's admin page: not linked from the app, not cached by the service worker
 for (const f of ['admin.html', 'admin.js']) await copy(join('web', f), f);
@@ -42,7 +42,6 @@ async function page(src, dest, bodyClass) {
   await writeFile(join(out, dest), html);
 }
 await page('popup.html', 'index.html', 'home');
-await page('dashboard.html', 'dashboard.html', 'dash');
 
 // service worker with the file list and a build stamp
 async function list(dir) {

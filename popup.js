@@ -12,7 +12,7 @@ import { openReviewSheet } from './lib/reviewSheet.js';
 import { openRewardsSheet } from './lib/rewardsSheet.js';
 import { insights, daysText } from './lib/insights.js';
 import { kleos, plannedOn, POINTS } from './lib/points.js';
-import { moveTicket, startPause, endPause, saveOnboarding, saveTactics, logUrge, deleteTicket } from './lib/storage.js';
+import { moveTicket, startPause, endPause, saveOnboarding, saveTactics, logUrge, deleteTicket, listBackups, restoreBackup, snapshot, replaceAll, withoutDeviceKeys, weeklyBackup } from './lib/storage.js';
 import { parseQuickAdd } from './lib/quickAdd.js';
 import { openAddTask } from './lib/addTask.js';
 import { taskGroups } from './lib/when.js';
@@ -69,6 +69,7 @@ async function init() {
   // smoking plans: this week's limit follows the step-down
   const stepped = applyStepDown(state, today);
   if (stepped) { await save({ weeks: stepped }); state = await load(); }
+  weeklyBackup().catch(() => {}); // a copy on this phone each week (Me → Your data → Restore a backup)
   setTicketContext({ getState: () => state });
   if (state.activeSession) askWhy(state.activeSession); // an unanswered stretch from earlier
   $('#tbDay').textContent = new Date().toLocaleDateString(undefined, { weekday: 'long' });
@@ -1272,8 +1273,9 @@ function renderWeek() {
   // the 7 days, coloured by score
   $('#wkDays').innerHTML = days.map((k) => {
     const sc = k <= today ? dayScore(k, state)?.score ?? null : null;
-    return `<div class="wkDay ${k === today ? 'today' : ''} ${k > today ? 'future' : ''}"><span>${DOW1[parseKey(k).getDay()]}</span><i class="fill-${band(sc)}">${sc ?? ''}</i></div>`;
+    return `<button type="button" class="wkDay ${k === today ? 'today' : ''} ${k > today ? 'future' : ''}" data-day="${k}" ${k > today ? 'disabled' : ''} aria-label="${parseKey(k).toLocaleDateString(undefined, { weekday: 'long' })}${sc == null ? '' : `, score ${sc}`}"><span>${DOW1[parseKey(k).getDay()]}</span><i class="fill-${band(sc)}">${sc ?? ''}</i></button>`;
   }).join('');
+  $('#wkDays').querySelectorAll('[data-day]').forEach((b) => (b.onclick = () => (b.dataset.day === today ? (setSide('habits'), showView('today')) : openDay(b.dataset.day))));
 
   // the numbers that matter this week
   const plan = planOf(today, state);
@@ -1496,14 +1498,8 @@ function insightGo(a) {
 // ---------- Me ----------
 
 function renderMe() {
-  const K = kleos(state, today);
-  const r = K.rank;
-  $('#meRank').innerHTML = `<span class="mrBadge">${POINTS.icon}</span><span class="mrMain"><small>Rank ${r.level} · ${esc(r.name)}</small><b>${K.total.toLocaleString('en-IN')} ${POINTS.name}</b>
-    <span class="rkBar"><i style="width:${Math.round(Math.min(1, r.frac) * 100)}%"></i></span><small>${r.next ? `${(r.next.at - K.total).toLocaleString('en-IN')} to ${esc(r.next.name)}` : 'Top rank'}</small></span>
-    <span class="chev">›</span>`;
   currentUser().then((u) => { $('#meSub').textContent = u ? `Signed in as ${u.username}` : 'Not signed in'; }).catch(() => {});
 }
-$('#meRank').onclick = () => openRewards();
 
 // Me → Your course: your Ithaca and focus habits; edit the answers any time.
 function renderCourse() {
@@ -1583,10 +1579,87 @@ $('#appVersion').textContent = `Odyssey ${VERSION}`;
 
 // ---------- nav ----------
 
-function openDash(tab) {
-  chrome.tabs.create({ url: chrome.runtime.getURL(`dashboard.html#${tab}`) });
+// ---------- a past day: fix its check-in (up to 4 weeks back) ----------
+function openDay(k) {
+  const body = document.createElement('div');
+  body.className = 'dayEdit';
+  const nav = document.createElement('div');
+  nav.className = 'dayNav';
+  const prev = Object.assign(document.createElement('button'), { type: 'button', className: 'soft', textContent: '‹ Day before' });
+  const next = Object.assign(document.createElement('button'), { type: 'button', className: 'soft', textContent: 'Day after ›' });
+  const box = document.createElement('div');
+  body.append(Object.assign(document.createElement('p'), { className: 'small muted', textContent: 'Missed logging this day? Fill it in now. Changes save as you go.' }), nav, box);
+  nav.append(prev, next);
+  const d = openDrawer('', body, { onClose: refreshAll });
+  const draw = () => {
+    d.panel.querySelector('.drawerHead h2').textContent = parseKey(k).toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'short' });
+    const plan = planOf(k, state);
+    box.innerHTML = plan ? '' : '<p class="emptyLine">No habits were planned that week.</p>';
+    if (plan) buildCheckin({ box, dayKey: k, getState: () => state, onSaved: async () => { state = await load(); }, compact: true });
+    const back = dateKey(addDays(parseKey(today), -28));
+    prev.disabled = k <= back;
+    next.disabled = dateKey(addDays(parseKey(k), 1)) >= today;
+  };
+  prev.onclick = () => { k = dateKey(addDays(parseKey(k), -1)); draw(); };
+  next.onclick = () => { k = dateKey(addDays(parseKey(k), 1)); draw(); };
+  track('sheet', { s: 'past_day' });
+  draw();
 }
-document.querySelectorAll('[data-open]').forEach((a) => (a.onclick = () => openDash(a.dataset.open)));
+
+// ---------- Me → Your data: export, import, backups, erase ----------
+const downloadJson = (text, name) => {
+  const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(new Blob([text], { type: 'application/json' })), download: name });
+  document.body.append(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+};
+async function renderData() {
+  const list = await listBackups();
+  const box = $('#dBackups');
+  box.innerHTML = list.length ? '' : '<p class="small muted">No backups yet. The first one is made this week.</p>';
+  for (const b of list) {
+    const row = document.createElement('div');
+    row.className = 'cell static bkRow';
+    row.innerHTML = `<span class="cMain"><b>${esc(new Date(b.at).toLocaleString(undefined, { weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' }))}</b><small>${esc(b.reason)} · ${Math.max(1, Math.round(b.bytes / 1024))} KB</small></span>`;
+    const r = Object.assign(document.createElement('button'), { type: 'button', className: 'soft small', textContent: 'Restore' });
+    r.onclick = async () => {
+      if (!confirm(`Go back to how things were on ${new Date(b.at).toLocaleString()}? What you have now is backed up first.`)) return;
+      await restoreBackup(b.id);
+      track('data', { a: 'restore' });
+      location.reload();
+    };
+    row.append(r);
+    box.append(row);
+  }
+}
+$('#dExport').onclick = async () => {
+  const data = withoutDeviceKeys(await chrome.storage.local.get(null));
+  downloadJson(JSON.stringify(data, null, 2), `odyssey-${today}.json`);
+  track('data', { a: 'export' });
+};
+$('#dImport').onclick = () => $('#dImportFile').click();
+$('#dImportFile').onchange = async (e) => {
+  const file = e.target.files[0];
+  e.target.value = '';
+  if (!file) return;
+  try {
+    const data = JSON.parse(await file.text());
+    if (typeof data !== 'object' || !data || !(data.schemaVersion >= 3)) throw new Error('this isn’t an Odyssey copy');
+    if (!confirm('Replace everything here with this copy? What you have now is backed up first.')) return;
+    await snapshot('before import');
+    await replaceAll(data);
+    track('data', { a: 'import' });
+    location.reload();
+  } catch (err) { toast(`Couldn’t import: ${err.message}`, 'err'); }
+};
+$('#dErase').onclick = async () => {
+  const signedIn = !!(await chrome.storage.local.get('auth')).auth;
+  if (!confirm(`Erase all habits, check-ins, tasks, sessions and settings?${signedIn ? ' You’re signed in, so this erases them on your other devices too.' : ''} A backup stays on this phone under Restore a backup.`)) return;
+  await snapshot('before erase');
+  await replaceAll({ schemaVersion: (await chrome.storage.local.get('schemaVersion')).schemaVersion });
+  track('data', { a: 'erase' });
+  location.reload();
+};
+document.querySelector('.dataBackups').addEventListener('toggle', (e) => { if (e.target.open) renderData(); });
 
 init();
 trackOpen(dateKey());

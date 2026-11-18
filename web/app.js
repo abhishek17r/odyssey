@@ -83,27 +83,9 @@ function accountSheet() {
 }
 
 async function setupAccountUi() {
-  const me = document.querySelector('#meNotif');
-  if (me) {
-    // the app: Me → Notifications is drawn by popup.js (lib/notifPanel.js)
-  } else {
-    // dashboard pages: a cloud button in the header
-    const top = document.querySelector('header');
-    if (top) {
-      const user = cloudOn() ? await currentUser() : null;
-      const b = el('button', { type: 'button', className: 'cloudBtn', title: 'Account', textContent: user ? '☁️' : '☁️ Sign in' });
-      b.onclick = accountSheet;
-      top.append(b);
-      chrome.storage.onChanged.addListener(async (c) => { if (c.auth) b.textContent = (await currentUser()) ? '☁️' : '☁️ Sign in'; });
-    }
-  }
+  // Me → Notifications and Account are drawn by popup.js
   // first visit with the cloud set up: ask to sign in
   if (cloudOn() && !(await currentUser()) && !sessionStorage.getItem('askedSignIn')) { sessionStorage.setItem('askedSignIn', '1'); setTimeout(accountSheet, 400); }
 }
 setupAccountUi();
 
-// dashboard pages: a way home
-if (!document.querySelector('#view-today')) {
-  const nav = document.querySelector('header nav');
-  if (nav) nav.prepend(Object.assign(document.createElement('a'), { href: './', textContent: '‹ Home' }));
-}

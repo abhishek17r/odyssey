@@ -265,19 +265,17 @@
   <!-- ME -->
   <main class="view" id="view-me" hidden>
     <header class="topbar"><div><div class="tbDay">Me</div><div class="tbDate" id="meSub"></div></div></header>
-    <button type="button" class="card meRank" id="meRank"></button>
     <section class="card" id="meCourse"></section>
     <section class="card" id="mePause"></section>
     <section class="card"><h3>Focus music</h3><div id="meMusic"></div></section>
     <section class="card"><h3>Notifications</h3><div id="meNotif"></div></section>
     <section class="card"><h3>Account</h3><div id="meAccount"></div></section>
-    <section class="card"><h3>On the dashboard</h3>
-      <p class="small muted" style="margin:0 0 8px">Bigger views, best on a computer.</p>
-      <div class="iosGroup">
-        <a class="cell" data-open="today"><span class="cIcon">📅</span><span class="cMain"><b>Any day</b><small>Calendar, past check-ins, sessions</small></span><span class="chev">›</span></a>
-        <a class="cell" data-open="trends"><span class="cIcon">📊</span><span class="cMain"><b>Full trends</b><small>Every chart, tags, impact</small></span><span class="chev">›</span></a>
-        <a class="cell" data-open="settings"><span class="cIcon">⚙️</span><span class="cMain"><b>Settings</b><small>Tags, backups, import / export</small></span><span class="chev">›</span></a>
-      </div>
+    <section class="card" id="meData"><h3>Your data</h3>
+      <p class="small muted" style="margin:0 0 10px">Everything lives on this phone. A copy is kept every week and before every upgrade, restore or import.</p>
+      <div class="dataBtns"><button type="button" class="soft" id="dExport">Export a copy</button><button type="button" class="soft" id="dImport">Import a copy</button></div>
+      <input type="file" id="dImportFile" accept="application/json,.json" hidden />
+      <details class="dataBackups"><summary>Restore a backup</summary><div id="dBackups"></div></details>
+      <button type="button" class="destructive dErase" id="dErase">Erase everything</button>
     </section>
       <p class="appVersion" id="appVersion"></p>
   </main>
