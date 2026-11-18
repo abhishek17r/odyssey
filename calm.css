@@ -633,3 +633,175 @@ body.focusing .focusBar, body.onboarding .focusBar { display: none; }
   .planTask.on .ptTick { color: #0e1116; }
   #todaySeg .segN { color: #0e1116; }
 }
+
+/* ---------- 0.8: playbooks, stakes, the morning after a miss, Trends in words ---------- */
+button.soft { min-height: 44px; padding: 0 14px; border-radius: 12px; border: 0; background: var(--accent-tint) !important; color: var(--ios-blue) !important; font-weight: 600; font-size: 15px; }
+.center { text-align: center; }
+/* a habit row's stake line */
+.hStake { font-size: 13px; line-height: 1.3; margin-top: 4px; display: flex; gap: 6px; align-items: baseline; color: var(--ios-label-2); }
+.hStake::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--ios-label-3); flex-shrink: 0; transform: translateY(-1px); }
+.hStake.tone-risk { color: #8a5a1f; } .hStake.tone-risk::before { background: var(--ios-orange); }
+.hStake.tone-gain { color: #2f6a50; } .hStake.tone-gain::before { background: var(--ios-green); }
+.pbLink { display: block; margin: 8px 0 2px; padding: 8px 0; background: none !important; border: 0; color: var(--ios-blue); font-weight: 600; font-size: 15px; text-align: left; }
+.addHabitBtn { margin: 6px 4px 2px; }
+/* tasks: what's at stake, hard deadlines, the week's load */
+.tStake { font-size: 13px; margin-top: 3px; line-height: 1.3; }
+.tStake.tone-risk { color: #8a5a1f; }
+.tStake.tone-loss { color: #9a4537; }
+.hardTag { font-size: 11px; font-weight: 700; color: var(--ios-red); background: rgba(182, 96, 79, .1); border-radius: 6px; padding: 1px 6px; text-transform: uppercase; letter-spacing: .03em; }
+.loadCard { margin-top: 12px; display: flex; flex-direction: column; gap: 8px; }
+.loadCard .lcHead { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; font-size: 15px; }
+.loadCard .lcHead span { font-size: 13px; color: var(--ios-label-2); }
+.loadCard.spill .lcHead span { color: #8a5a1f; }
+.lcBar { height: 10px; border-radius: 5px; background: var(--ios-fill-2); overflow: hidden; display: flex; }
+.lcBar i { background: var(--ios-green); height: 100%; }
+.lcBar i.sp { background: var(--ios-orange); }
+.loadCard p { margin: 0; line-height: 1.4; }
+.atLossBox { margin: 12px 0 4px; }
+.atLossBox summary { font-size: 15px; color: var(--ios-blue); font-weight: 600; min-height: 40px; display: flex; align-items: center; cursor: pointer; }
+.atLoss { width: 100%; box-sizing: border-box; height: 44px; border-radius: 12px; border: 1px solid var(--ios-sep); padding: 0 12px; font: inherit; font-size: 16px; background: var(--ios-cell); color: var(--ios-label); }
+.atLossBox p { margin: 6px 0 0; }
+/* the morning after a miss */
+.missCard { position: relative; display: flex; flex-direction: column; gap: 12px; }
+.missCard .mcTop { display: flex; gap: 12px; padding-right: 28px; }
+.missCard .mcIcon { width: 36px; height: 36px; border-radius: 10px; background: var(--accent-tint); display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+.missCard .mcMain { display: flex; flex-direction: column; gap: 4px; }
+.missCard small { color: var(--ios-label-2); font-size: 13px; }
+.missCard b { font-size: 16px; line-height: 1.3; }
+.missCard p { margin: 0; font-size: 15px; line-height: 1.4; }
+.missCard .mcWhy { font-family: 'Iowan Old Style', Georgia, serif; font-style: italic; color: #8a5a1f; }
+.missCard .mcBtns { display: flex; gap: 8px; }
+.missCard .mcBtns .primary { flex: 1; min-height: 48px; border-radius: 14px; }
+.missCard .alX { position: absolute; top: 8px; right: 6px; }
+/* Trends in words */
+.trPace { background: #fbf3e6 !important; }
+.trPace small { font-size: 12px; color: var(--ios-label-2); text-transform: uppercase; letter-spacing: .04em; }
+.trPace p { margin: 4px 0 0; font-family: 'Iowan Old Style', Georgia, serif; font-size: 18px; line-height: 1.35; }
+.trLine { display: flex; gap: 12px; align-items: flex-start; flex-wrap: wrap; margin-top: 10px; }
+.trLine .tlIcon { width: 32px; height: 32px; border-radius: 9px; background: var(--ios-fill); display: flex; align-items: center; justify-content: center; font-size: 17px; flex-shrink: 0; }
+.trLine p { flex: 1; margin: 0; font-size: 16px; line-height: 1.4; min-width: 0; }
+.trLine .linkBtn { margin: 0 0 0 44px; padding: 4px 0; }
+.trAll h4 { margin: 18px 0 8px; font-size: 13px; font-weight: 600; color: var(--ios-label-2); }
+.trAll .statsGrid { margin: 12px 0 0; }
+/* Add a habit */
+.addHabit .backLink { margin: 0 0 8px; padding: 6px 0; }
+.ahName { width: 100%; box-sizing: border-box; font-size: 18px !important; font-weight: 600; }
+.ahSay { display: flex; gap: 10px; align-items: flex-start; margin: 12px 0 4px; }
+.ahSay:empty { display: none; }
+.ahSay p { margin: 0; font-family: 'Iowan Old Style', Georgia, serif; font-size: 16px; line-height: 1.35; }
+.ahSay .chip { margin-top: 8px; }
+.ahTypes { display: flex; flex-direction: column; gap: 10px; margin-top: 10px; }
+.ahType { text-align: left; background: var(--ios-cell); border: 1px solid var(--ios-sep); border-radius: 16px; padding: 14px 16px; display: flex; flex-direction: column; gap: 6px; color: var(--ios-label); font: inherit; }
+.ahType.on { box-shadow: inset 0 0 0 2px var(--ios-blue); border-color: transparent; }
+.ahTHead { display: flex; align-items: center; gap: 10px; font-size: 17px; }
+.ahTIcon { font-size: 20px; width: 22px; text-align: center; color: var(--ios-blue); }
+.ahTWhat { font-size: 15px; line-height: 1.35; }
+.ahType ul { margin: 0; padding-left: 18px; font-size: 13px; color: var(--ios-label-2); line-height: 1.4; }
+.ahGo { width: 100%; margin-top: 18px; min-height: 52px; border-radius: 14px; font-size: 17px; }
+.ahHead { display: flex; gap: 12px; align-items: center; margin-bottom: 4px; }
+.ahHead > div { display: flex; flex-direction: column; gap: 2px; }
+.ahHead b { font-size: 20px; }
+.ahHead small { color: var(--ios-label-2); font-size: 13px; }
+.ahQ { margin-top: 16px; display: flex; flex-direction: column; gap: 8px; }
+.ahQ .lbl { font-size: 15px; font-weight: 600; color: var(--ios-label); }
+.ahQ .iosInput { width: 100%; box-sizing: border-box; }
+.ahQ p { margin: 0; }
+.ahNum { max-width: 140px; }
+/* a habit's playbook page */
+.pbPage { padding-bottom: 24px; }
+.pbSub { margin: 0 0 12px; color: var(--ios-label-2); font-size: 15px; }
+.pbWhy { padding: 12px 16px; border-left: 3px solid var(--ios-orange); background: rgba(211, 154, 79, .08); border-radius: 0 12px 12px 0; cursor: pointer; display: flex; flex-direction: column; gap: 6px; }
+.pbWhy small { font-size: 12px; color: var(--ios-label-2); text-transform: uppercase; letter-spacing: .04em; }
+.pbWhy p { margin: 0; font-family: 'Iowan Old Style', Georgia, serif; font-size: 18px; line-height: 1.3; }
+.pbWhy.empty p { color: var(--ios-label-2); font-style: italic; font-size: 16px; }
+.pbWhy .row { display: flex; gap: 8px; }
+.pbWhy .row input { flex: 1; }
+.pbWeek { margin-top: 14px; display: flex; flex-direction: column; gap: 12px; }
+.pbWeek .primary, .pbWeek .pbDone { min-height: 50px; border-radius: 14px; font-size: 16px; width: 100%; }
+.pbDone { background: rgba(79, 143, 114, .14) !important; color: #2f6a50 !important; border: 0; font-weight: 600; }
+.pbWeek .lbl { font-size: 13px; color: var(--ios-label-2); margin-bottom: -4px; }
+.pbWeek p { margin: 0; }
+.pbWHead { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; font-size: 15px; }
+.pbWHead span { font-size: 13px; }
+.pbWHead .bad { color: var(--ios-red); }
+.pbDots { display: flex; justify-content: space-between; }
+.pbDot { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.pbDot small { font-size: 11px; color: var(--ios-label-2); }
+.pbDot i { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-style: normal; font-size: 13px; font-weight: 700; background: var(--ios-fill); color: var(--ios-label-3); box-sizing: border-box; }
+.pbDot i.done { background: var(--ios-green); color: #fff; }
+.pbDot i.miss { background: rgba(182, 96, 79, .14); color: var(--ios-red); }
+.pbDot i.rest { background: var(--ios-fill-2); }
+.pbDot i.today { border: 2px solid var(--ios-blue); background: none; }
+.pbBar { height: 10px; border-radius: 5px; background: var(--ios-fill-2); overflow: hidden; }
+.pbBar i { display: block; height: 100%; background: var(--ios-green); border-radius: 5px; }
+.pbBar.warn i { background: var(--ios-orange); }
+.pbBar.over i { background: var(--ios-red); }
+.pbBtns { display: flex; gap: 8px; }
+.pbBtns button { flex: 1; }
+.pbStep { display: flex; justify-content: center; }
+.pbUrge { display: flex; flex-direction: column; gap: 8px; padding-top: 12px; border-top: 1px solid var(--ios-sep); }
+.pbUrge > div { display: flex; flex-direction: column; gap: 2px; }
+.pbUrge small { color: var(--ios-label-2); font-size: 13px; line-height: 1.35; }
+.pbStakes { display: flex; flex-direction: column; gap: 10px; }
+.pbStake { display: flex; gap: 10px; font-size: 15px; line-height: 1.4; }
+.pbStake .psL { width: 50px; flex-shrink: 0; font-size: 12px; font-weight: 700; text-transform: uppercase; padding-top: 2px; color: var(--ios-label-2); }
+.pbStake.gain .psL { color: #2f6a50; } .pbStake.risk .psL { color: #8a5a1f; }
+.pbHist { display: flex; flex-direction: column; gap: 5px; }
+.phRow { display: flex; gap: 4px; align-items: center; }
+.phRow > span:first-child, .phWk { width: 52px; font-size: 12px; color: var(--ios-label-2); flex-shrink: 0; }
+.phRow.head span { flex: 1; text-align: center; font-size: 11px; color: var(--ios-label-2); }
+.phRow.head span:first-child { flex: 0 0 52px; }
+.phRow i { flex: 1; height: 24px; border-radius: 6px; background: var(--ios-fill); box-sizing: border-box; }
+.pbHist i.done, .pbHist i.under { background: var(--ios-green); }
+.pbHist i.miss { background: rgba(182, 96, 79, .35); }
+.pbHist i.over { background: var(--ios-red); }
+.pbHist i.rest { background: var(--ios-fill-2); }
+.pbHist i.today { border: 2px solid var(--ios-blue); background: none; }
+.pbHist i.future, .pbHist i.none { background: var(--ios-fill); opacity: .6; }
+.phLegend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 12px; color: var(--ios-label-2); margin-top: 4px; }
+.phLegend span { display: flex; align-items: center; gap: 5px; }
+.phLegend i { flex: none; width: 10px; height: 10px; border-radius: 3px; }
+.pbBars { display: flex; flex-direction: column; gap: 10px; }
+.pbBarRow { display: flex; align-items: center; gap: 10px; font-size: 14px; }
+.pbbL { width: 104px; flex-shrink: 0; }
+.pbbT { flex: 1; height: 8px; border-radius: 4px; background: var(--ios-fill-2); overflow: hidden; }
+.pbbT i { display: block; height: 100%; border-radius: 4px; background: var(--ios-blue); opacity: .55; }
+.pbBarRow.on .pbbT i { opacity: 1; background: var(--ios-green); }
+.pbBars.red .pbbT i { background: var(--ios-red); } .pbBars.amber .pbbT i { background: var(--ios-orange); }
+.pbbV { width: 64px; text-align: right; font-size: 13px; color: var(--ios-label-2); flex-shrink: 0; }
+.pbText { display: flex; flex-direction: column; gap: 8px; }
+.pbText p { margin: 0; line-height: 1.4; }
+.pbNote { margin: 8px 4px 0; line-height: 1.4; }
+.pbAct { margin-top: 8px; }
+.pbAct button { width: 100%; }
+.pbTimeline { display: flex; flex-direction: column; gap: 10px; }
+.ptl { display: grid; grid-template-columns: 12px 76px 1fr; gap: 10px; align-items: start; font-size: 14px; color: var(--ios-label-2); }
+.ptl i { width: 12px; height: 12px; border-radius: 50%; border: 2px solid var(--ios-label-3); box-sizing: border-box; margin-top: 3px; }
+.ptl.on { color: var(--ios-label); } .ptl.on i { background: var(--ios-green); border-color: var(--ios-green); }
+.pbNum { width: 22px; height: 22px; border-radius: 50%; background: var(--accent-tint); color: var(--ios-blue); font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; align-self: flex-start; margin-top: 2px; }
+.pbRules .cell, .pbAthena .cell, .pbData .cell, .pbLadder .cell { align-items: flex-start; padding-top: 12px; padding-bottom: 12px; gap: 12px; }
+.pbRules small, .pbData small, .pbLadder small { line-height: 1.35; white-space: normal; }
+.pbAv { flex-shrink: 0; }
+.pbSays { font-family: 'Iowan Old Style', Georgia, serif; font-size: 16px; line-height: 1.35; }
+.pbTag { font-size: 11px; font-weight: 700; border-radius: 6px; padding: 3px 7px; background: var(--ios-fill-2); color: var(--ios-label-2); white-space: nowrap; flex-shrink: 0; text-transform: uppercase; }
+.pbTag.now { background: rgba(79, 143, 114, .14); color: #2f6a50; }
+.pbTag.done { background: var(--ios-green); color: #fff; }
+.pbData .later { opacity: .75; }
+.pbLadder .next { opacity: .7; }
+.pbIf .cMain span { white-space: normal; line-height: 1.35; }
+.pbIf .sugg { opacity: .8; }
+.pbIfNew { flex-wrap: wrap; gap: 8px; }
+.pbIfNew input { flex: 1 1 40%; min-width: 0; }
+.pbSetup .editRow.col small { line-height: 1.35; }
+.pbRemove { width: 100%; margin-top: 24px; }
+@media (prefers-color-scheme: dark) {
+  .hStake.tone-risk, .tStake.tone-risk, .loadCard.spill .lcHead span, .pbStake.risk .psL, .missCard .mcWhy { color: #e0b77a; }
+  .hStake.tone-gain, .pbStake.gain .psL, .pbTag.now, .pbDone { color: #9fd3b8 !important; }
+  .tStake.tone-loss { color: #e29a8b; }
+  .trPace { background: #2a241b !important; }
+  .pbWhy { background: rgba(216, 168, 101, .1); }
+  .pbDot i.done, .pbTag.done { color: #0e1116; }
+}
+.pbSetup .editRow { padding: 10px 16px; gap: 10px; }
+.pbSetup .editRow.col { display: flex; flex-direction: column; align-items: stretch; }
+.pbSetup .editRow + .editRow { border-top: 1px solid var(--ios-sep); }

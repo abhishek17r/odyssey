@@ -207,9 +207,11 @@
       <button class="primary" id="planNow" style="width:100%">Begin</button>
     </section>
 
+    <section class="sideHabits card missCard" id="missCard" hidden></section>
     <section class="sideHabits card" id="todayCard" hidden>
       <div class="subHead" id="habitsHead">Habits</div>
       <div id="goalQs"></div>
+      <button type="button" class="linkBtn addHabitBtn" id="addHabitBtn">＋ Add a habit</button>
       <input type="text" id="note" maxlength="140" hidden />
     </section>
 
@@ -246,14 +248,18 @@
 
   <!-- TRENDS: habits and tasks together -->
   <main class="view" id="view-trends" hidden>
-    <header class="topbar"><div><div class="tbDay">Trends</div><div class="tbDate">Last 8 weeks · habits and tasks</div></div></header>
+    <header class="topbar"><div><div class="tbDay">Trends</div><div class="tbDate">How it’s going, in plain words</div></div></header>
+    <section class="card trPace" id="trPace" hidden></section>
+    <div id="trLines"></div>
     <div id="trInsights"></div>
-    <section class="card"><div class="cardHead"><h3>Each week</h3><span class="trLegend"><i class="lgH"></i>Habit score <i class="lgT"></i>Tasks done</span></div><div class="weekBars" id="trWeekly"></div></section>
-    <section class="statsGrid" id="trKpis"></section>
-    <details class="card foldCard"><summary>Daily score · 28 days</summary><div class="bars28" id="trChart"></div><span class="small muted" id="trChartSub"></span></details>
-    <details class="card foldCard"><summary>Each habit · 7 days vs 28</summary><div id="trHabits"></div></details>
-    <details class="card foldCard"><summary>Focus by week</summary><div id="trWeeks"></div></details>
-    <details class="card foldCard"><summary>Why you delayed · 28 days</summary><div id="trReasons"></div></details>
+    <details class="card foldCard trAll"><summary>All the charts</summary>
+      <div class="cardHead"><h3>Each week</h3><span class="trLegend"><i class="lgH"></i>Habit score <i class="lgT"></i>Tasks done</span></div><div class="weekBars" id="trWeekly"></div>
+      <section class="statsGrid" id="trKpis"></section>
+      <h4>Daily score · 28 days</h4><div class="bars28" id="trChart"></div><span class="small muted" id="trChartSub"></span>
+      <h4>Each habit · 7 days vs 28</h4><div id="trHabits"></div>
+      <h4>Focus by week</h4><div id="trWeeks"></div>
+      <h4>Why you delayed · 28 days</h4><div id="trReasons"></div>
+    </details>
   </main>
 
   <!-- ME -->

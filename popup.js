@@ -5,6 +5,9 @@ import {
   goalAvgs, goalTrendKey, lastNDays, reasonStats, reasonById, timeOnDays, parseKey, goalStatus, STATUS, metricWeek, pauseOn,
 } from './lib/score.js';
 import { openPlanSheet } from './lib/planSheet.js';
+import { openAddHabit } from './lib/addHabit.js';
+import { openPlaybook } from './lib/playbookPage.js';
+import { stakeLine, missedYesterdayCard, taskStake, weekLoad, trendLines, applyStepDown } from './lib/playbooks.js';
 import { openReviewSheet } from './lib/reviewSheet.js';
 import { openRewardsSheet } from './lib/rewardsSheet.js';
 import { insights, daysText } from './lib/insights.js';
@@ -63,6 +66,9 @@ let tick = null;
 
 async function init() {
   state = await load();
+  // smoking plans: this week's limit follows the step-down
+  const stepped = applyStepDown(state, today);
+  if (stepped) { await save({ weeks: stepped }); state = await load(); }
   setTicketContext({ getState: () => state });
   if (state.activeSession) askWhy(state.activeSession); // an unanswered stretch from earlier
   $('#tbDay').textContent = new Date().toLocaleDateString(undefined, { weekday: 'long' });
@@ -106,6 +112,7 @@ function render() {
   renderPause();
   renderCourse();
   renderAthena();
+  renderMiss();
 }
 
 // ---------- header ----------
@@ -178,7 +185,45 @@ function urgeFor(g) {
 
 // ---------- sheets: plan, review, rewards (in the app) ----------
 const refreshAll = async () => { state = await load(); render(); if (view === 'trends') renderTrends(); };
-const openPlan = (wk = weekKeyOf(today)) => (track('sheet', { s: 'plan' }), openPlanSheet({ wk, onSaved: refreshAll, top: proposalsInto }));
+const openPlan = (wk = weekKeyOf(today)) => (track('sheet', { s: 'plan' }), openPlanSheet({ wk, onSaved: refreshAll, top: proposalsInto, onAddHabit: addHabitFlow }));
+
+// ---------- playbooks: add a habit, a habit's page, the morning after a miss ----------
+const pbFocus = (g) => {
+  startOn(null);
+  setTimeout(() => { if ([...$('#sHabit').options].some((o) => o.value === g.id)) $('#sHabit').value = g.id; $('#sWhat').focus(); }, 80);
+};
+const openPb = (g) => (track('sheet', { s: 'playbook' }), openPlaybook({ goalId: g.id, today, onChanged: refreshAll, onUrge: urgeFor, onFocus: pbFocus }));
+const addHabitFlow = () => (track('sheet', { s: 'add_habit' }), openAddHabit({ today, onAdded: async (g) => { await refreshAll(); openPb(g); } }));
+$('#addHabitBtn').onclick = addHabitFlow;
+
+function renderMiss() {
+  const box = $('#missCard');
+  const c = !state.notes?.[`miss-${today}`]?.dismissed ? missedYesterdayCard(state, today) : null;
+  box.hidden = !c;
+  if (!c) return;
+  const { g, run, need, left } = c;
+  const gentle = (g.tone || state.settings.tone || 'direct') === 'gentle';
+  const keep = run >= 2 ? `the ${run}-week run holds` : need > 0 && need <= left ? 'the week’s target stays in reach' : 'the habit stays alive';
+  box.innerHTML = `<div class="mcTop"><span class="mcIcon">${g.icon || '⭐'}</span><div class="mcMain"><small>Yesterday</small>
+      <b>${esc(g.name)} didn’t happen. One miss is normal.</b>
+      <p>The rule is <b>never miss twice</b>. Go today and ${keep}.${gentle || run < 2 ? '' : ' Miss today too and it starts again at 0.'}</p>
+      ${g.why ? `<p class="mcWhy">“${esc(g.why)}”</p>` : ''}</div></div>
+    <div class="mcBtns"><button type="button" class="primary" id="mcGo">Remind me at ${esc(g.cueTime || '18:00')}</button><button type="button" class="soft" id="mcPb">Open playbook</button></div>
+    ${g.tiny ? `<p class="small muted center">Short on time? ${esc(g.tiny)}.</p>` : ''}`;
+  const x = Object.assign(document.createElement('button'), { type: 'button', className: 'alX', textContent: '×', title: 'Hide for today', ariaLabel: 'Hide for today' });
+  x.onclick = async () => { state.notes[`miss-${today}`] = { id: `miss-${today}`, day: today, kind: 'miss', dismissed: true, at: Date.now() }; await save({ notes: state.notes }); renderMiss(); };
+  box.append(x);
+  $('#mcPb').onclick = () => openPb(g);
+  $('#mcGo').onclick = async () => {
+    const [h, mi] = String(g.cueTime || '18:00').split(':').map(Number);
+    const at = new Date(); at.setHours(h, mi, 0, 0);
+    if (at.getTime() <= Date.now()) at.setTime(Date.now() + 30 * 60e3);
+    await addIntention(at.getTime(), null, g.name);
+    track('miss_card', { a: 'remind' });
+    toast(`Reminder at ${at.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}`);
+    x.click();
+  };
+}
 
 // ---------- Athena (templates for now): Today's line, the evening reply, proposals in Plan ----------
 function renderAthena() {
@@ -230,7 +275,8 @@ let form = null;
 function renderForm() {
   $('#note').value = state.days[today]?.note ?? '';
   form = buildCheckin({ box: $('#goalQs'), dayKey: today, getState: () => state, onSaved: () => { renderHeader(); renderProgress(); }, compact: true, tidy: true,
-    getTactic: (g) => tacticLine(state, g, today), onUrge: urgeFor, onPlan: () => openPlan() });
+    getTactic: (g) => tacticLine(state, g, today), onUrge: urgeFor, onPlan: () => openPlan(),
+    getStake: (g, values) => stakeLine(g, state, today, values), onOpen: openPb });
   renderProgress();
 }
 $('#note').addEventListener('change', () => form?.saveNote($('#note').value.trim()));
@@ -334,6 +380,22 @@ function renderTasks() {
     const more = Object.assign(document.createElement('button'), { type: 'button', className: 'linkBtn', textContent: `${g.week.length} more this week ›` });
     more.onclick = () => { setSide('tasks'); showView('week'); };
     td.append(more);
+  }
+  // the week's load: open hours against what you usually finish
+  const L = weekLoad(state, today, loggedH);
+  if (L && L.open > 0) {
+    const tot = Math.max(L.open, L.usual) || 1;
+    const fits = Math.min(L.open, Math.max(0, L.usual - L.doneThis));
+    const card = Object.assign(document.createElement('div'), { className: `card loadCard ${L.spill ? 'spill' : ''}` });
+    card.innerHTML = `<div class="lcHead"><b>This week’s load</b><span>${L.spill ? `about ${L.spill} h will spill` : 'fits your usual week'}</span></div>
+      <div class="lcBar"><i style="width:${Math.round((100 * fits) / tot)}%"></i><i class="sp" style="width:${Math.round((100 * Math.max(0, L.open - fits)) / tot)}%"></i></div>
+      <p class="small muted">${L.open} h left to do. You usually finish about ${L.usual} h a week${L.doneThis ? ` and have done ${L.doneThis} h so far` : ''}.${L.spill ? ' Move some to next week now, or it moves itself on Saturday.' : ''}</p>`;
+    if (L.spill) {
+      const b = Object.assign(document.createElement('button'), { type: 'button', className: 'soft', textContent: 'Plan the week' });
+      b.onclick = () => openPlan();
+      card.append(b);
+    }
+    td.append(card);
   }
   const lateN = g.today.filter((t) => t.due && t.due <= today).length;
   segN('todaySeg', 'tasks', g.today.length || '', lateN ? 'alert' : '');
@@ -1177,6 +1239,9 @@ function taskRow(t) {
   main.innerHTML = `<div class="tTitle">${parent ? `<span class="muted">${esc(parent.title)} › </span>` : ''}${esc(t.title)}</div>
     <div class="tMeta">${[d ? `<span class="due ${d.cls}">${esc(d.text)}</span>` : '', t.sizeH ? `${round1(lh)} of ${t.sizeH} h` : lh ? `${round1(lh)} h` : '',
       kids.length ? `${kids.filter((k) => k.status === 'done').length} of ${kids.length} steps` : '', t.status === 'doing' ? 'in progress' : ''].filter(Boolean).join(' · ')}</div>`;
+  const sk = t.status !== 'done' && taskStake(t, state, today, loggedH);
+  if (sk) main.insertAdjacentHTML('beforeend', `<div class="tStake tone-${sk.tone}">${esc(sk.text)}</div>`);
+  if (t.loss && t.status !== 'done') main.querySelector('.tMeta')?.insertAdjacentHTML('beforeend', ' <span class="hardTag">Hard deadline</span>');
   row.append(chk, main);
   if (t.status !== 'done') {
     const go = Object.assign(document.createElement('button'), { className: 'playBtn', title: 'Focus on this', innerHTML: '▶' });
@@ -1268,6 +1333,16 @@ function renderWeek() {
 
 const bandOf = (sc) => band(sc);
 function renderTrends() {
+  // in plain words first: where you're heading, then one sentence per habit
+  const wkNow = weekKeyOf(today);
+  const focusOf = (wk) => timeOnDays(state, weekDays(wk).filter((k) => k <= today)).totalMin;
+  const usualF = [1, 2, 3, 4].map((i) => focusOf(dateKey(addDays(parseKey(wkNow), -7 * i))));
+  const TL = trendLines(state, today, { focusMin: { week: focusOf(wkNow), usual: usualF.some((x) => x) ? usualF.reduce((a, b) => a + b, 0) / 4 : null } });
+  $('#trPace').hidden = !TL.pace;
+  $('#trPace').innerHTML = TL.pace ? `<small>At this pace</small><p>${TL.pace}</p>` : '';
+  $('#trLines').innerHTML = TL.lines.length ? TL.lines.map((l) => `<div class="card trLine"><span class="tlIcon">${esc(l.icon || '⭐')}</span><p>${l.html}</p>${l.go ? '<button type="button" class="linkBtn" data-go="tasks">See them ›</button>' : ''}</div>`).join('')
+    : '<section class="card"><div class="emptyLine">Log a couple of weeks and the plain-words story of your habits shows up here.</div></section>';
+  $('#trLines').querySelectorAll('[data-go]').forEach((b) => (b.onclick = () => { setSide('tasks'); showView('week'); }));
   const box = $('#trInsights');
   box.innerHTML = '';
   // Athena's weekly read leads; the rule-based nudges are the fallback when she's switched off
@@ -1458,6 +1533,19 @@ function renderCourse() {
     render();
   } }));
   box.append(row);
+  const tone = state.settings.tone || 'direct';
+  const tr = document.createElement('div');
+  tr.className = 'notifRow toneRow';
+  tr.innerHTML = `<div class="nMain"><b>How Athena talks</b><div class="small muted">${tone === 'gentle' ? 'Gentle: what you’re building, never what you’d lose.' : 'Direct: what a skip would cost, before it happens. Food and rule habits are always gentle.'}</div></div>`;
+  const seg = document.createElement('div');
+  seg.className = 'chips';
+  for (const [id, label] of [['gentle', 'Gentle'], ['direct', 'Direct']]) {
+    const c = Object.assign(document.createElement('button'), { type: 'button', className: `chip ${tone === id ? 'on' : ''}`, textContent: label });
+    c.onclick = async () => { await setSetting({ tone: id }); render(); };
+    seg.append(c);
+  }
+  tr.append(seg);
+  box.append(tr);
 }
 
 // ---------- pause (sick, travelling): no penalties, streaks kept ----------
