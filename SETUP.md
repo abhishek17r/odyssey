@@ -91,3 +91,26 @@ Times and switches are in Me → Notifications; habit cue times in Week → Plan
    update auth.users set encrypted_password = crypt('NEW-PASSWORD', gen_salt('bf'))
    where email = 'theirname@odyssey.test';
    ```
+
+## 6. Admin page, usage events and Athena's AI (owner only)
+
+1. **SQL**: in Supabase → SQL Editor, run `supabase/ops.sql` (usage events, the AI cost ledger, caps, the admin report).
+2. **Admin page**: open `https://odyssey.abhishek17r.workers.dev/admin.html` signed in as the owner. It isn't linked from the app. It shows accounts and activity, feature use, AI cost per feature, per account and per day, the caps, and notes for caching and routing.
+3. **Usage events** start arriving from v0.6.0, from signed-in phones only: feature names and small facts (minutes, a source), never anything typed.
+4. **Athena with AI**:
+   - Add the secret in Supabase → Edge Functions → Secrets: `OPENAI_API_KEY`. `CRON_SECRET` is already there from push.
+   - Optional, through Cloudflare AI Gateway (logs, rate limits, caching):
+     - create a gateway in Cloudflare → AI → AI Gateway
+     - add the secret `AI_BASE_URL` = `https://gateway.ai.cloudflare.com/v1/<account id>/<gateway id>/openai`
+     - if the gateway is authenticated, also add `CF_AIG_TOKEN`
+   - Optional: `AI_PRICES` (JSON, e.g. `{"gpt-5-nano":[0.05,0.4]}`) if prices change. `DEFAULT_TZ` (default `Asia/Kolkata`) is for accounts with no phone time zone.
+   - The `odyssey-athena` function deploys with the push function (GitHub Action).
+   - Turn on the schedule: run `.secrets/athena-setup.sql` (on your Mac, not in git) in the SQL Editor. It runs every 10 minutes.
+   - Test it: on the admin page, **Run Athena now (my account)**.
+5. **Caps**: set them on the admin page. The defaults are $5 a month in all, 2¢ per account per 24 h, and skipping accounts idle for 14 days. Past a cap, Athena's templates are used (free).
+
+How the cost stays low:
+- Each note is written once per draft. The app shows the AI wording only while the template draft it rewrote still matches, so stale numbers never show, and an unchanged draft costs nothing.
+- Each note is rewritten at most 2–3 times a day.
+- The shared system prompt uses OpenAI's prompt cache (a tenth of the price).
+- Small model for the daily notes, larger for the weekly read.

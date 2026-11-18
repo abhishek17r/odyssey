@@ -5,6 +5,17 @@ import { syncNow, syncSoon, triggersSync } from './lib/syncRunner.js';
 import { cloudOn, currentUser } from './lib/cloud.js';
 import { renderAccount } from './lib/account.js';
 import { el, openDrawer } from './lib/controls.js';
+import { rpc } from './lib/cloud.js';
+import { setUsageSender, flushUsage } from './lib/usage.js';
+import { VERSION } from './version.js';
+
+// ---- usage events go up with your account (signed out: they wait on the phone) ----
+setUsageSender(async (events) => {
+  if (!cloudOn() || !(await currentUser())) throw new Error('signed out');
+  await rpc('odyssey_track', { events: events.slice(0, 300), v: VERSION });
+});
+setTimeout(flushUsage, 8000);
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') flushUsage(); });
 
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
 

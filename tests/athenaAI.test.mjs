@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { buildRequest, parseReply, costOf, textHash, noteIds, MODELS } from '../lib/athenaAI.js';
+import { buildRequest, parseReply, costOf, textHash, noteIds, MODELS, noteFor, needsNote } from '../lib/athenaAI.js';
 import { morningLine, eveningReply, weeklyRead } from '../lib/athena.js';
 import { goalFor } from '../lib/strategies.js';
 
@@ -58,4 +58,28 @@ test('the app shows the AI wording when it exists, else the template', () => {
 test('cost per call', () => {
   assert.equal(costOf('gpt-5-nano', 1e6, 1e6), 0.45);
   assert.equal(costOf('unknown-model', 1000, 1000), 0);
+});
+
+test('a note answers one draft: stale wording falls back to the template, and the server knows to rewrite', () => {
+  const s = state();
+  const req = buildRequest('morning', s, '2026-11-19');
+  const note = noteFor(req, { text: 'Gym today, gently.' }, '2026-11-19', WK, MODELS.small);
+  assert.equal(note.id, noteIds.morning('2026-11-19'));
+  assert.equal(note.for, req.forHash);
+  s.notes[note.id] = note;
+  assert.equal(morningLine(s, '2026-11-19').text, 'Gym today, gently.');
+  assert.equal(needsNote(req, note), false); // same draft: no call
+  s.notes[note.id] = { ...note, for: 'something-else' };
+  assert.notEqual(morningLine(s, '2026-11-19').text, 'Gym today, gently.'); // the draft moved on
+  assert.equal(needsNote(req, s.notes[note.id]), true);
+  const w = buildRequest('weekly', s, '2026-11-20', WK);
+  const wn = noteFor(w, { lines: ['a', 'b'] }, '2026-11-20', WK, MODELS.large);
+  assert.equal(wn.id, noteIds.weekly(WK));
+  s.notes[wn.id] = wn;
+  assert.deepEqual(weeklyRead(s, '2026-11-20', WK).lines, ['a', 'b']);
+});
+
+test('cached prompt tokens cost a tenth', () => {
+  assert.equal(costOf('gpt-5-nano', 1e6, 0, undefined, 1e6), 0.005);
+  assert.equal(costOf('gpt-5-nano', 1e6, 0, undefined, 0), 0.05);
 });

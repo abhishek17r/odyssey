@@ -23,6 +23,7 @@ import { isOnboarded, habitType } from './lib/profile.js';
 import { openDrawer } from './lib/controls.js';
 import { currentUser } from './lib/cloud.js';
 import { VERSION } from './version.js';
+import { track, trackOpen } from './lib/usage.js';
 import { weekMetrics } from './lib/metrics.js';
 import { esc, tagChips } from './lib/ui.js';
 import { buildCheckin, bindReflection } from './lib/checkin.js';
@@ -173,7 +174,7 @@ function urgeFor(g) {
 
 // ---------- sheets: plan, review, rewards (in the app) ----------
 const refreshAll = async () => { state = await load(); render(); if (view === 'trends') renderTrends(); };
-const openPlan = (wk = weekKeyOf(today)) => openPlanSheet({ wk, onSaved: refreshAll, top: proposalsInto });
+const openPlan = (wk = weekKeyOf(today)) => (track('sheet', { s: 'plan' }), openPlanSheet({ wk, onSaved: refreshAll, top: proposalsInto }));
 
 // ---------- Athena (templates for now): Today's line, the evening reply, proposals in Plan ----------
 function renderAthena() {
@@ -184,7 +185,7 @@ function renderAthena() {
   box.className = `athenaLine ${l.kind}`;
   box.innerHTML = `<span class="alAvatar">${athena(40)}</span><div class="alBody"><span class="alWho">Athena</span><p>${esc(l.text)}</p></div>`;
   const x = Object.assign(document.createElement('button'), { type: 'button', className: 'alX', textContent: '×', title: 'Hide for today', ariaLabel: 'Hide for today' });
-  x.onclick = async () => { await save(dismissLine(state, today)); state = await load(); renderAthena(); };
+  x.onclick = async () => { track('athena_dismiss'); await save(dismissLine(state, today)); state = await load(); renderAthena(); };
   box.append(x);
 }
 function renderReply() {
@@ -205,8 +206,8 @@ function proposalsInto(box, redraw) {
     row.innerHTML = `<span class="cMain"><span>${esc(p.text)}</span></span>`;
     const yes = Object.assign(document.createElement('button'), { type: 'button', className: 'primary small', textContent: 'Accept' });
     const no = Object.assign(document.createElement('button'), { type: 'button', className: 'ghost small', textContent: 'Not now' });
-    yes.onclick = async () => { await save({ ...applyProposal(state, p, today), ...decide(state, p, 'accepted', today) }); state = await load(); toast('Done'); await redraw(); render(); };
-    no.onclick = async () => { await save(decide(state, p, 'dismissed', today)); state = await load(); await redraw(); };
+    yes.onclick = async () => { track('proposal', { d: 'accepted' }); await save({ ...applyProposal(state, p, today), ...decide(state, p, 'accepted', today) }); state = await load(); toast('Done'); await redraw(); render(); };
+    no.onclick = async () => { track('proposal', { d: 'dismissed' }); await save(decide(state, p, 'dismissed', today)); state = await load(); await redraw(); };
     const btns = document.createElement('span');
     btns.className = 'propBtns';
     btns.append(no, yes);
@@ -215,8 +216,8 @@ function proposalsInto(box, redraw) {
   }
   box.append(g);
 }
-const openReview = () => openReviewSheet({ getState: () => state, today, onChanged: refreshAll });
-const openRewards = () => openRewardsSheet({ getState: () => state, today, onChanged: refreshAll });
+const openReview = () => (track('sheet', { s: 'review' }), openReviewSheet({ getState: () => state, today, onChanged: refreshAll }));
+const openRewards = () => (track('sheet', { s: 'rewards' }), openRewardsSheet({ getState: () => state, today, onChanged: refreshAll }));
 
 // ---------- form ----------
 
@@ -791,6 +792,7 @@ function renderRadioCard() {
   }));
 }
 async function startRadio(station) {
+  track('radio_play');
   if (!(await radioPlay(station))) return; // the error toast comes from onRadio
   setCarrier(radioAudio());
   bindHandlers(npHandlers);
@@ -1045,6 +1047,7 @@ $('#qtForm').onsubmit = async (e) => {
 
 let view = 'today';
 function showView(v) {
+  if (view !== v) track('view', { v });
   view = v;
   try { sessionStorage.setItem('view', v); } catch { /* fine */ }
   for (const x of ['today', 'week', 'trends', 'me']) $(`#view-${x}`).hidden = x !== v;
@@ -1488,3 +1491,4 @@ function openDash(tab) {
 document.querySelectorAll('[data-open]').forEach((a) => (a.onclick = () => openDash(a.dataset.open)));
 
 init();
+trackOpen(dateKey());

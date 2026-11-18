@@ -17,6 +17,8 @@ await mkdir(out, { recursive: true });
 const copy = (from, to = from) => cp(join(root, from), join(out, to), { recursive: true });
 for (const f of ['lib', 'icons', 'config.js', 'version.js', 'rewards.config.js', 'styles.css', 'popup.css', 'ios.css', 'calm.css', 'splash.js', 'dashboard.css', 'popup.js', 'dashboard.js']) await copy(f);
 for (const f of ['platform.js', 'app.js', 'web.css', 'manifest.webmanifest']) await copy(join('web', f), f);
+// the owner's admin page: not linked from the app, not cached by the service worker
+for (const f of ['admin.html', 'admin.js']) await copy(join('web', f), f);
 await cp(join(root, 'web', 'icons'), join(out, 'icons'), { recursive: true });
 
 const HEAD = `
@@ -53,7 +55,7 @@ async function list(dir) {
   return files;
 }
 // pages are cached under their clean addresses ("./", "dashboard"), the way the host serves them
-const files = (await list(out)).filter((f) => f !== 'sw.js' && f !== 'index.html').map((f) => f.replace(/\.html$/, '')).sort();
+const files = (await list(out)).filter((f) => f !== 'sw.js' && f !== 'index.html' && !f.startsWith('admin.')).map((f) => f.replace(/\.html$/, '')).sort();
 const build = new Date().toISOString().replace(/[-:TZ.]/g, '').slice(0, 14);
 const sw = (await readFile(join(root, 'web', 'sw.js'), 'utf8'))
   .replace('__BUILD__', build)

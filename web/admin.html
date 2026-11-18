@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>Odyssey admin</title>
+  <link rel="icon" href="icons/logo.svg" type="image/svg+xml" />
+  <style>
+    :root { --bg: #f4f2ee; --card: #fff; --ink: #1d232b; --muted: #6b7380; --line: #e6e2da; --accent: #3d6b8f; --warn: #c0614f; --ok: #4f8a68; --gold: #c08a45; --bar: #d8e3ec; }
+    @media (prefers-color-scheme: dark) { :root { --bg: #0f1318; --card: #181e25; --ink: #e8ebef; --muted: #8b95a3; --line: #262e38; --accent: #7fb0d6; --warn: #e08a78; --ok: #7cc39a; --gold: #e2b45a; --bar: #22303d; } }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; }
+    main { max-width: 1100px; margin: 0 auto; padding: 20px 16px 60px; }
+    header { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-bottom: 18px; }
+    h1 { font-size: 22px; margin: 0; flex: 1; }
+    h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin: 26px 0 8px; font-weight: 600; }
+    select, button, input { font: inherit; color: inherit; }
+    select, input { background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 7px 10px; }
+    button { background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 7px 12px; cursor: pointer; }
+    button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .muted { color: var(--muted); }
+    .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+    .tile { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; }
+    .tile b { display: block; font-size: 22px; font-variant-numeric: tabular-nums; }
+    .tile small { color: var(--muted); }
+    .meter { height: 6px; background: var(--bar); border-radius: 4px; margin-top: 8px; overflow: hidden; }
+    .meter i { display: block; height: 100%; background: var(--accent); }
+    .meter.hot i { background: var(--warn); }
+    .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+    th, td { text-align: left; padding: 7px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+    th { font-size: 12px; color: var(--muted); font-weight: 600; }
+    td.n, th.n { text-align: right; }
+    tr:last-child td { border-bottom: 0; }
+    .bar { display: inline-block; height: 8px; background: var(--accent); border-radius: 4px; vertical-align: middle; margin-right: 6px; opacity: .7; }
+    .charts { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 10px; }
+    .chart svg { width: 100%; height: 120px; display: block; }
+    .chart rect { fill: var(--accent); opacity: .75; }
+    .chart.cost rect { fill: var(--gold); }
+    .chart .axis { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); margin-top: 2px; }
+    .hints li { margin: 4px 0; }
+    .caps { display: flex; flex-wrap: wrap; gap: 12px; align-items: end; }
+    .caps label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--muted); }
+    .caps input[type=number] { width: 120px; }
+    .tag { display: inline-block; padding: 1px 7px; border-radius: 10px; font-size: 12px; background: var(--bar); }
+    .tag.used { color: var(--ok); } .tag.rejected, .tag.error { color: var(--warn); }
+    #signin[hidden] { display: none; }
+    #signin { max-width: 320px; margin: 60px auto; display: flex; flex-direction: column; gap: 10px; }
+    pre { white-space: pre-wrap; font-size: 12px; background: var(--bg); padding: 10px; border-radius: 8px; }
+    .err { color: var(--warn); }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <h1>Odyssey admin</h1>
+      <span class="muted" id="who"></span>
+      <select id="days"><option value="7">7 days</option><option value="30" selected>30 days</option><option value="90">90 days</option></select>
+      <button id="refresh">Refresh</button>
+    </header>
+    <form id="signin" hidden>
+      <b>Owner sign-in</b>
+      <input id="u" autocomplete="username" placeholder="Username" />
+      <input id="p" type="password" autocomplete="current-password" placeholder="Password" />
+      <button class="primary">Sign in</button>
+      <span class="err" id="signinErr"></span>
+    </form>
+    <div id="out"></div>
+  </main>
+  <script src="platform.js"></script>
+  <script type="module" src="admin.js"></script>
+</body>
+</html>
