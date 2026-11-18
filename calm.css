@@ -448,3 +448,188 @@ body.onboarding { overflow: hidden; }
 .swipeDel { visibility: hidden; }
 .swipeRow.swiping .swipeDel, .swipeRow.open .swipeDel { visibility: visible; }
 html, body { overflow-x: hidden; }
+
+/* ================= 0.7: habits and tasks split, decluttered ================= */
+/* tab badge */
+.tabbar button { position: relative; }
+.tabBadge { position: absolute; top: 0; left: calc(50% + 6px); min-width: 17px; height: 17px; padding: 0 4px; border-radius: 9px; background: var(--ios-red); color: #fff; font-size: 11px; font-weight: 700; line-height: 17px; box-sizing: border-box; filter: none !important; opacity: 1 !important; transform: none !important; }
+
+/* focus bar above the tabs */
+.focusBar { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(66px + env(safe-area-inset-bottom)); z-index: 29;
+  width: calc(100% - 24px); max-width: 536px; height: 56px; display: flex; align-items: center; gap: 10px; padding: 0 6px 0 8px; box-sizing: border-box;
+  background: var(--ios-cell); border-radius: 18px; box-shadow: 0 4px 18px rgba(31, 36, 48, .1); }
+.focusBar[hidden] { display: none; }
+.fbPlay { width: 40px; height: 40px; flex: none; border-radius: 50%; border: 0; padding: 0; background: var(--ios-blue) !important; display: grid; place-items: center; }
+.fbPlay svg { width: 14px; height: 14px; fill: #fff; margin-left: 2px; }
+.fbMain { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; background: none !important; border: 0; padding: 4px 0; text-align: left; color: var(--ios-label); }
+.fbMain b { font-size: 15px; }
+.fbMain span { font-size: 13px; color: var(--ios-label-2); max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fbChange { flex: none; min-height: 44px; background: none !important; border: 0; color: var(--ios-blue); font-weight: 600; font-size: 15px; padding: 0 10px; }
+body.hasFocusBar { padding-bottom: calc(140px + env(safe-area-inset-bottom)); }
+body.focusing .focusBar, body.onboarding .focusBar { display: none; }
+
+/* habits: one row each */
+.habits.tidy { background: var(--ios-cell); border-radius: 16px; overflow: hidden; }
+.habits.tidy .habit { background: transparent !important; border-radius: 0 !important; margin: 0 !important; box-shadow: none !important; padding: 10px 8px 10px 14px; border-bottom: 1px solid var(--ios-sep); }
+.habits.tidy .habit:last-child { border-bottom: 0; }
+.habits.tidy .hHead { align-items: center; min-height: 44px; }
+.habits.tidy .hRight { display: flex; align-items: center; gap: 4px; flex: none; }
+.habits.tidy .tapOpen { cursor: pointer; }
+.habits.tidy .hName { font-size: 17px; }
+.habits.tidy .hNote { display: none; }
+.habits.tidy .trInline { display: flex; align-items: center; gap: 8px; margin-top: 5px; }
+.habits.tidy .trInline .meter { width: 80px; flex: none; height: 4px; margin: 0; }
+.habits.tidy .trInline .trMsg { font-size: 13px; color: var(--ios-label-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.habits.tidy .trInline .meter[hidden] { display: none; }
+.habits.tidy .hMore { display: none; padding: 10px 0 4px 40px; }
+.habits.tidy .habit.open .hMore { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
+.habits.tidy .hMore .skip, .habits.tidy .hMore .urgeBtn { min-height: 40px; padding: 0 14px; border-radius: 20px; }
+.habits.tidy .hMore .hTactic, .habits.tidy .hMore .never { margin: 0; }
+.habits.tidy .hMore .track { width: 100%; }
+.habits.tidy .habit.folded { display: none; }
+.habits.tidy.showFolded .habit.folded { display: block; opacity: .75; }
+.habitFold { width: 100%; min-height: 52px; display: flex; align-items: center; gap: 10px; padding: 0 14px; background: transparent !important; border: 0; border-bottom: 1px solid var(--ios-sep); border-radius: 0; text-align: left; color: var(--ios-label); font-size: 15px; }
+.habitFold .hfMain { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.habitFold .chev, .foldRow .chev { color: var(--ios-label-3); transition: transform .2s; }
+.habitFold.open .chev, .foldRow.open .chev { transform: rotate(90deg); }
+.habits.tidy:not(.showFolded) .habitFold:last-child, .habits.tidy:not(.showFolded) .habitFold { border-bottom: 0; }
+
+/* tasks tab */
+.addBar { width: 100%; height: 54px; margin: 6px 0 4px; display: flex; align-items: center; gap: 12px; padding: 0 8px 0 16px; background: var(--ios-cell) !important; border: 0; border-radius: 16px; color: var(--ios-label-2); font-size: 17px; text-align: left; }
+.addBar .abPlus { color: var(--ios-blue); font-size: 20px; font-weight: 600; }
+.addBar .abText { flex: 1; }
+.addBar .abGo { height: 38px; padding: 0 16px; border-radius: 12px; background: var(--ios-blue); color: #fff; font-size: 15px; font-weight: 600; display: flex; align-items: center; }
+#tkList .groupHead { margin: 18px 4px 8px; }
+.taskList { background: var(--ios-cell); border-radius: 16px; overflow: hidden; }
+.taskList .task { margin: 0 !important; border-radius: 0 !important; background: var(--ios-cell); border-bottom: 1px solid var(--ios-sep); min-height: 60px; }
+.taskList .task:last-child { border-bottom: 0; }
+.taskList .emptyLine { padding: 16px; }
+.foldList { margin-top: 14px; }
+.foldRow { width: 100%; min-height: 52px; display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 0 16px; background: transparent !important; border: 0; border-bottom: 1px solid var(--ios-sep); border-radius: 0; text-align: left; color: var(--ios-label); font-size: 15px; }
+.foldList > :last-child { border-bottom: 0; }
+.pullBtn { flex: none; min-height: 36px; padding: 0 12px; border-radius: 18px; border: 1px solid var(--ios-sep); background: var(--ios-cell) !important; color: var(--ios-blue); font-size: 14px; font-weight: 600; }
+
+/* add sheet and edit sheet */
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { min-height: 40px; padding: 0 14px; border-radius: 20px; border: 1px solid var(--ios-sep); background: var(--ios-cell); color: var(--ios-label); font-size: 15px; }
+.chip.on { background: var(--ios-blue) !important; border-color: var(--ios-blue); color: #fff !important; font-weight: 600; }
+.chipDate { width: 140px; min-height: 40px; border-radius: 20px !important; padding: 0 12px !important; font-size: 15px; }
+.chipDate.on { border: 2px solid var(--ios-blue) !important; }
+.atForm { display: flex; flex-direction: column; gap: 10px; }
+.atForm .lbl { margin-top: 8px; font-size: 13px; font-weight: 600; color: var(--ios-label-2); }
+.atTitle { height: 54px; font-size: 17px !important; border-radius: 14px !important; border: 2px solid var(--ios-blue) !important; }
+.atHint { font-size: 13px; color: var(--ios-label-2); min-height: 16px; }
+.atGo { height: 56px; margin-top: 18px; font-size: 17px; border-radius: 16px; }
+.atGo:disabled { opacity: .45; }
+.atNote { margin: 0; text-align: center; font-size: 13px; color: var(--ios-label-2); }
+.drawer:has(.tDrawer) .drawerHead { display: none; }
+.tTop { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+.tSaved { font-size: 13px; font-weight: 600; color: var(--ios-green); }
+.tParent { font-size: 14px; }
+.tDone { min-height: 40px; padding: 0 20px; border-radius: 20px; }
+.tDrawer .tBig { font-size: 22px; font-weight: 700; border: 0 !important; background: none !important; padding: 4px 0 !important; box-shadow: none !important; }
+.tDrawer .statusSeg { margin: 6px 0 4px; }
+.tDrawer .field { margin-top: 14px; }
+.tDrawer .field .lbl { font-size: 13px; font-weight: 600; color: var(--ios-label-2); margin-bottom: 8px; }
+.sizeOther { margin-left: 2px; }
+.stepAdd .qaAdd { min-height: 36px; padding: 0 14px; border-radius: 12px; background: var(--ios-blue) !important; color: #fff; font-weight: 600; border: 0; }
+.tDrawer .drawerActions { margin-top: 20px; }
+
+/* progress */
+.wkHero .wkKpis { margin-bottom: 14px; }
+.voyageCard { padding: 6px 8px !important; }
+.voyageCard .voyageStrip { margin: 0; background: transparent !important; }
+.wkActions { display: grid !important; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; background: transparent !important; overflow: visible !important; }
+.wkActions button { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; height: 76px; background: var(--ios-cell) !important; border-radius: 16px !important; box-shadow: none !important; color: var(--ios-label); font-weight: 600; }
+.wkActions .waIcon svg { width: 22px; height: 22px; fill: none; stroke: var(--ios-blue); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.wkActions .waIcon.gold svg { stroke: var(--ios-orange); }
+.foldCard > summary { list-style: none; cursor: pointer; color: var(--ios-blue); font-weight: 600; min-height: 28px; display: flex; align-items: center; }
+.foldCard > summary::-webkit-details-marker { display: none; }
+.foldCard[open] > summary { margin-bottom: 12px; }
+.foldCard h3 { margin: 18px 0 8px; }
+.foldCard #trInsights .card { box-shadow: none; padding: 0; margin: 0 0 8px; }
+
+/* ---- 0.7 (revised): Today and Week, each with a Habits / Tasks switch ---- */
+.sideSeg { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 3px; padding: 3px; margin: 4px 0 12px; background: var(--ios-fill-2); border-radius: 12px; }
+.sideSeg button { min-height: 40px; display: flex; align-items: center; justify-content: center; gap: 6px; border: 0; border-radius: 9px; background: transparent !important; box-shadow: none !important; color: var(--ios-label); font-size: 15px; font-weight: 500; }
+.sideSeg button.on { background: var(--ios-cell) !important; box-shadow: 0 1px 3px rgba(31, 36, 48, .12) !important; font-weight: 600; }
+.segN { font-style: normal; font-size: 13px; color: var(--ios-label-2); font-weight: 500; }
+.segN[hidden] { display: none; }
+#todaySeg .segN { min-width: 20px; height: 20px; padding: 0 6px; box-sizing: border-box; border-radius: 10px; background: var(--ios-blue); color: #fff; font-size: 12px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; }
+#todaySeg .segN.alert { background: var(--ios-red); }
+#view-today[data-side="habits"] .sideTasks, #view-week[data-side="habits"] .sideTasks { display: none; }
+#view-today[data-side="tasks"] .sideHabits, #view-week[data-side="tasks"] .sideHabits { display: none !important; }
+.sideTasks .addBar { margin-top: 0; }
+.sideTasks .taskList { margin-top: 10px; }
+.linkBtn { display: block; margin: 12px 4px 0; padding: 8px 0; background: none !important; border: 0; color: var(--ios-blue); font-weight: 600; font-size: 15px; }
+.foldRow .frMain { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.taskList .foldRow { border-top: 1px solid var(--ios-sep); border-bottom: 0; }
+.taskList .foldRow:first-child { border-top: 0; }
+
+/* week: numbers + voyage in one card, then the actions, then the switch */
+.wkHero .wkKpis { margin-bottom: 10px; }
+.wkHero .voyageStrip { margin: 0; padding: 10px 0 0; border-top: 1px solid var(--ios-sep); border-radius: 0; background: transparent !important; width: 100%; }
+.wkActions button { height: 48px !important; flex-direction: row !important; gap: 6px !important; }
+.wkActions .waIcon svg { width: 18px; height: 18px; }
+.wkHabitsCard .wkDays { margin-bottom: 10px; }
+
+/* trends */
+.trLegend { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--ios-label-2); }
+.trLegend i { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+.trLegend .lgH, .wbH { background: var(--ios-blue); }
+.trLegend .lgT, .wbT { background: #d39a4f; }
+.trLegend .lgT { margin-left: 8px; }
+.weekBars .wbRow { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 6px; height: 110px; align-items: end; }
+.wbCol { display: flex; gap: 2px; align-items: flex-end; height: 100%; }
+.wbCol i { flex: 1; border-radius: 3px; display: block; }
+.wbCol.now i { opacity: .6; }
+.wbAxis { display: flex; justify-content: space-between; font-size: 11px; color: var(--ios-label-2); margin-top: 6px; }
+.statsGrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin: 0 0 14px; }
+.kTile { background: var(--ios-cell); border-radius: 14px; padding: 12px 14px; display: flex; flex-direction: column; gap: 2px; }
+.kTile span { font-size: 13px; color: var(--ios-label-2); }
+.kTile b { font-size: 21px; }
+.kD { font-size: 13px; font-weight: 600; color: var(--ios-label-2); }
+.kD.up { color: var(--ios-green); }
+.kD.down { color: var(--ios-red); }
+
+/* review */
+.revGrid.four { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; margin: 10px 0 4px; }
+.revGrid .revTile { display: flex; flex-direction: column-reverse; gap: 2px; }
+.revGrid .revTile span { font-size: 13px; color: var(--ios-label-2); }
+.revGrid .revTile b { font-size: 21px; }
+.revGrid .revTile .delta { font-style: normal; font-size: 13px; }
+.revHabits { padding: 4px 14px; }
+.rhRow { display: flex; align-items: center; gap: 10px; min-height: 40px; }
+.rhName { width: 120px; flex: none; font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rhBar { flex: 1; height: 6px; border-radius: 3px; background: var(--ios-fill-2); overflow: hidden; }
+.rhBar i { display: block; height: 100%; background: var(--ios-green); }
+.rhBar i.fill-yellow { background: var(--ios-orange); }
+.rhBar i.fill-red { background: var(--ios-red); }
+.rhRow b { width: 32px; text-align: right; }
+.openRow { gap: 8px; }
+.pillBtn { min-height: 36px; padding: 0 12px; border-radius: 18px; border: 1px solid var(--ios-sep); background: var(--ios-cell) !important; color: var(--ios-blue); font-weight: 600; font-size: 14px; flex: none; }
+.pillBtn.quiet { border: 0; color: var(--ios-label-2); font-weight: 500; }
+
+/* plan */
+.planTask { width: 100%; text-align: left; }
+.planTask .ptTick { width: 28px; height: 28px; flex: none; border-radius: 50%; border: 2px solid var(--ios-blue); color: var(--ios-blue); display: grid; place-items: center; font-weight: 700; box-sizing: border-box; }
+.planTask.on .ptTick { background: var(--ios-blue); color: #fff; }
+.capNote { font-weight: 400; text-transform: none; letter-spacing: 0; color: var(--ios-label-2); }
+.groupHead.row.between { display: flex; justify-content: space-between; gap: 8px; }
+.addHabits > summary { list-style: none; cursor: pointer; color: var(--ios-blue); }
+.addHabits > summary::-webkit-details-marker { display: none; }
+.planGo { width: 100%; height: 56px; margin: 20px 0 8px; font-size: 17px; border-radius: 16px; }
+.wkHero .wkKpis { margin-top: 0; border-top: 0; padding-top: 2px; }
+.taskList .task { padding-left: 8px; padding-right: 8px; }
+.habits.tidy .stepper .stepVal input { width: 38px; min-width: 38px; }
+.planTop .athenaHead { display: none; }
+.habits.tidy .stepper .stepVal input { padding: 2px 0 !important; width: 40px; min-width: 40px; }
+@media (prefers-color-scheme: dark) {
+  .sideSeg { background: rgba(255, 255, 255, .06); }
+  .sideSeg button.on { background: rgba(255, 255, 255, .16) !important; box-shadow: none !important; }
+  .addBar .abGo, .stepAdd .qaAdd { color: #0e1116; }
+  .fbPlay svg { fill: #0e1116; }
+  .chip.on { color: #0e1116 !important; }
+  .planTask.on .ptTick { color: #0e1116; }
+  #todaySeg .segN { color: #0e1116; }
+}

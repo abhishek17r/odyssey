@@ -11,6 +11,8 @@ import { insights, daysText } from './lib/insights.js';
 import { kleos, plannedOn, POINTS } from './lib/points.js';
 import { moveTicket, startPause, endPause, saveOnboarding, saveTactics, logUrge, deleteTicket } from './lib/storage.js';
 import { parseQuickAdd } from './lib/quickAdd.js';
+import { openAddTask } from './lib/addTask.js';
+import { taskGroups } from './lib/when.js';
 import { swipeToDelete, undoToast } from './lib/controls.js';
 import { openOnboarding } from './lib/onboarding.js';
 import { openUrgePause } from './lib/urgePause.js';
@@ -67,7 +69,8 @@ async function init() {
   $('#dateLabel').textContent = new Date().toLocaleDateString(undefined, { day: 'numeric', month: 'long' });
   render();
   const v0 = sessionStorage.getItem('view');
-  showView(['today', 'week', 'trends', 'me'].includes(v0) ? v0 : 'today');
+  setSide(side);
+  showView(['today', 'week', 'trends', 'me'].includes(v0) ? v0 : v0 === 'tasks' ? (setSide('tasks'), 'week') : 'today');
   if (state.activeSession) setFullscreen(true);
   renderAccount($('#meAccount'));
   renderExtras();
@@ -83,7 +86,7 @@ async function init() {
   const open = new URLSearchParams(location.search).get('open');
   if (open) {
     history.replaceState(null, '', location.pathname);
-    ({ review: openReview, plan: () => openPlan(), rewards: openRewards, week: () => showView('week') })[open]?.();
+    ({ review: openReview, plan: () => openPlan(), rewards: openRewards, week: () => showView('week'), tasks: () => { setSide('tasks'); showView('today'); } })[open]?.();
   }
 }
 
@@ -94,7 +97,8 @@ function render() {
   $('#noPlan').hidden = !!plan;
   $('#todayCard').hidden = !plan;
   if (plan) renderForm();
-  renderDue();
+  renderTasks();
+  renderFocusBar();
   renderSession();
   renderReflection();
   renderWeek();
@@ -225,7 +229,7 @@ let form = null;
 
 function renderForm() {
   $('#note').value = state.days[today]?.note ?? '';
-  form = buildCheckin({ box: $('#goalQs'), dayKey: today, getState: () => state, onSaved: () => { renderHeader(); renderProgress(); }, compact: true,
+  form = buildCheckin({ box: $('#goalQs'), dayKey: today, getState: () => state, onSaved: () => { renderHeader(); renderProgress(); }, compact: true, tidy: true,
     getTactic: (g) => tacticLine(state, g, today), onUrge: urgeFor, onPlan: () => openPlan() });
   renderProgress();
 }
@@ -241,7 +245,8 @@ function renderProgress() {
   const tm = timeOnDay(state, today);
   $('#todayProg').innerHTML = `<b>${logged}/${plan.goals.length}</b> habits${due ? ` · <b>${due}</b> due` : ''}` +
     (tm.totalMin ? ` · <span title="Timer ${hm(tm.timerMin)}${tm.autoMin ? ` + estimated ${hm(tm.autoMin)} (done without the timer)` : ''}">⏱ <b>${hm(tm.totalMin)}</b></span>` : '');
-  $('#habitsHead').textContent = logged === plan.goals.length ? 'Habits · all logged 🎉' : `Habits · ${plan.goals.length - logged} to log`;
+  $('#habitsHead').textContent = logged === plan.goals.length ? 'All logged for today' : `To do · ${plan.goals.length - logged}`;
+  segN('todaySeg', 'habits', plan.goals.length - logged || '');
 }
 
 // ---------- tasks due: quick actions ----------
@@ -259,27 +264,6 @@ const tickTask = (row, chk, t, reopenAs = 'todo') => async (v) => {
   await updateTicket(t.id, { status: v ? 'done' : reopenAs });
   if (v) toast('Done 🎉');
 };
-
-function dueRow(t) {
-  const done = t.status === 'done';
-  const d = dueInfo(t, today);
-  const row = document.createElement('div');
-  row.className = `task ${done ? 'isDone' : ''}`;
-  const chk = checkBtn({ state: done ? true : null, title: done ? 'Mark not done' : 'Mark done', onChange: (v) => tickTask(row, chk, t, 'doing')(v) });
-  const main = document.createElement('div');
-  main.className = 'tMain';
-  main.innerHTML = `<div class="tTitle">${esc(ticketTitle(t, state))}</div><div class="tMeta">${[done ? '<span class="okText">Done today</span>' : `<span class="due ${d.cls}">${esc(d.text)}</span>`, t.sizeH ? `${t.sizeH} h` : '', !done && t.status === 'doing' ? 'in progress' : ''].filter(Boolean).join(' · ')}</div>`;
-  row.append(chk, main);
-  if (!done) {
-    const go = Object.assign(document.createElement('button'), { className: 'playBtn', title: 'Start a focus session on this', innerHTML: '▶' });
-    go.disabled = !!state.activeSession;
-    go.onclick = () => startOn(`t:${t.id}`);
-    row.append(go);
-  }
-  row.onclick = (e) => { if (!e.target.closest('button')) openTicket(t.id); };
-  swipeToDelete(row, () => removeTask(t));
-  return row;
-}
 
 // Delete a task (and its subtasks), with a few seconds to undo.
 async function removeTask(t) {
@@ -304,31 +288,95 @@ async function quickAddTask(text, defaults = {}) {
     habitId: wk && timedHabits(wk, state).some((g) => g.id === 'work') ? 'work' : null });
   toast(q.due ? `Added · due ${dueInfo({ due: q.due }, today).text.replace(/^due /, '')}` : 'Added');
 }
-function addTaskForm(placeholder, defaults) {
-  const form = document.createElement('form');
-  form.className = 'quickAdd todayAdd';
-  form.innerHTML = `<span class="qaPlus">＋</span><input type="text" maxlength="100" placeholder="${placeholder}" enterkeyhint="done" />`;
-  const input = form.querySelector('input');
-  form.onclick = () => input.focus();
-  form.onsubmit = async (e) => { e.preventDefault(); const v = input.value.trim(); if (!v) return; input.value = ''; await quickAddTask(v, defaults); input.focus(); };
-  return form;
+// ---------- Habits / Tasks: one switch, shared by Today and Week, remembered ----------
+let side = (() => { try { return sessionStorage.getItem('side') === 'tasks' ? 'tasks' : 'habits'; } catch { return 'habits'; } })();
+function setSide(s) {
+  side = s === 'tasks' ? 'tasks' : 'habits';
+  try { sessionStorage.setItem('side', side); } catch { /* fine */ }
+  for (const v of ['#view-today', '#view-week']) $(v).dataset.side = side;
+  document.querySelectorAll('.sideSeg [data-side]').forEach((b) => { const on = b.dataset.side === side; b.classList.toggle('on', on); b.ariaSelected = String(on); });
+  renderFocusBar();
+}
+document.querySelectorAll('.sideSeg [data-side]').forEach((b) => (b.onclick = () => { if (b.dataset.side !== side) track('side', { s: b.dataset.side }); setSide(b.dataset.side); }));
+const segN = (id, which, text, cls = '') => { const i = $(`#${id} [data-side="${which}"] .segN`); i.textContent = text; i.className = `segN ${cls}`; i.hidden = text === '' || text == null; };
+
+const tkFold = { later: false, done: false, doneToday: false };
+const openAdd = (when = 'today') => openAddTask({ today, when, habitFor: (wk) => (timedHabits(wk, state).some((g) => g.id === 'work') ? 'work' : null), onAdded: async () => { state = await load(); renderTasks(); } });
+document.querySelectorAll('[data-add]').forEach((b) => (b.onclick = () => openAdd(b.dataset.add === 'week' ? 'week' : 'today')));
+
+function taskBlock(box, items, empty) {
+  const list = Object.assign(document.createElement('div'), { className: 'taskList' });
+  if (!items.length && empty) list.innerHTML = `<div class="emptyLine">${empty}</div>`;
+  for (const t of items) list.append(taskRow(t));
+  box.append(list);
+  return list;
+}
+function foldRow(list, key, label, sub, items, build, rerender) {
+  if (!items.length) return;
+  const b = document.createElement('button');
+  b.type = 'button';
+  b.className = `foldRow ${tkFold[key] ? 'open' : ''}`;
+  b.innerHTML = `<span class="frMain"><b>${label} · ${items.length}</b>${sub ? ` <span class="muted">${esc(sub)}</span>` : ''}</span><span class="chev">›</span>`;
+  b.onclick = () => { tkFold[key] = !tkFold[key]; rerender(); };
+  list.append(b);
+  if (tkFold[key]) for (const t of items) list.append(build(t));
 }
 
-function renderDue() {
-  const box = $('#dueBox');
-  const list = dueToday();
-  const fin = doneToday();
-  const soon = ticketsInSprint(weekKeyOf(today), state).filter((x) => x.status !== 'done' && x.due > today).sort((a, b) => a.due.localeCompare(b.due))[0];
-  box.innerHTML = '';
-  box.append(Object.assign(document.createElement('div'), { className: 'subHead', textContent: list.length ? `Due today · ${list.length}` : 'Tasks' }));
-  if (!list.length) box.insertAdjacentHTML('beforeend', `<div class="emptyLine">✓ Nothing due today${soon ? ` · next: <b>${esc(ticketTitle(soon, state))}</b> ${esc(dueInfo(soon, today).text)}` : ''}</div>`);
-  for (const t of list) box.append(dueRow(t));
-  box.append(addTaskForm('Add a task… (e.g. Call the bank tomorrow 30m)', { due: today }));
-  if (fin.length) {
-    box.append(Object.assign(document.createElement('div'), { className: 'habitGroup done', textContent: `Done · ${fin.length}` }));
-    for (const t of fin) box.append(dueRow(t));
+function renderTasks() {
+  const g = taskGroups(state.tickets, today);
+  // Today · Tasks: due today, late, in progress; what you finished today folds away
+  const td = $('#tdList');
+  td.innerHTML = '';
+  const doneToday = g.done.filter((t) => dateKey(new Date(t.doneAt)) === today);
+  const tl = taskBlock(td, g.today, g.week.length ? 'Nothing due today.' : 'Nothing due today. Add one above.');
+  foldRow(tl, 'doneToday', 'Done today', doneToday.map((t) => t.title).join(', '), doneToday, taskRow, renderTasks);
+  if (g.week.length) {
+    const more = Object.assign(document.createElement('button'), { type: 'button', className: 'linkBtn', textContent: `${g.week.length} more this week ›` });
+    more.onclick = () => { setSide('tasks'); showView('week'); };
+    td.append(more);
   }
+  const lateN = g.today.filter((t) => t.due && t.due <= today).length;
+  segN('todaySeg', 'tasks', g.today.length || '', lateN ? 'alert' : '');
+
+  // Week · Tasks: everything open this week, then Later and Done
+  const wkBox = $('#tkList');
+  wkBox.innerHTML = '';
+  const open = [...g.today, ...g.week];
+  const wl = taskBlock(wkBox, open, 'Nothing open this week. Add a task above, or pull one from Later.');
+  foldRow(wl, 'later', 'Later', 'not planned yet', g.later, (t) => {
+    const row = taskRow(t);
+    row.querySelector('.playBtn')?.remove();
+    const pull = Object.assign(document.createElement('button'), { type: 'button', className: 'pullBtn', textContent: 'This week' });
+    pull.onclick = async (e) => { e.stopPropagation(); await moveTicket(t.id, weekKeyOf(today)); state = await load(); toast('Moved to this week'); renderTasks(); };
+    row.append(pull);
+    return row;
+  }, renderTasks);
+  foldRow(wl, 'done', 'Done this week', '', g.done, taskRow, renderTasks);
+  if (!open.length && wl.querySelector('.foldRow')) wl.querySelector('.emptyLine')?.remove();
+  segN('weekSeg', 'tasks', open.length ? `${open.length} open` : '');
 }
+
+// ---------- the focus bar above the tabs (Today): start on the next task, or change it ----------
+const nextUp = () => { const g = taskGroups(state.tickets, today); return [...g.today, ...g.week][0] || null; };
+function renderFocusBar() {
+  const show = !state.activeSession && view === 'today' && !document.body.classList.contains('onboarding');
+  $('#focusBar').hidden = !show;
+  document.body.classList.toggle('hasFocusBar', show);
+  if (!show) return;
+  const t = nextUp();
+  $('#fbLen').textContent = `Focus · ${state.settings.sessionMinutes || 25} min`;
+  $('#fbOn').textContent = t ? `on ${ticketTitle(t, state)}` : 'on anything: name it when you start';
+}
+$('#fbPlay').onclick = () => {
+  const t = nextUp();
+  if (!t) { startOn(null); return; }
+  lockScreenStart();
+  startOn(`t:${t.id}`);
+  setTimeout(() => $('#sGo').click(), 30);
+};
+$('#fbMain').onclick = () => { const t = nextUp(); startOn(t ? `t:${t.id}` : null); };
+$('#fbChange').onclick = () => { startOn(null); setTimeout(() => $('#sWhat').focus(), 80); };
+
 
 // Open the timer's start panel with this target picked.
 function startOn(value) {
@@ -444,7 +492,7 @@ function renderSession() {
     ? `Today: ${t.count} session${t.count > 1 ? 's' : ''} · ${hm(t.procrastMin)} to get started · ${hm(t.workMin)} working`
     : '';
   card.classList.toggle('running', !!a);
-  $('#qtForm').hidden = !!a;
+  $('#qtForm').hidden = true; // the focus bar above the tabs starts sessions now
   renderPlayer();
   clearInterval(tick);
   if (!a) return;
@@ -694,7 +742,8 @@ chrome.storage.onChanged.addListener(async () => {
   renderHeader();
   renderBanner();
   renderSession();
-  renderDue();
+  renderTasks();
+  renderFocusBar();
   form?.applyTimer();
   renderProgress();
   renderWeek();
@@ -1055,6 +1104,7 @@ function showView(v) {
   if (v === 'trends') renderTrends();
   window.scrollTo(0, 0);
   renderMini();
+  renderFocusBar();
 }
 document.querySelectorAll('#tabbar [data-view]').forEach((b) => (b.onclick = () => showView(b.dataset.view)));
 $('#miniRing').onclick = () => showView('week');
@@ -1101,22 +1151,11 @@ function renderMini() {
 
 // ---------- Week: the week at a glance, its habits and tasks; the backlog in a sheet ----------
 
-const tkOpen = { done: false };
-$('#tkAdd').onsubmit = async (e) => {
-  e.preventDefault();
-  const title = $('#tkTitle').value.trim();
-  if (!title) return;
-  $('#tkTitle').value = '';
-  const wk = weekKeyOf(today);
-  await quickAddTask(title, { sprint: wk });
-};
 $('#wkPlan').onclick = () => openPlan();
 $('#wkReview').onclick = () => openReview();
 $('#wkRewards').onclick = () => openRewards();
 $('#wkKleos').onclick = () => openRewards();
 $('#wkVoyage').onclick = () => openRewards();
-$('#wkBacklog').onclick = () => openBacklog();
-$('#tkAdd').onclick = () => $('#tkTitle').focus();
 $('#qtForm').addEventListener('click', (e) => { if (!e.target.closest('button')) $('#qtWhat').focus(); });
 // rows with a switch (settings): tap anywhere on the row to flip it
 document.addEventListener('click', (e) => {
@@ -1187,7 +1226,6 @@ function renderWeek() {
   ].map(([v, l, c]) => `<div class="wkKpi"><b class="${c ? `band ${c}` : ''}">${v}</b><span>${l}</span></div>`).join('');
 
   // habits: where each one stands this week
-  $('#wkHabSub').textContent = '';
   const hb = $('#wkHabits');
   hb.innerHTML = '';
   if (!goals.length) hb.innerHTML = '<div class="emptyLine">No habits planned. Tap ✎ Plan.</div>';
@@ -1220,70 +1258,10 @@ function renderWeek() {
     row.type = 'button';
     row.className = 'wkHabit';
     row.innerHTML = `<span class="whIcon">${g.icon || '⭐'}</span><span class="whMain"><b>${esc(g.name)}</b><small>${esc(line)}</small><span class="whDots">${dots}</span></span><span class="status st-${st}">${STATUS[st].label}</span>`;
-    row.onclick = () => showView('today');
+    row.onclick = () => { setSide('habits'); showView('today'); };
     hb.append(row);
   });
-
-  // tasks
-  const ids = new Set(ticketsInSprint(wk, state).map((t) => t.id));
-  const tops = ticketsInSprint(wk, state).filter((t) => !t.parentId || !ids.has(t.parentId));
-  const order = (a, b) => (a.due || '9999').localeCompare(b.due || '9999') || a.createdAt - b.createdAt;
-  const box = $('#tkList');
-  box.innerHTML = '';
-  const open = tops.filter((t) => t.status !== 'done');
-  const done = tops.filter((t) => t.status === 'done');
-  $('#tkSub').textContent = open.length ? `${round1(open.reduce((a, t) => a + (t.sizeH || 0), 0))} h left` : '';
-  const group = (label, items) => {
-    if (!items.length) return;
-    box.append(Object.assign(document.createElement('div'), { className: 'subHead', textContent: `${label} · ${items.length}` }));
-    for (const t of items.sort(order)) box.append(taskRow(t));
-  };
-  group('In progress', open.filter((t) => t.status === 'doing'));
-  group('To do', open.filter((t) => t.status === 'todo'));
-  if (!open.length) box.insertAdjacentHTML('beforeend', '<div class="emptyLine">✓ Nothing open this week. Add a task above, or pull one from the backlog.</div>');
-  if (done.length) {
-    const t = document.createElement('button');
-    t.type = 'button';
-    t.className = 'ghost small doneToggle';
-    t.textContent = `${tkOpen.done ? '▾' : '▸'} Done · ${done.length}`;
-    t.onclick = () => { tkOpen.done = !tkOpen.done; renderWeek(); };
-    box.append(t);
-    if (tkOpen.done) for (const x of done.sort((a, b) => (b.doneAt || 0) - (a.doneAt || 0))) box.append(taskRow(x));
-  }
-  const bl = backlogTickets(state).filter((t) => t.status !== 'done' && !t.parentId);
-  $('#wkBacklog').innerHTML = `<span class="blMain"><b>Backlog</b><small>${bl.length ? `${bl.length} task${bl.length > 1 ? 's' : ''} for later` : 'Park future tasks here'}</small></span><span class="chev">›</span>`;
-}
-
-// The backlog: parked tasks; pull one into this week, or add more.
-function openBacklog() {
-  const body = document.createElement('div');
-  body.className = 'backlogSheet';
-  const draw = () => {
-    body.innerHTML = '';
-    const form = document.createElement('form');
-    form.className = 'quickAdd';
-    form.innerHTML = '<span class="qaPlus">＋</span><input type="text" maxlength="80" placeholder="Add a future task…" />';
-    form.onsubmit = async (e) => {
-      e.preventDefault();
-      const v = form.querySelector('input').value.trim();
-      if (!v) return;
-      await quickAddTask(v, { sprint: null });
-      state = await load(); draw();
-    };
-    body.append(form);
-    const list = backlogTickets(state).filter((t) => t.status !== 'done' && !t.parentId);
-    if (!list.length) body.insertAdjacentHTML('beforeend', '<div class="emptyLine">Nothing parked. Add future tasks above.</div>');
-    for (const t of list) {
-      const row = taskRow(t);
-      row.querySelector('.playBtn')?.remove();
-      const pull = Object.assign(document.createElement('button'), { type: 'button', className: 'pullBtn', textContent: '→ Week', title: 'Move to this week' });
-      pull.onclick = async (e) => { e.stopPropagation(); await moveTicket(t.id, weekKeyOf(today)); state = await load(); toast('Moved to this week'); draw(); renderWeek(); };
-      row.append(pull);
-      body.append(row);
-    }
-  };
-  draw();
-  openDrawer('Backlog', body);
+  segN('weekSeg', 'habits', goals.length ? `${sts.filter((x) => x === 'done' || x === 'on').length} of ${goals.length}` : '');
 }
 
 // ---------- Trends: the last 4 weeks, in the app ----------
@@ -1347,9 +1325,41 @@ function renderTrends() {
   const done7 = Object.values(state.tickets || {}).filter((t) => t.status === 'done' && t.doneAt && last7.includes(dateKey(new Date(t.doneAt)))).length;
   const a7 = rollingAvg(state, today, 7);
   const a28 = rollingAvg(state, today, 28);
+  // habits and tasks, week by week (the last 8), and four numbers over 4 weeks against the 4 before
+  const cur = weekKeyOf(today);
+  const wks = Array.from({ length: 8 }, (_, i) => dateKey(addDays(parseKey(cur), (i - 7) * 7)));
+  const wkStat = (wk) => {
+    const days = weekDays(wk).filter((k) => k <= today);
+    const tops = ticketsInSprint(wk, state).filter((t) => !t.parentId);
+    const done = tops.filter((t) => t.status === 'done').length;
+    const tt = sessionTotals(days, state);
+    return { wk, habit: weekSummary(wk, state, days.at(-1) || today).avg ?? null, done, tasks: tops.length, taskPct: tops.length ? Math.round((100 * done) / tops.length) : null,
+      focusMin: timeOnDays(state, days).totalMin, startMin: tt.count ? tt.procrastMin / tt.count : null };
+  };
+  const W = wks.map(wkStat);
+  const fmtW = (wk) => parseKey(wk).toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
+  $('#trWeekly').innerHTML = `<div class="wbRow">${W.map((w) => `<div class="wbCol ${w.wk === cur ? 'now' : ''}" title="${fmtW(w.wk)}: habit score ${w.habit ?? '—'} · tasks ${w.done} of ${w.tasks}">
+      <i class="wbH" style="height:${w.habit == null ? 2 : Math.max(3, w.habit)}%"></i><i class="wbT" style="height:${w.taskPct == null ? 2 : Math.max(3, w.taskPct)}%"></i></div>`).join('')}</div>
+    <div class="wbAxis"><span>${fmtW(wks[0])}</span><span>this week, so far</span></div>`;
+  const avg = (xs) => { const v = xs.filter((x) => x != null); return v.length ? v.reduce((p, x) => p + x, 0) / v.length : null; };
+  const last4 = W.slice(4), prev4 = W.slice(0, 4);
+  const diff = (a, b, unit = '', fewerIsBetter = false) => {
+    if (a == null || b == null) return '';
+    const d = Math.round((a - b) * 10) / 10;
+    if (!d) return '<span class="kD">same</span>';
+    const good = fewerIsBetter ? d < 0 : d > 0;
+    return `<span class="kD ${good ? 'up' : 'down'}">${d > 0 ? '+' : '−'}${Math.abs(d)}${unit}</span>`;
+  };
+  const hk = avg(last4.map((w) => w.habit)), hkP = avg(prev4.map((w) => w.habit));
+  const dn = last4.reduce((p, w) => p + w.done, 0), tn = last4.reduce((p, w) => p + w.tasks, 0);
+  const fw = avg(last4.map((w) => w.focusMin)), fwP = avg(prev4.map((w) => w.focusMin));
+  const sm = avg(last4.map((w) => w.startMin)), smP = avg(prev4.map((w) => w.startMin));
   $('#trKpis').innerHTML = [
-    [a7 ?? '—', '7-day score'], [streak(state, today), 'day streak'], [hm(t7.totalMin), 'focused · 7 days'],
-  ].map(([v, l]) => `<div class="stat"><b>${v}</b><span>${l}</span></div>`).join('');
+    ['Habit score · 4 weeks', hk == null ? '—' : Math.round(hk), diff(hk == null ? null : Math.round(hk), hkP == null ? null : Math.round(hkP))],
+    ['Tasks done · 4 weeks', tn ? `${dn} of ${tn}` : '—', tn ? `<span class="kD">${Math.round((100 * dn) / tn)}%</span>` : ''],
+    ['Focus a week', fw == null ? '—' : hm(fw), fw >= 60 ? diff(fw == null ? null : Math.round(fw / 6) / 10, fwP == null ? null : Math.round(fwP / 6) / 10, ' h') : diff(fw == null ? null : Math.round(fw), fwP == null ? null : Math.round(fwP), ' min')],
+    ['Time to get started', sm == null ? '—' : `${Math.round(sm)} min`, diff(sm == null ? null : Math.round(sm), smP == null ? null : Math.round(smP), '', true)],
+  ].map(([l, v, d]) => `<div class="kTile"><span>${l}</span><b>${v} ${d}</b></div>`).join('');
 
   // 28 bars, coloured by band
   const scores = last28.map((k) => ({ k, sc: dayScore(k, state)?.score ?? null }));
