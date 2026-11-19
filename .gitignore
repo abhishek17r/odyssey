@@ -12,3 +12,6 @@ supabase/functions/odyssey-push/lib/
 supabase/functions/odyssey-push/rewards.config.js
 supabase/functions/odyssey-athena/lib/
 supabase/functions/odyssey-athena/rewards.config.js
+
+# brain eval runs (scripts/brain/eval.mjs)
+scripts/brain/out/

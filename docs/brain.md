@@ -107,6 +107,16 @@ A sheet from the Hermes card: you type ("I'm wiped today", "I have a flight Thur
 - **Every prompt change runs the set**; checks: numbers match the digest, no medical claims, length, proposal validity (applies cleanly), tone.
 - **Live metrics** (admin page): proposals accepted / declined / ignored by kind, memory lines edited or deleted, chat messages per active user, cost per active user per month, habits kept before vs after.
 
+### B0 · the harness (built 19 Nov 2026)
+
+- `lib/digest.js`: the facts layer, from the app's own functions (tests in `tests/digest.test.mjs`).
+- `scripts/brain/personas.mjs`: the 20 synthetic people, each with "a good answer would …" and what it must or must not say.
+- `scripts/brain/jobs.mjs`: the rules, the four jobs (morning, evening, weekly, proposals) as JSON-schema requests, and the code checks: valid JSON and shape, length, every number from the facts, no medical advice, no exclamation marks or emoji, the person's must-mention and must-avoid, proposals that apply cleanly, the crisis line.
+- `scripts/brain/providers.mjs`: one adapter each for OpenAI (fetch, as the athena function calls it) and Claude (the Anthropic SDK; Sonnet with the server-side refusal fallback, recorded in the results).
+- `scripts/brain/eval.mjs`: `--dry` builds every request and estimates the cost (about US$0.70 for all 248 calls); without it, it runs and writes `scripts/brain/out/<time>/report.md` with pass rates, cost per call, cost per active user per month, a suggested model per tier, and every answer side by side to read for tone.
+- Keys: `OPENAI_API_KEY` and `ANTHROPIC_API_KEY` in the environment or `.secrets/brain.env`.
+- Prompt caching doesn't apply yet: requests are about 500–1,100 tokens, under the minimum prefix that caches. It starts to matter with memory and chat (B2, H1b).
+
 ## Milestones
 
 | | What | Done when |
