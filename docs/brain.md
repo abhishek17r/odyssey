@@ -115,6 +115,7 @@ A sheet from the Hermes card: you type ("I'm wiped today", "I have a flight Thur
 - `scripts/brain/providers.mjs`: one adapter each for OpenAI (fetch, as the athena function calls it) and Claude (the Anthropic SDK; Sonnet with the server-side refusal fallback, recorded in the results).
 - `scripts/brain/eval.mjs`: `--dry` builds every request and estimates the cost (about US$0.70 for all 248 calls); without it, it runs and writes `scripts/brain/out/<time>/report.md` with pass rates, cost per call, cost per active user per month, a suggested model per tier, and every answer side by side to read for tone.
 - Keys: `OPENAI_API_KEY` and `ANTHROPIC_API_KEY` in the environment or `.secrets/brain.env`.
+- **Testing economics** (measured, 20 Nov 2026): the full set is 62 requests per model; a core set of 7 people (`--set core`) is 23 and catches the same failure kinds. A full run costs about $0.01 (gpt-5-nano, Haiku) to $0.05 (gpt-5-mini) per model, and $0.30–0.75 for the large models; a core run is a third of that. Answers are cached by exact request, so rerunning after a prompt change pays only for the jobs whose prompt changed; `--max-spend` (default $0.30) stops a run before it starts; `node scripts/brain/eval.mjs --spend` shows every run and its cost. `--dry` is always free. Rule of thumb while tuning: core set on one or two models, full set only to confirm a pick.
 - Prompt caching doesn't apply yet: requests are about 500–1,100 tokens, under the minimum prefix that caches. It starts to matter with memory and chat (B2, H1b).
 
 ## Milestones

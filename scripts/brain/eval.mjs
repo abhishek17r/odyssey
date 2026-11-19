@@ -4,11 +4,18 @@
 //   node scripts/brain/eval.mjs --dry                      no calls: builds every request, prints sizes and a cost estimate
 //   node scripts/brain/eval.mjs                            every person × job × model (needs keys; costs real money, ~US$1–2)
 //   node scripts/brain/eval.mjs --models claude-haiku-5-5,gpt-5-nano --jobs morning --people gym-stall,low-mood --repeat 2
+//   node scripts/brain/eval.mjs --set core --models gpt-5.4-mini        the 7-person core set (about a third of the cost)
+//   node scripts/brain/eval.mjs --spend                                 what testing has cost so far
+//
+// Saving money: every answer is cached (scripts/brain/cache/, by model + exact request), so a rerun only pays for
+// requests whose prompt or facts changed (--fresh to ask again). A run that would cost more than --max-spend
+// (default US$0.30) stops before it starts.
 //
 // Keys: OPENAI_API_KEY and ANTHROPIC_API_KEY from the environment, or from .secrets/brain.env (KEY=value lines,
 // never committed). Claude also works with an `ant auth login` profile. Output: scripts/brain/out/<time>/ (ignored by git).
 
 import fs from 'node:fs';
+import crypto from 'node:crypto';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { PERSONAS, todayOf } from './personas.mjs';
@@ -23,7 +30,22 @@ const list = (name, all) => (arg(name) ? arg(name).split(',').map((s) => s.trim(
 const dry = process.argv.includes('--dry');
 const models = list('models', MODELS);
 const jobs = list('jobs', Object.keys(JOBS));
-const people = PERSONAS.filter((p) => list('people', PERSONAS.map((x) => x.id)).includes(p.id));
+// the core set: one of each kind of hard case (the safety case is answered in code and costs nothing)
+const CORE = ['smoker-slipping', 'gym-stall', 'overloaded', 'paused-week', 'deadline-crunch', 'comeback', 'low-mood'];
+const people = PERSONAS.filter((p) => list('people', arg('set') === 'core' ? CORE : PERSONAS.map((x) => x.id)).includes(p.id));
+const maxSpend = Number(arg('max-spend', 0.30));
+const fresh = process.argv.includes('--fresh');
+const outDir = path.join(here, 'out');
+const ledger = path.join(outDir, 'ledger.jsonl');
+const fmtUSD = (x) => `$${x.toFixed(x < 1 ? 4 : 2)}`;
+
+if (process.argv.includes('--spend')) {
+  const rows = fs.existsSync(ledger) ? fs.readFileSync(ledger, 'utf8').trim().split('\n').filter(Boolean).map((l) => JSON.parse(l)) : [];
+  const total = rows.reduce((a, r) => a + r.spend, 0);
+  console.log(`${rows.length} runs · ${rows.reduce((a, r) => a + r.paid, 0)} paid calls · ${rows.reduce((a, r) => a + r.cached, 0)} from cache · spent ${fmtUSD(total)} (₹${(total * 88).toFixed(2)})`);
+  for (const r of rows) console.log(`  ${r.at.slice(0, 16)}  ${fmtUSD(r.spend).padStart(8)}  ${String(r.paid).padStart(4)} paid ${String(r.cached).padStart(4)} cached  ${r.models.join(', ')} · ${r.set}`);
+  process.exit(0);
+}
 const repeat = Number(arg('repeat', 1)) || 1;
 
 // keys: env first, then .secrets/brain.env
@@ -50,6 +72,26 @@ const estIn = (r) => Math.round((r.req.system.length + r.req.user.length + JSON.
 const EST_OUT = { morning: 350, evening: 350, weekly: 900, proposals: 900 }; // incl. a little thinking/reasoning
 const fmt$ = (x) => (x < 0.01 ? `$${x.toFixed(5)}` : `$${x.toFixed(4)}`);
 
+// ---------- cache and estimates ----------
+const cacheDir = path.join(here, 'cache');
+const cacheKey = (model, req) => crypto.createHash('sha256').update(JSON.stringify([model, req.system, req.user, req.schema])).digest('hex').slice(0, 32);
+const fromCache = (model, req) => { if (fresh) return null; const f = path.join(cacheDir, `${cacheKey(model, req)}.json`); return fs.existsSync(f) ? JSON.parse(fs.readFileSync(f, 'utf8')) : null; };
+const toCache = (model, req, a) => { fs.mkdirSync(cacheDir, { recursive: true }); fs.writeFileSync(path.join(cacheDir, `${cacheKey(model, req)}.json`), JSON.stringify(a)); };
+// measured tokens per model and job from earlier runs; a model never run borrows gpt-5-mini's (or the char estimate)
+const history = {};
+for (const dir of fs.existsSync(outDir) ? fs.readdirSync(outDir) : []) {
+  const f = path.join(outDir, dir, 'results.jsonl');
+  if (!fs.existsSync(f)) continue;
+  for (const l of fs.readFileSync(f, 'utf8').trim().split('\n')) { try { const r = JSON.parse(l); if (r.tin && !r.cached) (history[`${r.model}|${r.job}`] ??= []).push(r); } catch { /* skip */ } }
+}
+const tokensOf = (model, r) => {
+  const own = history[`${model}|${r.req.job}`];
+  const h = own || history[`gpt-5-mini|${r.req.job}`];
+  if (h?.length) return { tin: h.reduce((a, x) => a + x.tin, 0) / h.length, tout: h.reduce((a, x) => a + x.tout, 0) / h.length, measured: !!own };
+  return { tin: estIn(r), tout: EST_OUT[r.req.job], measured: false };
+};
+const estimate = (model, rs) => rs.reduce((a, r) => (r.req.fixed || fromCache(model, r.req) ? a : a + costOf({ model, ...tokensOf(model, r) })), 0);
+
 if (dry) {
   console.log(`${requests.length} requests × ${models.length} models × ${repeat} = ${requests.length * models.length * repeat} calls\n`);
   for (const job of jobs) {
@@ -58,12 +100,17 @@ if (dry) {
     const avg = Math.round(rs.reduce((a, r) => a + estIn(r), 0) / rs.length);
     console.log(`${job.padEnd(10)} ${String(rs.length).padStart(2)} people · ~${avg} input tokens · ~${EST_OUT[job]} output`);
   }
-  console.log('\nEstimated cost of a full run, per model:');
+  console.log('\nEstimated cost, per model:');
   let total = 0;
   for (const m of models) {
-    const c = requests.reduce((a, r) => a + costOf({ model: m, tin: estIn(r), tout: EST_OUT[r.req.job] }), 0) * repeat;
+    const c = estimate(m, requests) * repeat;
     total += c;
-    console.log(`  ${m.padEnd(18)} ${fmt$(c)}`);
+    const cached = requests.filter((r) => fromCache(m, r.req)).length;
+    const perUser = Object.entries({ morning: 30, evening: 20, proposals: 30, weekly: 4.3 }).reduce((acc, [job, n]) => {
+      const r = requests.find((x) => x.req.job === job && !x.req.fixed);
+      return r ? acc + costOf({ model: m, ...tokensOf(m, r) }) * n : acc;
+    }, 0);
+    console.log(`  ${m.padEnd(18)} ${fmt$(c).padStart(9)} this run · live: $${perUser.toFixed(4)} (₹${(perUser * 88).toFixed(2)}) a user a month${cached ? `  (${cached} of ${requests.length} already cached)` : ''}${requests.every((r) => r.req.fixed || tokensOf(m, r).measured) ? '' : '  · tokens estimated'}`);
   }
   console.log(`  ${'all'.padEnd(18)} ${fmt$(total)}`);
   const missing = [...new Set(models.map(providerOf))].filter((pv) => (pv === 'openai' ? !keys.OPENAI_API_KEY : !keys.ANTHROPIC_API_KEY));
@@ -76,6 +123,11 @@ if (dry) {
 }
 
 if (models.some((m) => providerOf(m) === 'openai') && !keys.OPENAI_API_KEY) { console.error('OPENAI_API_KEY missing (env or .secrets/brain.env). Use --models to run Claude only.'); process.exit(1); }
+const unpriced = models.filter((m) => !PRICES[m]);
+if (unpriced.length) { console.error(`No price for ${unpriced.join(', ')}: add it to PRICES in providers.mjs first.`); process.exit(1); }
+const planned = models.reduce((a, m) => a + estimate(m, requests), 0) * repeat;
+console.log(`About ${fmtUSD(planned)} to run (${people.length} people, ${models.join(', ')}).`);
+if (planned > maxSpend) { console.error(`That's over the cap of ${fmtUSD(maxSpend)}. Use --set core, fewer --models, or raise --max-spend.`); process.exit(1); }
 
 // ---------- run ----------
 const stamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
@@ -88,9 +140,11 @@ let done = 0;
 async function worker() {
   while (jobsToRun.length) {
     const j = jobsToRun.shift();
-    const a = j.req.fixed ? { ok: true, text: JSON.stringify(j.req.fixed), model: 'code', tin: 0, tout: 0, ms: 0 } : await call(j.req, j.model, keys);
+    let a = j.req.fixed ? { ok: true, text: JSON.stringify(j.req.fixed), model: 'code', tin: 0, tout: 0, ms: 0, free: true } : j.i === 0 ? fromCache(j.model, j.req) : null;
+    if (a && !a.free) a = { ...a, cached: true };
+    if (!a) { a = await call(j.req, j.model, keys); if (a.ok && j.i === 0) toCache(j.model, j.req, a); }
     const c = a.ok ? check(j.req, a.text, j.p, j.d) : { pass: false, checks: [{ name: 'call', ok: false, detail: a.error }], text: '' };
-    const row = { person: j.p.id, job: j.req.job, model: j.model, servedBy: a.model, run: j.i, ok: a.ok, pass: c.pass, failed: c.checks.filter((x) => !x.ok).map((x) => `${x.name}${x.detail ? ` (${x.detail})` : ''}`), text: c.text, raw: a.text, tin: a.tin, tout: a.tout, cachedIn: a.cachedIn || 0, cost: costOf(a), ms: a.ms, stop: a.stop, fallback: a.fallback || false, error: a.error || null };
+    const row = { person: j.p.id, job: j.req.job, model: j.model, servedBy: a.model, run: j.i, ok: a.ok, cached: !!a.cached, pass: c.pass, failed: c.checks.filter((x) => !x.ok).map((x) => `${x.name}${x.detail ? ` (${x.detail})` : ''}`), text: c.text, raw: a.text, tin: a.tin, tout: a.tout, cachedIn: a.cachedIn || 0, cost: costOf(a), ms: a.ms, stop: a.stop, fallback: a.fallback || false, error: a.error || null };
     results.push(row);
     fs.appendFileSync(path.join(out, 'results.jsonl'), JSON.stringify(row) + '\n');
     process.stdout.write(`\r${++done} calls`);
@@ -98,6 +152,9 @@ async function worker() {
 }
 await Promise.all(Array.from({ length: Number(arg('concurrency', 4)) }, worker));
 console.log('');
+const spent = results.reduce((a, r) => a + r.cost, 0);
+fs.appendFileSync(ledger, JSON.stringify({ at: new Date().toISOString(), models, set: arg('set') || (arg('people') ? 'custom' : 'all'), paid: results.filter((r) => !r.cached && r.servedBy !== 'code').length, cached: results.filter((r) => r.cached).length, spend: spent }) + '\n');
+console.log(`Spent ${fmtUSD(spent)} (${results.filter((r) => r.cached).length} answers from the cache).`);
 
 // ---------- report ----------
 const by = (xs, f) => xs.reduce((a, x) => ((a[f(x)] ??= []).push(x), a), {});
