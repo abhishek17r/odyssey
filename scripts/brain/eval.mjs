@@ -88,7 +88,7 @@ let done = 0;
 async function worker() {
   while (jobsToRun.length) {
     const j = jobsToRun.shift();
-    const a = await call(j.req, j.model, keys);
+    const a = j.req.fixed ? { ok: true, text: JSON.stringify(j.req.fixed), model: 'code', tin: 0, tout: 0, ms: 0 } : await call(j.req, j.model, keys);
     const c = a.ok ? check(j.req, a.text, j.p, j.d) : { pass: false, checks: [{ name: 'call', ok: false, detail: a.error }], text: '' };
     const row = { person: j.p.id, job: j.req.job, model: j.model, servedBy: a.model, run: j.i, ok: a.ok, pass: c.pass, failed: c.checks.filter((x) => !x.ok).map((x) => `${x.name}${x.detail ? ` (${x.detail})` : ''}`), text: c.text, raw: a.text, tin: a.tin, tout: a.tout, cachedIn: a.cachedIn || 0, cost: costOf(a), ms: a.ms, stop: a.stop, fallback: a.fallback || false, error: a.error || null };
     results.push(row);
