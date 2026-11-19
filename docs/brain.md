@@ -91,7 +91,7 @@ A sheet from the Hermes card: you type ("I'm wiped today", "I have a flight Thur
 ## Where it runs and what it costs
 
 - **Server**: the existing `odyssey-athena` function grows into the brain (digest job, memory job, proposals, chat endpoint). The cost ledger (`odyssey_ai_calls`) and caps (`odyssey_ai_config`) already exist and apply to every call.
-- **Models**: OpenAI is wired (`gpt-5-nano` small, `gpt-5-mini` large). Before building, run the evaluation set (below) on OpenAI and Claude (Haiku-class small, Sonnet-class large) and pick per tier on quality × cost. The code keeps one adapter per provider.
+- **Models**: **gpt-5.6-luna for every job** (B0, 20 Nov 2026: 94% of checks on the full set vs gpt-5-mini 87% and gpt-5.4-nano 84%; about ₹1.3 per active user a month). Live Athena uses it from 1.2.1. Still to compare: Claude Haiku 5.5 (needs the Anthropic key; about $0.014 for a full run). Before this, OpenAI was wired as `gpt-5-nano` small, `gpt-5-mini` large. Before building, run the evaluation set (below) on OpenAI and Claude (Haiku-class small, Sonnet-class large) and pick per tier on quality × cost. The code keeps one adapter per provider.
 - **Budget per user**: a monthly cap per account in `odyssey_ai_config` (set from the cost sheet). Over it: templates only, and Hermes says so.
 - **Cost shape**: facts are free (code); the daily jobs are a few small calls; chat is the variable. Prompt caching on the fixed parts (rules + memory) keeps repeat calls cheap.
 

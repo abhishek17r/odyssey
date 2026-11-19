@@ -13,7 +13,7 @@
 
 import { createClient } from 'npm:@supabase/supabase-js@2.45.4';
 import { fromRecords } from './lib/sync.js';
-import { buildRequest, parseReply, costOf, PRICES, noteFor, needsNote, noteIds } from './lib/athenaAI.js';
+import { buildRequest, parseReply, costOf, PRICES, noteFor, needsNote, noteIds, effortFor } from './lib/athenaAI.js';
 import { weekKeyOf, weekDays, addDays, parseKey, dateKey } from './lib/score.js';
 
 const env = (k: string) => Deno.env.get(k) ?? '';
@@ -90,7 +90,7 @@ async function ask(req: any, uid: string) {
       },
       body: JSON.stringify({
         model: req.model, messages: req.messages, response_format: { type: 'json_object' },
-        reasoning_effort: 'minimal', max_completion_tokens: req.kind === 'weekly' ? 900 : 500,
+        reasoning_effort: effortFor(req.model), max_completion_tokens: req.kind === 'weekly' ? 900 : 500,
         prompt_cache_key: `athena-${req.kind}`, // the system prompt is shared: OpenAI's cache makes it cheaper
       }),
     });

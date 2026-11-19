@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { buildRequest, parseReply, costOf, textHash, noteIds, MODELS, noteFor, needsNote } from '../lib/athenaAI.js';
+import { buildRequest, parseReply, costOf, textHash, noteIds, MODELS, noteFor, needsNote, effortFor } from '../lib/athenaAI.js';
 import { morningLine, eveningReply, weeklyRead } from '../lib/athena.js';
 import { goalFor } from '../lib/strategies.js';
 
@@ -82,4 +82,11 @@ test('a note answers one draft: stale wording falls back to the template, and th
 test('cached prompt tokens cost a tenth', () => {
   assert.equal(costOf('gpt-5-nano', 1e6, 0, undefined, 1e6), 0.005);
   assert.equal(costOf('gpt-5-nano', 1e6, 0, undefined, 0), 0.05);
+});
+
+test('the reasoning setting matches each model family', () => {
+  assert.equal(effortFor('gpt-5-nano'), 'minimal');
+  assert.equal(effortFor('gpt-5'), 'minimal');
+  assert.equal(effortFor('gpt-5.6-luna'), 'none');
+  assert.equal(costOf('gpt-5.6-luna', 1e6, 1e6), 1.4);
 });
