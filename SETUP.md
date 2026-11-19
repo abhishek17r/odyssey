@@ -120,3 +120,10 @@ How the cost stays low:
 1. **SQL**: in Supabase → SQL Editor, run `supabase/voyage.sql` (once; safe to run again). It adds the rewards table and three functions: the app reads `odyssey_rewards`, the admin page uses `odyssey_rewards_admin` and `odyssey_rewards_set`.
 2. **Set rewards**: open `/admin.html` signed in as the owner → **Rewards at harbours**. Pick a harbour (1 Delos … 12 Ithaca), an icon, a name, and Everyone or one account. Each harbour can hold several.
 3. Until there are any, the app shows its four built-in rewards (`DEFAULT_REWARDS` in `rewards.config.js`). Point values and the distance between harbours (`POINTS`, `VOYAGE`) are in the same file.
+
+## 8. Siri (signed-in accounts)
+
+1. **SQL**: in Supabase → SQL Editor, run `supabase/siri.sql` (once; safe to run again). It adds a per-account Siri key (only its hash is stored) and an inbox.
+2. **Function**: `odyssey-say` deploys with the others (the GitHub workflow). Shortcuts calls it with the key and the dictated words; it answers Siri in plain text and leaves the words in the inbox. The app applies them when it opens.
+3. **In the app**: Me → Siri → **Set up Siri** makes the key and shows how to build the Shortcut (Dictate Text → URL Encode → Get Contents of URL → Speak Text).
+4. **Optional, one tap for everyone**: build that Shortcut once, with an import question for the key, share it as an iCloud link and put the link in `config.js` → `CLOUD.siriShortcut`. Me → Siri then shows **Add to Siri** and the key to paste.

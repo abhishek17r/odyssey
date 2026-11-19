@@ -910,3 +910,61 @@ button.wkDay:disabled { cursor: default; }
 /* reward icons on the voyage cards: full colour, not the grey of the text around them */
 .vyIcons { font-family: 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', sans-serif; color: var(--ios-label) !important; letter-spacing: 3px; font-size: 15px; }
 .vyHold .vyTop > span:first-child { color: var(--ios-label); }
+
+/* 1.1: task notes, parked thoughts, the mic, Siri, the calendar */
+.tDrawer .tNotes { width: 100%; box-sizing: border-box; margin-top: 10px; min-height: 72px; border: 0; border-radius: 12px; background: var(--ios-cell); padding: 10px 12px; font: inherit; font-size: 15px; line-height: 1.45; color: var(--ios-label); resize: none; }
+.tDrawer .tNotes:focus { outline: none; box-shadow: inset 0 0 0 2px var(--ios-blue); }
+.tLinks { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.tLinks:empty { display: none; }
+.linkChip { min-height: 32px; font-size: 13px; color: var(--ios-blue) !important; text-decoration: none; display: inline-flex; align-items: center; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.parkField { display: flex; align-items: center; gap: 8px; }
+.parkField > input { flex: 1; min-width: 0; }
+.micBtn { width: 44px; height: 44px; flex-shrink: 0; border: 0; border-radius: 12px; background: var(--accent-tint) !important; display: flex; align-items: center; justify-content: center; padding: 0; }
+.micBtn svg { fill: var(--ios-blue); stroke: var(--ios-blue); }
+.micBtn.on { background: var(--ios-red) !important; box-shadow: 0 0 0 6px rgba(182, 96, 79, .18); }
+.micBtn.on svg { fill: #fff; stroke: #fff; }
+.sParked { display: flex; flex-direction: column; align-items: center; gap: 4px; margin: 12px 0 0; text-align: center; }
+.sParked small { font-size: 12px; letter-spacing: .06em; text-transform: uppercase; opacity: .6; }
+.sParked span { font-size: 14px; opacity: .85; }
+.parkRow { display: flex; flex-direction: column; gap: 8px; padding: 12px 14px; border-bottom: 1px solid var(--ios-sep); background: var(--ios-cell); }
+.parkRow:last-child { border-bottom: 0; }
+.parkTop { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
+.parkTop b { font-size: 16px; }
+.parkTop small { font-size: 12px; color: var(--ios-label-2); text-align: right; }
+.parkActs .chip { min-height: 36px; }
+.parkBox { margin-bottom: 10px; }
+.siriSheet p { margin: 0 0 12px; line-height: 1.45; }
+.siriSteps { margin: 0 0 14px; padding-left: 20px; line-height: 1.5; font-size: 15px; }
+.siriSteps li { margin-bottom: 6px; }
+.siriKey { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+.siriKey code { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; background: var(--ios-fill); border-radius: 8px; padding: 8px 10px; font-size: 13px; }
+.siriAdd { display: flex; align-items: center; justify-content: center; min-height: 50px; border-radius: 14px; text-decoration: none; }
+.wkCal { background: none !important; border: 0; padding: 0; font: inherit; color: inherit; text-align: left; cursor: pointer; }
+.wkCal .calLink { color: var(--ios-blue); font-weight: 600; margin-left: 4px; }
+.calHead { display: flex; justify-content: space-between; align-items: center; margin: 0 2px 8px; font-weight: 600; }
+.calNav { width: 44px; height: 44px; border: 0; background: none !important; color: var(--ios-blue); font-size: 24px; }
+.calGrid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; }
+.calDow { text-align: center; font-size: 12px; color: var(--ios-label-2); }
+.calDay { height: 46px; border: 0; border-radius: 12px; background: transparent; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; padding: 0; font: inherit; color: var(--ios-label); }
+.calDay b { font-size: 15px; font-weight: 500; }
+.calDay.b-green { background: rgba(79, 143, 114, .18); color: #2f6a50; }
+.calDay.b-yellow { background: rgba(185, 131, 63, .2); color: #8a5f26; }
+.calDay.b-red { background: rgba(182, 96, 79, .18); color: #9a4537; }
+.calDay.today { box-shadow: inset 0 0 0 2px var(--ios-blue); }
+.calDay.today b { font-weight: 700; }
+.calDots { display: flex; gap: 2px; height: 4px; }
+.calDots i { width: 4px; height: 4px; border-radius: 2px; background: var(--ios-red); }
+.calLegend { display: flex; gap: 12px; flex-wrap: wrap; font-size: 12px; color: var(--ios-label-2); margin-top: 10px; }
+.calLegend span { display: flex; align-items: center; gap: 5px; }
+.calLegend i { width: 10px; height: 10px; border-radius: 3px; }
+.calLegend .b-green { background: rgba(79, 143, 114, .5); } .calLegend .b-yellow { background: rgba(185, 131, 63, .5); } .calLegend .b-red { background: rgba(182, 96, 79, .5); } .calLegend .dueDot { background: var(--ios-red); }
+.calStats { display: flex; justify-content: space-around; text-align: center; margin-top: 4px; }
+.calStats div { display: flex; flex-direction: column; }
+.calStats b { font-size: 19px; }
+.calStats small { font-size: 12px; color: var(--ios-label-2); }
+.calHabits { padding: 4px 8px; }
+.calAdd { width: 100%; margin-top: 12px; }
+.calSheet .backLink { margin: 0 0 6px; padding: 6px 0; }
+@media (prefers-color-scheme: dark) {
+  .calDay.b-green { color: #9fd3b8; } .calDay.b-yellow { color: #e0b77a; } .calDay.b-red { color: #e29a8b; }
+}

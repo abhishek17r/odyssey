@@ -110,8 +110,10 @@
       <div class="tBtns">
         <button class="primary" id="sWork">▶ Start working</button>
         <button id="sPause">⏸ Pause</button>
+        <button id="sPark" title="Save a thought without breaking the session">💭 Park</button>
         <button id="sEnd">■ End</button>
       </div>
+      <div class="sParked" id="sParked" hidden></div>
       <div class="fsRadio" id="sRadio" hidden></div>
       <div class="fsPlayer" id="sPlayer" hidden><iframe id="sPlayerFrame" title="Focus playlist" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe></div>
       <a class="small fsAddMusic" id="sAddMusic" hidden>🎵 Add a focus playlist in Me → Focus music</a>
@@ -162,7 +164,7 @@
 
   <!-- WEEK -->
   <main class="view" id="view-week" hidden>
-    <header class="topbar"><div><div class="tbDay">This week</div><div class="tbDate" id="wkSub"></div></div>
+    <header class="topbar"><div><div class="tbDay">This week</div><button type="button" class="tbDate wkCal" id="wkSub" title="Calendar"></button></div>
       <button type="button" class="kleosChip" id="wkKleos" title="Your voyage"></button></header>
     <section class="card wkHero">
       <div class="wkKpis" id="wkKpis"></div>
@@ -206,6 +208,7 @@
     <section class="card" id="mePause"></section>
     <section class="card"><h3>Focus music</h3><div id="meMusic"></div></section>
     <section class="card"><h3>Notifications</h3><div id="meNotif"></div></section>
+    <section class="card"><h3>Siri</h3><div id="meSiri"></div></section>
     <section class="card"><h3>Account</h3><div id="meAccount"></div></section>
     <section class="card" id="meData"><h3>Your data</h3>
       <p class="small muted" style="margin:0 0 10px">Everything lives on this phone. Export a copy to keep one somewhere else.</p>

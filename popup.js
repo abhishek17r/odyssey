@@ -14,6 +14,9 @@ import { kleos, plannedOn, POINTS } from './lib/points.js';
 import { moveTicket, startPause, endPause, saveOnboarding, saveTactics, logUrge, deleteTicket, withoutDeviceKeys } from './lib/storage.js';
 import { parseQuickAdd } from './lib/quickAdd.js';
 import { openAddTask } from './lib/addTask.js';
+import { openPark, openSortParked, parkedSince, parkedList, parkedRow } from './lib/park.js';
+import { applyInbox, renderSiri } from './lib/siri.js';
+import { openCalendar } from './lib/calendar.js';
 import { taskGroups, remindText } from './lib/when.js';
 import { swipeToDelete, undoToast } from './lib/controls.js';
 import { openOnboarding } from './lib/onboarding.js';
@@ -83,11 +86,14 @@ async function init() {
   renderExtras();
   renderMusic();
   renderNotifPanel($('#meNotif'));
+  renderSiri($('#meSiri'));
   await engineTick();
   rewards = await cachedRewards();
   render();
   refreshRewards().then((r) => { if (r) { rewards = r; renderWeek(); } });
   voyageMoment();
+  siriInbox();
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) siriInbox(); });
   // first launch: set your course (once per launch until done; the splash covers it until it fades)
   let asked = false;
   try { asked = !!sessionStorage.getItem('onbAsked'); sessionStorage.setItem('onbAsked', '1'); } catch { /* fine */ }
@@ -272,6 +278,20 @@ function proposalsInto(box, redraw) {
   box.append(g);
 }
 const openReview = () => (track('sheet', { s: 'review' }), openReviewSheet({ getState: () => state, today, onChanged: refreshAll }));
+// what you said to Siri since the app was last open: applied, then a short note of what happened
+let siriBusy = false;
+async function siriInbox() {
+  if (siriBusy) return;
+  siriBusy = true;
+  try {
+    const done = await applyInbox();
+    if (!done.length) return;
+    state = await load();
+    render();
+    toast(done.length === 1 ? `From Siri: ${done[0].reply}` : `From Siri: ${done.length} things done`);
+    if (done.some((d) => d.p.kind === 'focus') && !state.activeSession) { const t = nextUp(); startOn(t ? `t:${t.id}` : null); }
+  } finally { siriBusy = false; }
+}
 // the voyage sheet (it took over from the old rewards sheet; rewards are set by the owner on the admin page)
 let rewards = DEFAULT_REWARDS;
 const openRewards = () => (track('sheet', { s: 'voyage' }), openVoyage({ getState: () => state, today, getRewards: () => rewards, onChanged: refreshAll }));
@@ -365,7 +385,7 @@ function setSide(s) {
 document.querySelectorAll('.sideSeg [data-side]').forEach((b) => (b.onclick = () => { if (b.dataset.side !== side) track('side', { s: b.dataset.side }); setSide(b.dataset.side); }));
 const segN = (id, which, text, cls = '') => { const i = $(`#${id} [data-side="${which}"] .segN`); i.textContent = text; i.className = `segN ${cls}`; i.hidden = text === '' || text == null; };
 
-const tkFold = { later: false, done: false, doneToday: false };
+const tkFold = { later: false, done: false, doneToday: false, parked: false };
 const openAdd = (when = 'today') => openAddTask({ today, when, habitFor: (wk) => (timedHabits(wk, state).some((g) => g.id === 'work') ? 'work' : null), onAdded: async (t) => {
   state = await load();
   renderTasks();
@@ -429,6 +449,18 @@ function renderTasks() {
       card.append(b);
     }
     td.append(card);
+  }
+  // thoughts parked during focus and not sorted yet
+  const parked = parkedList(state);
+  if (parked.length) {
+    const b = Object.assign(document.createElement('button'), { type: 'button', className: `foldRow parkFold ${tkFold.parked ? 'open' : ''}` });
+    b.innerHTML = `<span class="frMain"><b>💭 Parked · ${parked.length}</b> <span class="muted">sort them: a task, a note, or let go</span></span><span class="chev">›</span>`;
+    b.onclick = () => { tkFold.parked = !tkFold.parked; renderTasks(); };
+    const box = document.createElement('div');
+    box.className = 'taskList parkBox';
+    box.append(b);
+    if (tkFold.parked) for (const t of parked) box.append(parkedRow(t, state, today, async () => { state = await load(); renderTasks(); }));
+    td.prepend(box);
   }
   const lateN = g.today.filter((t) => t.due && t.due <= today).length;
   segN('todaySeg', 'tasks', g.today.length || '', lateN ? 'alert' : '');
@@ -600,6 +632,7 @@ function renderSession() {
   $('#sWork').hidden = a.phase !== 'procrast';
   $('#sWork').textContent = a.workStart ? '▶ Back to work' : '▶ Start working';
   $('#sPause').hidden = a.phase === 'procrast';
+  renderParked();
   $('#sPause').textContent = a.phase === 'paused' ? '▶ Resume' : '⏸ Pause';
   $('#sStarted').textContent = `since ${timeOf(a.start)} · ${a.minutes} min session`;
   const len = (a.minutes || state.settings.sessionMinutes) * 60000;
@@ -811,8 +844,19 @@ $('#sPause').onclick = async () => {
   state.activeSession = state.activeSession?.phase === 'paused' ? await resumeWork() : await pauseWork();
   renderSession();
 };
+// parked thoughts: on the focus screen while the session runs, sorted when it ends
+function renderParked() {
+  const a = state.activeSession;
+  const box = $('#sParked');
+  const list = a ? parkedSince(state, a.start) : [];
+  box.hidden = !list.length;
+  box.innerHTML = list.length ? `<small>Parked · ${list.length}</small>${list.map((t) => `<span>💭 ${esc(t.title)}</span>`).join('')}` : '';
+}
+$('#sPark').onclick = () => openPark({ session: state.activeSession, onParked: async () => { state = await load(); renderParked(); } });
 $('#sEnd').onclick = async () => {
+  const startedAt = state.activeSession?.start;
   const rec = await endSession();
+  if (startedAt) setTimeout(() => openSortParked({ getState: () => state, reload: async () => { state = await load(); renderTasks(); }, since: startedAt, today, onDone: () => renderTasks() }), 400);
   nowPlayingOff();
   radioStop();
   state = await load();
@@ -1272,7 +1316,7 @@ function taskRow(t) {
   main.innerHTML = `<div class="tTitle">${parent ? `<span class="muted">${esc(parent.title)} › </span>` : ''}${esc(t.title)}</div>
     <div class="tMeta">${[d ? `<span class="due ${d.cls}">${esc(d.text)}</span>` : '', t.sizeH ? `${round1(lh)} of ${t.sizeH} h` : lh ? `${round1(lh)} h` : '',
       kids.length ? `${kids.filter((k) => k.status === 'done').length} of ${kids.length} steps` : '', t.status === 'doing' ? 'in progress' : '',
-      t.remindAt && t.remindAt > Date.now() && t.status !== 'done' ? `⏰ ${esc(remindText(t.remindAt, today))}` : ''].filter(Boolean).join(' · ')}</div>`;
+      t.remindAt && t.remindAt > Date.now() && t.status !== 'done' ? `⏰ ${esc(remindText(t.remindAt, today))}` : '', t.notes ? '<span title="Has notes">📝</span>' : ''].filter(Boolean).join(' · ')}</div>`;
   const sk = t.status !== 'done' && taskStake(t, state, today, loggedH);
   if (sk) main.insertAdjacentHTML('beforeend', `<div class="tStake tone-${sk.tone}">${esc(sk.text)}</div>`);
   if (t.loss && t.status !== 'done') main.querySelector('.tMeta')?.insertAdjacentHTML('beforeend', ' <span class="hardTag">Hard deadline</span>');
@@ -1294,7 +1338,7 @@ function renderWeek() {
   const days = weekDays(wk);
   const f = (k) => parseKey(k).toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
   const left = days.filter((k) => k > today).length;
-  $('#wkSub').textContent = `${f(days[0])} – ${f(days[6])} · ${left ? `${left} day${left > 1 ? 's' : ''} left` : 'last day'}`;
+  $('#wkSub').innerHTML = `${f(days[0])} – ${f(days[6])} · ${left ? `${left} day${left > 1 ? 's' : ''} left` : 'last day'} <span class="calLink">📅 ›</span>`;
   const K = kleos(state, today);
   $('#wkKleos').innerHTML = `<b>${K.week >= 0 ? '+' : '−'}${Math.abs(K.week)}</b><span>${POINTS.name} this week</span>`;
   // the voyage: the harbour you're at (or the peril), and Kleos to the next one
@@ -1609,32 +1653,15 @@ $('#appVersion').textContent = `Odyssey ${VERSION}`;
 
 // ---------- nav ----------
 
-// ---------- a past day: fix its check-in (up to 4 weeks back) ----------
-function openDay(k) {
-  const body = document.createElement('div');
-  body.className = 'dayEdit';
-  const nav = document.createElement('div');
-  nav.className = 'dayNav';
-  const prev = Object.assign(document.createElement('button'), { type: 'button', className: 'soft', textContent: '‹ Day before' });
-  const next = Object.assign(document.createElement('button'), { type: 'button', className: 'soft', textContent: 'Day after ›' });
-  const box = document.createElement('div');
-  body.append(Object.assign(document.createElement('p'), { className: 'small muted', textContent: 'Missed logging this day? Fill it in now. Changes save as you go.' }), nav, box);
-  nav.append(prev, next);
-  const d = openDrawer('', body, { onClose: refreshAll });
-  const draw = () => {
-    d.panel.querySelector('.drawerHead h2').textContent = parseKey(k).toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'short' });
-    const plan = planOf(k, state);
-    box.innerHTML = plan ? '' : '<p class="emptyLine">No habits were planned that week.</p>';
-    if (plan) buildCheckin({ box, dayKey: k, getState: () => state, onSaved: async () => { state = await load(); }, compact: true });
-    const back = dateKey(addDays(parseKey(today), -28));
-    prev.disabled = k <= back;
-    next.disabled = dateKey(addDays(parseKey(k), 1)) >= today;
-  };
-  prev.onclick = () => { k = dateKey(addDays(parseKey(k), -1)); draw(); };
-  next.onclick = () => { k = dateKey(addDays(parseKey(k), 1)); draw(); };
-  track('sheet', { s: 'past_day' });
-  draw();
+// ---------- the calendar: the month of your days, and any day opened (also how you fill in a missed day) ----------
+function openDay(k) { return openCal(k); }
+function openCal(start = null) {
+  track('sheet', { s: 'calendar' });
+  return openCalendar({ getState: () => state, reload: async () => { state = await load(); }, today, start,
+    addTaskOn: (k) => openAddTask({ today, when: k === today ? 'today' : k, habitFor: (wk) => (timedHabits(wk, state).some((g) => g.id === 'work') ? 'work' : null), onAdded: async () => { state = await load(); renderTasks(); renderWeek(); } }),
+    onClose: refreshAll });
 }
+$('#wkSub').onclick = () => openCal();
 
 // ---------- Me → Your data: export a copy ----------
 const downloadJson = (text, name) => {

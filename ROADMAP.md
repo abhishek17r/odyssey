@@ -34,6 +34,8 @@ Athena stays the voice that coaches you. **Hermes** is the one who acts: the mes
 ## Soon (owner)
 
 - Check the admin page's **Rewards at harbours** section signed in as the owner, and set the first real rewards per harbour. (`supabase/voyage.sql` is run; its functions are checked: the app's read works and the owner-only ones refuse anyone else.)
+- Run `supabase/siri.sql`, then build the Odyssey Shortcut once, share it as an iCloud link with an import question for the Siri key, and put the link in `config.js` (`CLOUD.siriShortcut`), so Me → Siri is one tap for everyone (SETUP.md §8).
+- Try the mic on Add task and Park a thought on the iPhone Home Screen app; if speech is unreliable there, keep the keyboard's dictation.
 
 ## Later
 
