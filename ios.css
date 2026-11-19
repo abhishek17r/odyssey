@@ -241,38 +241,31 @@ body.focusing .extraBtn { background: rgba(255, 255, 255, .1); border: 0; border
 .sessionBar { background: rgba(28, 28, 30, .92); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-radius: 14px; }
 .mbDot.work { background: var(--ios-orange); }
 
-/* ================= launch splash (phone app only): the app's paper, a galley at sunrise ================= */
-#splash { --spInk: #1f2430; --spSail: #c0614f; --spSea: rgba(61, 107, 143, .45); position: fixed; inset: 0; z-index: 100; background: #f5f3ee; display: flex; align-items: center; justify-content: center; transition: opacity .45s ease; cursor: pointer; padding-bottom: 6vh; }
+/* ================= launch splash (phone app only): the galley on the horizon at sunset, about 3.5 s ================= */
+#splash { position: fixed; inset: 0; z-index: 100; background: #433c55; overflow: hidden; transition: opacity .5s ease; cursor: pointer; }
 body:not(.web) #splash { display: none; }
 #splash.out { opacity: 0; pointer-events: none; }
-.spMark { display: flex; flex-direction: column; align-items: center; text-align: center; }
-.spArt { width: min(74vw, 300px); height: auto; overflow: visible; }
-.spLine { stroke: var(--spInk); opacity: .8; }
-.spWaves { stroke: var(--spSea); }
-.spInk { fill: var(--spInk); }
-.spInkS { stroke: var(--spInk); }
-.spSailP { fill: var(--spSail); }
-.spStripe { stroke: #f5f3ee; opacity: .55; }
-.spTitle { margin-top: 18px; font-family: 'Iowan Old Style', 'Palatino', 'Palatino Linotype', Georgia, serif; font-size: 40px; font-weight: 600; letter-spacing: .01em; color: var(--spInk); }
-.spSub { margin-top: 6px; font-family: 'Iowan Old Style', 'Palatino', Georgia, serif; font-style: italic; font-size: 16px; color: rgba(31, 36, 48, .58); }
-.spSun { animation: spRise 1s cubic-bezier(.2, .8, .2, 1) both; transform-box: fill-box; transform-origin: center; }
-@keyframes spRise { from { transform: translateY(14px); opacity: .4; } to { transform: none; opacity: 1; } }
-.spBoat { animation: spSail 1s cubic-bezier(.2, .8, .2, 1) both; }
-@keyframes spSail { from { transform: translateX(-22px); opacity: 0; } to { transform: none; opacity: 1; } }
-.spBob { animation: spBob 3s ease-in-out infinite 1s; transform-box: fill-box; transform-origin: 50% 95%; }
-@keyframes spBob { 0%, 100% { transform: rotate(0) translateY(0); } 50% { transform: rotate(1.4deg) translateY(-1px); } }
-.spWaves path { animation: spWave 2.8s ease-in-out infinite; }
-.spWaves path:nth-child(2) { animation-delay: -1s; } .spWaves path:nth-child(3) { animation-delay: -1.8s; }
-@keyframes spWave { 0%, 100% { transform: translateX(-2px); opacity: .6; } 50% { transform: translateX(2px); opacity: 1; } }
-.spTitle, .spSub { animation: spIn .6s ease both .2s; }
-.spSub { animation-delay: .32s; }
-@keyframes spIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
-@media (prefers-color-scheme: dark) {
-  #splash { --spInk: #ebe8e1; --spSail: #d98a7a; --spSea: rgba(141, 180, 214, .5); background: #0e1116; }
-  .spStripe { stroke: #0e1116; }
-  .spSub { color: rgba(235, 232, 225, .58); }
-}
-@media (prefers-reduced-motion: reduce) { .spSun, .spBoat, .spBob, .spWaves path, .spTitle, .spSub { animation: none; } }
+.spScene { position: absolute; inset: 0; width: 100%; height: 100%; }
+/* the art fills the screen (cover), so place the name a fixed distance below its horizon, at any screen shape */
+.spText { position: absolute; left: 0; right: 0; top: calc(50% + 70 * max(100vw / 390, 100vh / 844)); text-align: center; padding: 0 24px; }
+.spTitle { font-family: 'Iowan Old Style', 'Palatino', 'Palatino Linotype', Georgia, serif; font-size: 44px; font-weight: 600; letter-spacing: .01em; color: #fff3e2; animation: spText 1.2s ease both .4s; }
+.spLine { margin-top: 10px; min-height: 20px; font-family: 'Iowan Old Style', 'Palatino', Georgia, serif; font-style: italic; font-size: 15px; color: rgba(255, 243, 226, .7); animation: spText 1.2s ease both .8s; }
+/* the dots count without moving the words: they get their own fixed width */
+.spDots { display: inline-block; width: 1.2em; text-align: left; }
+.spLine::before { content: ''; display: inline-block; width: 1.2em; } /* balances the dots so the words stay centred */
+@keyframes spText { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+.spWarm { animation: spWarm 3.2s ease-out both; }
+@keyframes spWarm { from { opacity: 0; } to { opacity: 1; } }
+.spSun { animation: spSet 4s ease-in-out both; transform-box: fill-box; }
+@keyframes spSet { from { transform: translateY(-10px); } to { transform: translateY(8px); } }
+.spShip { animation: spSailD 4.5s linear both; }
+@keyframes spSailD { from { transform: translateX(-46px); } to { transform: translateX(40px); } }
+.spBob { animation: spBob 2.2s ease-in-out infinite; transform-box: fill-box; transform-origin: 50% 90%; }
+@keyframes spBob { 0%, 100% { transform: rotate(-1deg) translateY(0); } 50% { transform: rotate(1.2deg) translateY(-1.5px); } }
+.spWaves path, .spGlints rect { animation: spShimmer 3s ease-in-out infinite; }
+.spWaves path:nth-child(2n), .spGlints rect:nth-child(2n) { animation-delay: -1.4s; }
+@keyframes spShimmer { 0%, 100% { transform: translateX(-3px); } 50% { transform: translateX(3px); } }
+@media (prefers-reduced-motion: reduce) { .spTitle, .spLine, .spWarm, .spSun, .spShip, .spBob, .spWaves path, .spGlints rect { animation: none; } }
 body.focusing #sessionCard { margin: 0 !important; }
 .fsExtras { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
 .extraBtn { gap: 6px; padding: 10px; }

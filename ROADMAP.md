@@ -43,3 +43,4 @@ Athena stays the voice that coaches you. **Hermes** is the one who acts: the mes
   - A lock-screen focus timer and iPhone Focus mode during blocks
 - Calendar blocking for tasks from the app (folds into Hermes phase 2)
 - A product-analytics tool, once there are enough users to need one
+- Splash, the alternative: **A · Dusk on paper** (the app's light paper sky warming to a sunset band at the horizon, a hazy harbour city behind, the galley on pale water). Kept on the mock canvas beside D, which ships. Worth trying if the dark sunset ever feels too heavy next to the light app, or for a light-mode splash.
