@@ -126,4 +126,13 @@ How the cost stays low:
 1. **SQL**: in Supabase → SQL Editor, run `supabase/siri.sql` (once; safe to run again). It adds a per-account Siri key (only its hash is stored) and an inbox.
 2. **Function**: `odyssey-say` deploys with the others (the GitHub workflow). Shortcuts calls it with the key and the dictated words; it answers Siri in plain text and leaves the words in the inbox. The app applies them when it opens.
 3. **In the app**: Me → Siri → **Set up Siri** makes the key and shows how to build the Shortcut (Dictate Text → URL Encode → Get Contents of URL → Speak Text).
-4. **Optional, one tap for everyone**: build that Shortcut once, with an import question for the key, share it as an iCloud link and put the link in `config.js` → `CLOUD.siriShortcut`. Me → Siri then shows **Add to Siri** and the key to paste.
+4. **One tap for everyone** (the owner, once, on an iPhone): build the shared Shortcut and put its iCloud link in `config.js` → `CLOUD.siriShortcut`. Me → Siri then shows one **Add to Siri** button, which copies the account's key and opens the Shortcut; the user pastes the key once and taps Add.
+
+   The Shortcut (Shortcuts → **+**, name it **Odyssey**), in this order:
+   1. **Text**: type `KEY` (a placeholder).
+   2. **Dictate Text** (Stop Listening: After Pause).
+   3. **URL Encode**: Dictated Text.
+   4. **Get Contents of URL**: `https://wotlxnvhhgtrgsaggvui.supabase.co/functions/v1/odyssey-say?k=` then the **Text** variable from step 1, then `&t=`, then the **URL Encoded Text** variable.
+   5. **Speak Text**: Contents of URL.
+   6. Shortcut details (ⓘ) → **Setup** → **Add Question** for the Text action in step 1: "Paste your Odyssey Siri key".
+   7. Share → **Copy iCloud Link**, and put that link in `CLOUD.siriShortcut`.
