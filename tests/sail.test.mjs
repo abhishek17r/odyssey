@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { sail, pickTrial, trialProgress, harbourRewards, HARBOURS } from '../lib/sail.js';
+import { sail, pickTrial, trialProgress, harbourRewards, stormReasons, HARBOURS } from '../lib/sail.js';
 import { POINTS, VOYAGE } from '../rewards.config.js';
 import { weekDays, dateKey, addDays, parseKey } from '../lib/score.js';
 
@@ -62,4 +62,10 @@ test('rewards unlock at their harbour and remember claims', () => {
   const v = { voyageNo: 1, harbour: 3 };
   const r = harbourRewards(v, [{ id: 'a', harbour: 3 }, { id: 'b', harbour: 5 }], { a: 1 });
   assert.deepEqual(r.map((x) => [x.id, x.unlocked, x.claimed]), [['a', true, true], ['b', false, false]]);
+});
+
+test('the storm says what blew you there', () => {
+  const s = mk({ [shift(W1, 1)]: { values: {} } });
+  s.tickets = { a: { id: 'a', title: 'Doc', status: 'todo', due: shift(W1, 2) } };
+  assert.equal(stormReasons(s, W1, shift(W2, 1)), '3 planned gym days missed and 1 task overdue.');
 });

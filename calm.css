@@ -907,3 +907,6 @@ button.wkDay:disabled { cursor: default; }
   .vmLabel { color: #e0b77a; }
   .vyRules b.gain { color: #9fd3b8; } .vyRules b.loss { color: #e29a8b; }
 }
+/* reward icons on the voyage cards: full colour, not the grey of the text around them */
+.vyIcons { font-family: 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', sans-serif; color: var(--ios-label) !important; letter-spacing: 3px; font-size: 15px; }
+.vyHold .vyTop > span:first-child { color: var(--ios-label); }
