@@ -2,6 +2,12 @@
 
 What's planned after the current build, roughly in order. Shipped work is in the git log.
 
+## Living docs (updated every few days)
+
+- Product decisions and why: https://claude.ai/artifact/Frwc4RQAx1gD1HwjakmGPa
+- Technical decisions and why: https://claude.ai/artifact/49rq3wDMpaJzC6d841odiC
+- AI economics, evals and harnesses: https://claude.ai/artifact/CqsoRCM95eDWewd4RViQ2x
+
 ## The order (decided 19 Nov 2026)
 
 The UX is close to final: the owner uses 1.2 for a few days before it's frozen. No new features meanwhile. Then:
