@@ -15,7 +15,7 @@ import { kleos, plannedOn, POINTS } from './lib/points.js';
 import { moveTicket, startPause, endPause, saveOnboarding, saveTactics, logUrge, deleteTicket, listBackups, restoreBackup, snapshot, replaceAll, withoutDeviceKeys, weeklyBackup } from './lib/storage.js';
 import { parseQuickAdd } from './lib/quickAdd.js';
 import { openAddTask } from './lib/addTask.js';
-import { taskGroups } from './lib/when.js';
+import { taskGroups, remindText } from './lib/when.js';
 import { swipeToDelete, undoToast } from './lib/controls.js';
 import { openOnboarding } from './lib/onboarding.js';
 import { openUrgePause } from './lib/urgePause.js';
@@ -91,9 +91,11 @@ async function init() {
   if (!isOnboarded(state) && !asked) startOnboarding();
   // links from notifications: ?open=review | plan | rewards | week
   const open = new URLSearchParams(location.search).get('open');
+  const tid = new URLSearchParams(location.search).get('id');
   if (open) {
     history.replaceState(null, '', location.pathname);
-    ({ review: openReview, plan: () => openPlan(), rewards: openRewards, week: () => showView('week'), tasks: () => { setSide('tasks'); showView('today'); } })[open]?.();
+    ({ review: openReview, plan: () => openPlan(), rewards: openRewards, week: () => showView('week'), tasks: () => { setSide('tasks'); showView('today'); },
+      task: () => { setSide('tasks'); showView('week'); if (tid && state.tickets[tid]) openTicket(tid); } })[open]?.();
   }
 }
 
@@ -348,7 +350,21 @@ document.querySelectorAll('.sideSeg [data-side]').forEach((b) => (b.onclick = ()
 const segN = (id, which, text, cls = '') => { const i = $(`#${id} [data-side="${which}"] .segN`); i.textContent = text; i.className = `segN ${cls}`; i.hidden = text === '' || text == null; };
 
 const tkFold = { later: false, done: false, doneToday: false };
-const openAdd = (when = 'today') => openAddTask({ today, when, habitFor: (wk) => (timedHabits(wk, state).some((g) => g.id === 'work') ? 'work' : null), onAdded: async () => { state = await load(); renderTasks(); } });
+const openAdd = (when = 'today') => openAddTask({ today, when, habitFor: (wk) => (timedHabits(wk, state).some((g) => g.id === 'work') ? 'work' : null), onAdded: async (t) => {
+  state = await load();
+  renderTasks();
+  // show where it went: the new row, highlighted (switching to Week if it isn't on Today)
+  const g = taskGroups(state.tickets, today);
+  if (view === 'today' && !g.today.some((x) => x.id === t.id)) { setSide('tasks'); showView('week'); }
+  if (g.later.some((x) => x.id === t.id) && !tkFold.later) { tkFold.later = true; renderTasks(); }
+  setTimeout(() => {
+    const row = [...document.querySelectorAll(`.tkRow[data-id="${CSS.escape(t.id)}"]`)].find((r) => r.offsetParent);
+    if (!row) return;
+    row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    row.classList.add('justAdded');
+    setTimeout(() => row.classList.remove('justAdded'), 2400);
+  }, 60);
+} });
 document.querySelectorAll('[data-add]').forEach((b) => (b.onclick = () => openAdd(b.dataset.add === 'week' ? 'week' : 'today')));
 
 function taskBlock(box, items, empty) {
@@ -1230,6 +1246,7 @@ document.addEventListener('click', (e) => {
 function taskRow(t) {
   const row = document.createElement('div');
   row.className = `task tkRow ${t.status === 'done' ? 'isDone' : ''}`;
+  row.dataset.id = t.id;
   const chk = checkBtn({ state: t.status === 'done' ? true : null, title: 'Done', onChange: (v) => tickTask(row, chk, t)(v) });
   const kids = kidsOf(t);
   const d = t.status !== 'done' && dueInfo(t, today);
@@ -1239,7 +1256,8 @@ function taskRow(t) {
   main.className = 'tMain';
   main.innerHTML = `<div class="tTitle">${parent ? `<span class="muted">${esc(parent.title)} › </span>` : ''}${esc(t.title)}</div>
     <div class="tMeta">${[d ? `<span class="due ${d.cls}">${esc(d.text)}</span>` : '', t.sizeH ? `${round1(lh)} of ${t.sizeH} h` : lh ? `${round1(lh)} h` : '',
-      kids.length ? `${kids.filter((k) => k.status === 'done').length} of ${kids.length} steps` : '', t.status === 'doing' ? 'in progress' : ''].filter(Boolean).join(' · ')}</div>`;
+      kids.length ? `${kids.filter((k) => k.status === 'done').length} of ${kids.length} steps` : '', t.status === 'doing' ? 'in progress' : '',
+      t.remindAt && t.remindAt > Date.now() && t.status !== 'done' ? `⏰ ${esc(remindText(t.remindAt, today))}` : ''].filter(Boolean).join(' · ')}</div>`;
   const sk = t.status !== 'done' && taskStake(t, state, today, loggedH);
   if (sk) main.insertAdjacentHTML('beforeend', `<div class="tStake tone-${sk.tone}">${esc(sk.text)}</div>`);
   if (t.loss && t.status !== 'done') main.querySelector('.tMeta')?.insertAdjacentHTML('beforeend', ' <span class="hardTag">Hard deadline</span>');
@@ -1650,14 +1668,6 @@ $('#dImportFile').onchange = async (e) => {
     track('data', { a: 'import' });
     location.reload();
   } catch (err) { toast(`Couldn’t import: ${err.message}`, 'err'); }
-};
-$('#dErase').onclick = async () => {
-  const signedIn = !!(await chrome.storage.local.get('auth')).auth;
-  if (!confirm(`Erase all habits, check-ins, tasks, sessions and settings?${signedIn ? ' You’re signed in, so this erases them on your other devices too.' : ''} A backup stays on this phone under Restore a backup.`)) return;
-  await snapshot('before erase');
-  await replaceAll({ schemaVersion: (await chrome.storage.local.get('schemaVersion')).schemaVersion });
-  track('data', { a: 'erase' });
-  location.reload();
 };
 document.querySelector('.dataBackups').addEventListener('toggle', (e) => { if (e.target.open) renderData(); });
 

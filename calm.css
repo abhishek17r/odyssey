@@ -214,7 +214,7 @@ body.focusing .rBtn.rPlay { background: #8db4d6; color: #0e1116; }
 .pausedBanner button { flex: none; background: var(--ios-cell); }
 .pauseText { margin: 0 0 10px; }
 .pauseBtns { display: flex; gap: 8px; flex-wrap: wrap; }
-.pauseBtns button { flex: 1; min-width: 0; white-space: nowrap; }
+.pauseBtns button { flex: 1 1 auto; white-space: nowrap; padding: 0 12px; }
 #mePause .primary { width: 100%; }
 
 /* ================= onboarding ================= */
@@ -819,3 +819,23 @@ button.wkDay:disabled { cursor: default; }
 .dayNav { display: flex; gap: 8px; margin: 4px 0 12px; }
 .dayNav button { flex: 1; }
 .dayNav button:disabled { opacity: .4; }
+
+/* 0.9: easier task editing, reminders, a confirmation after adding */
+.tDrawer .tBig { background: var(--ios-fill) !important; border-radius: 12px !important; padding: 10px 12px !important; resize: none; }
+.tDrawer .tBig:focus { box-shadow: inset 0 0 0 2px var(--ios-blue) !important; }
+.checklist { display: flex; flex-direction: column; background: var(--ios-cell); border-radius: 14px; overflow: hidden; }
+.checklist:empty { display: none; }
+.checklist .clRow { display: flex; align-items: center; gap: 8px; padding: 4px 4px 4px 10px; min-height: 52px; border-bottom: 1px solid var(--ios-sep); border-radius: 0; margin: 0; }
+.checklist .clRow:last-child { border-bottom: 0; }
+.checklist .clTitle { flex: 1; min-width: 0; height: 40px; border: 0 !important; background: none !important; box-shadow: none !important; font: inherit; font-size: 16px; color: var(--ios-label); padding: 0 6px !important; border-radius: 8px; }
+.checklist .clTitle:focus { background: var(--ios-fill) !important; outline: none; }
+.checklist .clTitle.struck { text-decoration: line-through; color: var(--ios-label-2); }
+.clRm { width: 40px; height: 40px; border: 0; background: none !important; color: var(--ios-label-3); font-size: 22px; line-height: 1; border-radius: 10px; flex-shrink: 0; }
+.clRm:active { background: var(--ios-fill) !important; color: var(--ios-red); }
+.stepAdd { margin-top: 8px; }
+.remindPicker { display: flex; flex-direction: column; gap: 6px; }
+.remindNow { font-size: 13px; color: var(--ios-blue); font-weight: 600; }
+.remindChips input[type=datetime-local] { min-height: 40px; }
+.tkRow.justAdded { animation: justAdded 2.4s ease; }
+@keyframes justAdded { 0%, 40% { background: var(--accent-tint); box-shadow: inset 3px 0 0 var(--ios-blue); } 100% { background: transparent; box-shadow: none; } }
+@media (prefers-reduced-motion: reduce) { .tkRow.justAdded { animation: none; background: var(--accent-tint); } }

@@ -35,3 +35,24 @@ test('the Tasks tab groups', () => {
   assert.deepEqual(g.later.map((t) => t.id), ['d']);
   assert.deepEqual(g.done.map((t) => t.id), ['e']);
 });
+
+import { remindChoices } from '../lib/when.js';
+import { duePushes } from '../lib/pushPlan.js';
+test('reminder choices follow the due date and drop times already past', () => {
+  const now = new Date('2026-11-18T10:00').getTime();
+  const keys = (due) => remindChoices(due, '2026-11-18', now).map(([k]) => k);
+  assert.deepEqual(keys('2026-11-20'), ['eve', 'morning', 'hour', 'tmrw']);
+  assert.deepEqual(keys('2026-11-18'), ['hour']); // the morning of today has passed
+  assert.deepEqual(keys(null), ['hour', 'tmrw']);
+});
+test('a task reminder is pushed once, at its time, outside the daily cap', () => {
+  const r = new Date('2026-11-18T19:00Z').getTime();
+  const state = { settings: { tz: 'UTC', morningOn: false, middayOn: false, checkinOn: false, planOn: false, cuesOn: false, sessionEndOn: false }, tickets: { a: { id: 'a', title: 'Renew passport', status: 'todo', remindAt: r, loss: '₹1,500 late fee' } } };
+  assert.equal(duePushes(state, r - 60000).length, 0);
+  const out = duePushes(state, r + 60000);
+  assert.equal(out.length, 1);
+  assert.match(out[0].body, /late fee/);
+  assert.equal(duePushes(state, r + 60000, new Set([out[0].key])).length, 0);
+  state.tickets.a.status = 'done';
+  assert.equal(duePushes(state, r + 60000).length, 0);
+});
