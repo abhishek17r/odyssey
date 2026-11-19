@@ -12,7 +12,7 @@ import { openReviewSheet } from './lib/reviewSheet.js';
 import { openRewardsSheet } from './lib/rewardsSheet.js';
 import { insights, daysText } from './lib/insights.js';
 import { kleos, plannedOn, POINTS } from './lib/points.js';
-import { moveTicket, startPause, endPause, saveOnboarding, saveTactics, logUrge, deleteTicket, listBackups, restoreBackup, snapshot, replaceAll, withoutDeviceKeys, weeklyBackup } from './lib/storage.js';
+import { moveTicket, startPause, endPause, saveOnboarding, saveTactics, logUrge, deleteTicket, withoutDeviceKeys } from './lib/storage.js';
 import { parseQuickAdd } from './lib/quickAdd.js';
 import { openAddTask } from './lib/addTask.js';
 import { taskGroups, remindText } from './lib/when.js';
@@ -69,7 +69,6 @@ async function init() {
   // smoking plans: this week's limit follows the step-down
   const stepped = applyStepDown(state, today);
   if (stepped) { await save({ weeks: stepped }); state = await load(); }
-  weeklyBackup().catch(() => {}); // a copy on this phone each week (Me → Your data → Restore a backup)
   setTicketContext({ getState: () => state });
   if (state.activeSession) askWhy(state.activeSession); // an unanswered stretch from earlier
   $('#tbDay').textContent = new Date().toLocaleDateString(undefined, { weekday: 'long' });
@@ -1624,52 +1623,17 @@ function openDay(k) {
   draw();
 }
 
-// ---------- Me → Your data: export, import, backups, erase ----------
+// ---------- Me → Your data: export a copy ----------
 const downloadJson = (text, name) => {
   const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(new Blob([text], { type: 'application/json' })), download: name });
   document.body.append(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(a.href), 4000);
 };
-async function renderData() {
-  const list = await listBackups();
-  const box = $('#dBackups');
-  box.innerHTML = list.length ? '' : '<p class="small muted">No backups yet. The first one is made this week.</p>';
-  for (const b of list) {
-    const row = document.createElement('div');
-    row.className = 'cell static bkRow';
-    row.innerHTML = `<span class="cMain"><b>${esc(new Date(b.at).toLocaleString(undefined, { weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' }))}</b><small>${esc(b.reason)} · ${Math.max(1, Math.round(b.bytes / 1024))} KB</small></span>`;
-    const r = Object.assign(document.createElement('button'), { type: 'button', className: 'soft small', textContent: 'Restore' });
-    r.onclick = async () => {
-      if (!confirm(`Go back to how things were on ${new Date(b.at).toLocaleString()}? What you have now is backed up first.`)) return;
-      await restoreBackup(b.id);
-      track('data', { a: 'restore' });
-      location.reload();
-    };
-    row.append(r);
-    box.append(row);
-  }
-}
 $('#dExport').onclick = async () => {
   const data = withoutDeviceKeys(await chrome.storage.local.get(null));
   downloadJson(JSON.stringify(data, null, 2), `odyssey-${today}.json`);
   track('data', { a: 'export' });
 };
-$('#dImport').onclick = () => $('#dImportFile').click();
-$('#dImportFile').onchange = async (e) => {
-  const file = e.target.files[0];
-  e.target.value = '';
-  if (!file) return;
-  try {
-    const data = JSON.parse(await file.text());
-    if (typeof data !== 'object' || !data || !(data.schemaVersion >= 3)) throw new Error('this isn’t an Odyssey copy');
-    if (!confirm('Replace everything here with this copy? What you have now is backed up first.')) return;
-    await snapshot('before import');
-    await replaceAll(data);
-    track('data', { a: 'import' });
-    location.reload();
-  } catch (err) { toast(`Couldn’t import: ${err.message}`, 'err'); }
-};
-document.querySelector('.dataBackups').addEventListener('toggle', (e) => { if (e.target.open) renderData(); });
 
 init();
 trackOpen(dateKey());
