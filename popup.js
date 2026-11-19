@@ -9,7 +9,6 @@ import { openAddHabit } from './lib/addHabit.js';
 import { openPlaybook } from './lib/playbookPage.js';
 import { stakeLine, missedYesterdayCard, taskStake, weekLoad, trendLines, applyStepDown } from './lib/playbooks.js';
 import { openReviewSheet } from './lib/reviewSheet.js';
-import { openRewardsSheet } from './lib/rewardsSheet.js';
 import { insights, daysText } from './lib/insights.js';
 import { kleos, plannedOn, POINTS } from './lib/points.js';
 import { moveTicket, startPause, endPause, saveOnboarding, saveTactics, logUrge, deleteTicket, withoutDeviceKeys } from './lib/storage.js';
@@ -22,7 +21,9 @@ import { openUrgePause } from './lib/urgePause.js';
 import { runEngine, tacticLine } from './lib/engine.js';
 import { morningLine, eveningReply, weeklyRead, proposals, applyProposal, decide, lineDismissed, dismissLine } from './lib/athena.js';
 import { athenaRead } from './lib/reviewSheet.js';
-import { voyage, LEGS } from './lib/voyage.js';
+import { weekCard, openVoyage, pendingMoment, showMoment } from './lib/voyageSheet.js';
+import { cachedRewards, refreshRewards } from './lib/harbourRewards.js';
+import { DEFAULT_REWARDS } from './rewards.config.js';
 import { athena, galley } from './lib/figures.js';
 import { isOnboarded, habitType } from './lib/profile.js';
 import { openDrawer } from './lib/controls.js';
@@ -83,7 +84,10 @@ async function init() {
   renderMusic();
   renderNotifPanel($('#meNotif'));
   await engineTick();
+  rewards = await cachedRewards();
   render();
+  refreshRewards().then((r) => { if (r) { rewards = r; renderWeek(); } });
+  voyageMoment();
   // first launch: set your course (once per launch until done; the splash covers it until it fades)
   let asked = false;
   try { asked = !!sessionStorage.getItem('onbAsked'); sessionStorage.setItem('onbAsked', '1'); } catch { /* fine */ }
@@ -268,7 +272,20 @@ function proposalsInto(box, redraw) {
   box.append(g);
 }
 const openReview = () => (track('sheet', { s: 'review' }), openReviewSheet({ getState: () => state, today, onChanged: refreshAll }));
-const openRewards = () => (track('sheet', { s: 'rewards' }), openRewardsSheet({ getState: () => state, today, onChanged: refreshAll }));
+// the voyage sheet (it took over from the old rewards sheet; rewards are set by the owner on the admin page)
+let rewards = DEFAULT_REWARDS;
+const openRewards = () => (track('sheet', { s: 'voyage' }), openVoyage({ getState: () => state, today, getRewards: () => rewards, onChanged: refreshAll }));
+// a harbour reached or a storm, once, after the splash
+const whenSplashGone = () => new Promise((r) => {
+  if (!document.getElementById('splash')) { r(); return; }
+  new MutationObserver((_, o) => { if (!document.getElementById('splash')) { o.disconnect(); r(); } }).observe(document.body, { childList: true });
+});
+async function voyageMoment() {
+  const m = pendingMoment(state, today);
+  if (!m) return;
+  await whenSplashGone();
+  showMoment(m, { state, rewards, onDone: refreshAll });
+}
 
 // ---------- form ----------
 
@@ -1231,7 +1248,6 @@ function renderMini() {
 
 $('#wkPlan').onclick = () => openPlan();
 $('#wkReview').onclick = () => openReview();
-$('#wkRewards').onclick = () => openRewards();
 $('#wkKleos').onclick = () => openRewards();
 $('#wkVoyage').onclick = () => openRewards();
 $('#qtForm').addEventListener('click', (e) => { if (!e.target.closest('button')) $('#qtWhat').focus(); });
@@ -1281,11 +1297,8 @@ function renderWeek() {
   $('#wkSub').textContent = `${f(days[0])} – ${f(days[6])} · ${left ? `${left} day${left > 1 ? 's' : ''} left` : 'last day'}`;
   const K = kleos(state, today);
   $('#wkKleos').innerHTML = `<b>${K.week >= 0 ? '+' : '−'}${Math.abs(K.week)}</b><span>${POINTS.name} this week</span>`;
-  // the voyage: where the ship is, and how this week is going toward the next port
-  const V = voyage(state, today);
-  $('#wkVoyage').innerHTML = `<span class="vsShip">${galley(30)}</span><span class="vsMain"><b>${V.legsSailed % LEGS} of ${LEGS} legs · next: ${esc(V.next?.name || 'Ithaca')}</b>
-    <span class="vsBar"><i style="width:${Math.round(V.progress * 100)}%"></i></span></span><span class="chev">›</span>`;
-  $('#wkVoyage').title = V.progress >= 1 ? 'A fair wind: this week sails a leg' : 'Keep your focus habits 60% of the week to sail the next leg';
+  // the voyage: the harbour you're at (or the peril), and Kleos to the next one
+  weekCard($('#wkVoyage'), state, today, rewards);
 
   // the 7 days, coloured by score
   $('#wkDays').innerHTML = days.map((k) => {

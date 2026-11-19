@@ -88,13 +88,13 @@ test('Aegis: a shield earned after 7 days saves the streak on a missed day', () 
   assert.equal(streakInfo({ days: { '2026-11-01': { values: { a: 1 } }, '2026-11-03': { values: { a: 1 } } } }, '2026-11-03').run, 1);
 });
 
-test('Kleos: comebacks and resisted urges count', () => {
+test('Kleos: back the day after a miss, and resisted urges count', () => {
   const s = mk({ days: {
-    '2026-11-14': { values: { 'smoke.times_dmax': 5 } },
-    '2026-11-17': { values: { 'smoke.times_dmax': 5 }, urges: { smoke: { resisted: 2, gave: 1 } } },
+    '2026-11-16': { values: { 'smoke.times_dmax': 40 } },
+    '2026-11-17': { values: { 'smoke.times_dmax': 0 }, urges: { smoke: { resisted: 2, gave: 1 } } },
   } });
   const ev = pointEvents(s, '2026-11-17');
-  assert.ok(ev.some((e) => e.text === 'Back on course' && e.pts === POINTS.comeback));
+  assert.ok(ev.some((e) => e.day === '2026-11-17' && e.text.startsWith('Back on course') && e.pts === POINTS.comeback));
   assert.ok(ev.some((e) => e.day === '2026-11-17' && e.pts === 2 * POINTS.urgeResisted));
 });
 

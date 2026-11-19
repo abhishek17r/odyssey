@@ -839,3 +839,71 @@ button.wkDay:disabled { cursor: default; }
 .tkRow.justAdded { animation: justAdded 2.4s ease; }
 @keyframes justAdded { 0%, 40% { background: var(--accent-tint); box-shadow: inset 3px 0 0 var(--ios-blue); } 100% { background: transparent; box-shadow: none; } }
 @media (prefers-reduced-motion: reduce) { .tkRow.justAdded { animation: none; background: var(--accent-tint); } }
+
+/* 1.0: the voyage (harbours, perils), its sheet and its moments */
+.wkActions { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+.wkHero .vyCard { display: flex; align-items: center; gap: 12px; text-align: left; font: inherit; color: var(--ios-label); }
+.vyCard .vyIcon { flex-shrink: 0; display: flex; }
+.vyCard .vyMain, .vyHold .vyMain { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.vyTop { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; font-size: 15px; }
+.vyTop b { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.vyTop span { font-size: 13px; color: var(--ios-label-2); white-space: nowrap; }
+.vyCard small { font-size: 13px; color: var(--ios-label-2); }
+.vyCard.peril .vyTop span { color: #3e4a57; font-weight: 600; }
+.vyBar { display: block; height: 6px; border-radius: 3px; background: var(--ios-fill-2); overflow: hidden; }
+.vyBar i { display: block; height: 100%; background: var(--ios-blue); border-radius: 3px; }
+.vyBar.gold i { background: #b9833f; } .vyBar.storm i { background: #5d6b7a; } .vyBar.hold i { background: #c9c2b3; }
+.vySheet { padding-bottom: 20px; }
+.vySub { margin: 0 0 12px; color: var(--ios-label-2); font-size: 15px; }
+.vyHero { display: flex; flex-direction: column; gap: 8px; }
+.vyHero > .vyBig, .vyHero > small, .vyHero > h3 { align-self: center; text-align: center; }
+.vyHero > small { font-size: 13px; color: var(--ios-label-2); }
+.vyHero h3 { margin: 0 0 4px; font-size: 22px; font-weight: 700; color: var(--ios-label); text-transform: none !important; letter-spacing: 0; }
+.vyHero .vyRow { display: flex; justify-content: space-between; gap: 8px; font-size: 15px; padding-top: 12px; border-top: 1px solid var(--ios-sep); }
+.vyHero p { margin: 4px 0 0; line-height: 1.4; }
+.vyHero.peril { background: #eef1f4 !important; }
+.vyItem { display: flex; align-items: center; gap: 10px; font-size: 15px; }
+.vyItem span { width: 36px; height: 36px; border-radius: 10px; background: rgba(185, 131, 63, .12); display: flex; align-items: center; justify-content: center; font-size: 18px; }
+.vyHold { display: flex; align-items: center; gap: 12px; margin-top: 12px; }
+.vyNote { margin: 14px 4px 0; line-height: 1.4; }
+.vyIcons { font-size: 15px; letter-spacing: 4px; }
+.vyClaims .cell, .vyAhead .cell { min-height: 52px; }
+.vyRules b.gain { color: #2f6a50; } .vyRules b.loss { color: #9a4537; }
+.vySheet .backLink { margin: 0 0 6px; padding: 6px 0; }
+/* the moments */
+.vyMoment { position: fixed; inset: 0; z-index: 90; overflow: hidden; opacity: 0; transition: opacity .3s ease; }
+.vyMoment.in { opacity: 1; }
+.vmSky { position: absolute; inset: 0; background: linear-gradient(#5b6993, #8d7fa2 40%, #d295a2 62%, #f3ab84 80%, #fbca8c); }
+.vmSea { position: absolute; left: 0; right: 0; top: 52%; bottom: 0; background: linear-gradient(#ae827f, #76627a 30%, #544a66); }
+.vmSky.storm { background: linear-gradient(#2f3a48, #46546a 45%, #5d6b7a 60%, #3a4656); }
+.vmSea.storm { background: linear-gradient(#4d5d70, #34404f 40%, #262f3a); }
+.vmSun { position: absolute; left: 50%; top: 52%; width: 220px; height: 110px; margin: -110px 0 0 -110px; border-radius: 110px 110px 0 0; background: radial-gradient(circle at 50% 100%, #fff4c4, #ffd57a 35%, rgba(255, 181, 92, .6) 60%, rgba(255, 138, 74, 0) 75%); }
+.vmShip { position: absolute; left: 50%; top: 52%; margin: -56px 0 0 -36px; animation: vmBob 2.4s ease-in-out infinite; }
+.vmShip.tossed { margin: -40px 0 0 24px; transform: rotate(-14deg); animation: vmToss 1.6s ease-in-out infinite; }
+.vmRock { position: absolute; left: 50%; top: 52%; margin: -78px 0 0 -130px; }
+.vmRain { position: absolute; inset: 0 0 48% 0; background: repeating-linear-gradient(108deg, transparent 0 22px, rgba(220, 230, 240, .18) 22px 23.5px); animation: vmRain .6s linear infinite; }
+@keyframes vmBob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
+@keyframes vmToss { 0%, 100% { transform: rotate(-14deg); } 50% { transform: rotate(-4deg) translateY(-4px); } }
+@keyframes vmRain { from { background-position: 0 0; } to { background-position: -12px 34px; } }
+.vmText { position: absolute; left: 0; right: 0; top: calc(env(safe-area-inset-top, 0px) + 72px); text-align: center; padding: 0 28px; color: #fff3e2; }
+.vyMoment.storm .vmText { color: #eef2f6; }
+.vmText small { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; opacity: .8; }
+.vmText h2 { margin: 6px 0 0; font-family: 'Iowan Old Style', Georgia, serif; font-size: 36px; font-weight: 600; line-height: 1.15; }
+.vmText p { margin: 8px 0 0; font-family: 'Iowan Old Style', Georgia, serif; font-style: italic; font-size: 17px; opacity: .85; }
+.vmCard { position: absolute; left: 16px; right: 16px; bottom: calc(env(safe-area-inset-bottom, 0px) + 24px); background: var(--ios-cell); color: var(--ios-label); border-radius: 20px; padding: 16px; display: flex; flex-direction: column; gap: 10px; }
+.vmCard p { margin: 0; line-height: 1.4; }
+.vmCard .primary { min-height: 50px; border-radius: 14px; font-size: 16px; }
+.vmLabel { font-size: 13px; color: #8a5f26; font-weight: 600; }
+.vmItem { display: flex; align-items: center; gap: 12px; font-size: 16px; padding: 4px 0; }
+.vmItem span { width: 44px; height: 44px; border-radius: 12px; background: rgba(185, 131, 63, .14); display: flex; align-items: center; justify-content: center; font-size: 22px; }
+.vmTrial { display: flex; flex-direction: column; gap: 4px; padding: 12px; border-radius: 14px; background: var(--accent-tint); }
+.vmTrial small { font-size: 13px; color: var(--ios-blue); font-weight: 600; }
+.vmTrial b { font-size: 18px; }
+.vmTrial span { font-size: 13px; color: var(--ios-label-2); }
+@media (prefers-reduced-motion: reduce) { .vmShip, .vmShip.tossed, .vmRain { animation: none; } }
+@media (prefers-color-scheme: dark) {
+  .vyCard.peril .vyTop span { color: #b9c6d4; }
+  .vyHero.peril { background: #1f2630 !important; }
+  .vmLabel { color: #e0b77a; }
+  .vyRules b.gain { color: #9fd3b8; } .vyRules b.loss { color: #e29a8b; }
+}

@@ -3,6 +3,7 @@
 // from the app. Open /admin.html, signed in as the owner.
 
 import { signIn, currentUser, rpc, callFunction, cloudOn } from './lib/cloud.js';
+import { HARBOURS } from './lib/harbours.js';
 
 const $ = (s) => document.querySelector(s);
 const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
@@ -144,6 +145,7 @@ function render() {
     const cfg = Object.fromEntries([...f.entries()]);
     try { await rpc('odyssey_admin_set', { cfg }); await load(); } catch (err) { alert(err.message); }
   };
+  loadRewards();
   $('#runNow').onclick = async () => {
     const out = $('#runOut');
     out.hidden = false;
@@ -160,3 +162,39 @@ $('#signin').onsubmit = async (e) => {
 $('#refresh').onclick = load;
 $('#days').onchange = load;
 load();
+
+// ---------- rewards at the voyage's harbours (supabase/voyage.sql) ----------
+async function loadRewards() {
+  const box = document.createElement('div');
+  box.id = 'rewardsBox';
+  document.querySelector('#rewardsBox')?.remove();
+  $('#out').append(box);
+  let r;
+  try { r = await rpc('odyssey_rewards_admin', {}); } catch (e) {
+    box.innerHTML = `<h2>Rewards at harbours</h2><div class="card"><p class="muted">${esc(/could not find|does not exist/i.test(e.message) ? 'Run supabase/voyage.sql in the Supabase SQL Editor first.' : e.message)}</p></div>`;
+    return;
+  }
+  const opt = (i) => `<option value="${i + 1}">${i + 1} · ${esc(HARBOURS[i].name)}</option>`;
+  box.innerHTML = `<h2>Rewards at harbours</h2>
+    <div class="card"><p class="muted" style="margin-top:0">What each harbour unlocks on the voyage. “Everyone” shows to every account; pick an account for a reward of its own. Users can’t add or buy rewards.</p>
+    <table><tr><th>Harbour</th><th>Reward</th><th>For</th><th></th></tr>
+      ${r.rewards.map((x) => `<tr><td>${x.harbour} · ${esc(HARBOURS[x.harbour - 1]?.name || '')}</td><td>${esc(x.icon)} ${esc(x.name)}</td><td>${esc(x.user || 'Everyone')}</td>
+        <td class="n"><button type="button" data-rm="${esc(x.id)}">Remove</button></td></tr>`).join('') || '<tr><td colspan="4" class="muted">None yet. The app falls back to its four built-in rewards.</td></tr>'}
+    </table>
+    <form class="caps" id="addReward" style="margin-top:12px">
+      <label>Harbour<select name="harbour">${HARBOURS.map((_, i) => opt(i)).join('')}</select></label>
+      <label>Icon<input name="icon" value="🎁" maxlength="4" style="width:64px" /></label>
+      <label>Reward<input name="name" required maxlength="80" placeholder="e.g. New running shoes" /></label>
+      <label>For<select name="user_id"><option value="">Everyone</option>${r.accounts.map((a) => `<option value="${esc(a.id)}">${esc(a.name)}</option>`).join('')}</select></label>
+      <button class="primary">Add reward</button>
+    </form></div>`;
+  box.querySelectorAll('[data-rm]').forEach((b) => (b.onclick = async () => {
+    if (!confirm('Remove this reward?')) return;
+    try { await rpc('odyssey_rewards_set', { op: 'remove', r: { id: b.dataset.rm } }); loadRewards(); } catch (err) { alert(err.message); }
+  }));
+  box.querySelector('#addReward').onsubmit = async (e) => {
+    e.preventDefault();
+    const r2 = Object.fromEntries(new FormData(e.target).entries());
+    try { await rpc('odyssey_rewards_set', { op: 'add', r: r2 }); loadRewards(); } catch (err) { alert(err.message); }
+  };
+}

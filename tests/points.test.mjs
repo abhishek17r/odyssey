@@ -33,3 +33,22 @@ test('the total never goes below zero, and ranks follow the total', () => {
   assert.equal(rankOf(0).name, POINTS.ranks[0][1]);
   assert.equal(rankOf(POINTS.ranks[2][0]).level, 3);
 });
+
+test('the new table: nothing for creating tasks, skips cost less, rule habits never lose, a daily cap', () => {
+  const tickets = { t: { id: 't', title: 'Plan it', status: 'todo', createdAt: Date.parse('2026-11-16T09:00') } };
+  assert.equal(pointEvents(base({ tickets }), '2026-11-16').length, 0);
+  const skipped = pointEvents(base({ days: { '2026-11-16': { values: { 'gym.days': false } } } }), '2026-11-16');
+  assert.ok(skipped.some((e) => e.pts === POINTS.habitSkipped && POINTS.habitSkipped === -3));
+  const rulePlan = { goals: [{ id: 'eat', name: 'No sugar after 8 pm', playbook: 'diet', metrics: [{ id: 'days_w', kind: 'daysPerWeek', target: 5, days: [1, 2, 3] }] }] };
+  const rule = pointEvents({ ...base(), weeks: { '2026-11-14': rulePlan }, days: { '2026-11-16': { values: { 'eat.days_w': false } } } }, '2026-11-18');
+  assert.ok(rule.every((e) => e.pts >= 0));
+  const many = Object.fromEntries(Array.from({ length: 20 }, (_, i) => [`t${i}`, { id: `t${i}`, title: `T${i}`, status: 'done', sizeH: 4, doneAt: Date.parse('2026-11-16T10:00') }]));
+  const day = pointEvents(base({ tickets: many }), '2026-11-16').filter((e) => e.day === '2026-11-16').reduce((a, e) => a + e.pts, 0);
+  assert.equal(day, POINTS.dailyCap);
+});
+
+test('the week’s target pays once, on the day it is reached', () => {
+  const days = { '2026-11-16': { values: { 'gym.days': true } }, '2026-11-18': { values: { 'gym.days': true } }, '2026-11-20': { values: { 'gym.days': true } } };
+  const ev = pointEvents(base({ days }), '2026-11-20').filter((e) => e.pts === POINTS.weekTargetMet);
+  assert.deepEqual(ev.map((e) => e.day), ['2026-11-20']);
+});

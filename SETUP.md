@@ -114,3 +114,9 @@ How the cost stays low:
 - Each note is rewritten at most 2–3 times a day.
 - The shared system prompt uses OpenAI's prompt cache (a tenth of the price).
 - Small model for the daily notes, larger for the weekly read.
+
+## 7. The voyage's rewards (owner only)
+
+1. **SQL**: in Supabase → SQL Editor, run `supabase/voyage.sql` (once; safe to run again). It adds the rewards table and three functions: the app reads `odyssey_rewards`, the admin page uses `odyssey_rewards_admin` and `odyssey_rewards_set`.
+2. **Set rewards**: open `/admin.html` signed in as the owner → **Rewards at harbours**. Pick a harbour (1 Delos … 12 Ithaca), an icon, a name, and Everyone or one account. Each harbour can hold several.
+3. Until there are any, the app shows its four built-in rewards (`DEFAULT_REWARDS` in `rewards.config.js`). Point values and the distance between harbours (`POINTS`, `VOYAGE`) are in the same file.
