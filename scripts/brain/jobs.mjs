@@ -97,7 +97,9 @@ export function check(req, raw, persona, d) {
   add('length', words(text) <= req.maxWords, `${words(text)} words`);
 
   // numbers only from the facts (no arithmetic, no invention); task titles and ids count as facts
-  const nums = (text.match(/\d+(?:\.\d+)?/g) || []).filter((n) => !req.allowed.has(n) && !req.allowed.has(String(Math.round(Number(n)))));
+  // a proposal may also name its own numbers (a 30-minute session, a target of 2, today 10:00)
+  const own = new Set(req.job === 'proposals' ? (j.proposals || []).flatMap((p) => [p.minutes, p.target, ...(String(p.at || '').match(/\d+/g) || [])]).filter((x) => x != null).map(String) : []);
+  const nums = (text.match(/\d+(?:\.\d+)?/g) || []).filter((n) => !own.has(n) && !req.allowed.has(n) && !req.allowed.has(String(Math.round(Number(n)))));
   const safety = persona.id === 'low-mood' && req.job === 'evening';
   if (!safety) add('numbers', nums.length === 0, `not in the facts: ${[...new Set(nums)].join(', ')}`);
   add('no-medical', !MEDICAL.test(text), text.match(MEDICAL)?.[0]);
