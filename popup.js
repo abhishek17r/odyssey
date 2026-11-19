@@ -14,9 +14,8 @@ import { kleos, plannedOn, POINTS } from './lib/points.js';
 import { moveTicket, startPause, endPause, saveOnboarding, saveTactics, logUrge, deleteTicket, withoutDeviceKeys } from './lib/storage.js';
 import { parseQuickAdd } from './lib/quickAdd.js';
 import { openAddTask } from './lib/addTask.js';
-import { openPark, openSortParked, parkedSince, parkedList, parkedRow } from './lib/park.js';
-import { applyInbox, renderSiri } from './lib/siri.js';
 import { openCalendar } from './lib/calendar.js';
+import { removeHabitFlow } from './lib/habitRemove.js';
 import { taskGroups, remindText } from './lib/when.js';
 import { swipeToDelete, undoToast } from './lib/controls.js';
 import { openOnboarding } from './lib/onboarding.js';
@@ -25,6 +24,7 @@ import { runEngine, tacticLine } from './lib/engine.js';
 import { morningLine, eveningReply, weeklyRead, proposals, applyProposal, decide, lineDismissed, dismissLine } from './lib/athena.js';
 import { athenaRead } from './lib/reviewSheet.js';
 import { weekCard, openVoyage, pendingMoment, showMoment } from './lib/voyageSheet.js';
+import { sail } from './lib/sail.js';
 import { cachedRewards, refreshRewards } from './lib/harbourRewards.js';
 import { DEFAULT_REWARDS } from './rewards.config.js';
 import { athena, galley } from './lib/figures.js';
@@ -70,6 +70,9 @@ let tick = null;
 
 async function init() {
   state = await load();
+  // 1.2: "park a thought" is gone; anything still parked becomes an ordinary task in Later
+  const parked = Object.values(state.tickets || {}).filter((t) => t.parked);
+  if (parked.length) { for (const t of parked) await updateTicket(t.id, { parked: false }); state = await load(); }
   // smoking plans: this week's limit follows the step-down
   const stepped = applyStepDown(state, today);
   if (stepped) { await save({ weeks: stepped }); state = await load(); }
@@ -86,14 +89,12 @@ async function init() {
   renderExtras();
   renderMusic();
   renderNotifPanel($('#meNotif'));
-  renderSiri($('#meSiri'));
   await engineTick();
   rewards = await cachedRewards();
   render();
   refreshRewards().then((r) => { if (r) { rewards = r; renderWeek(); } });
   voyageMoment();
-  siriInbox();
-  document.addEventListener('visibilitychange', () => { if (!document.hidden) siriInbox(); });
+
   // first launch: set your course (once per launch until done; the splash covers it until it fades)
   let asked = false;
   try { asked = !!sessionStorage.getItem('onbAsked'); sessionStorage.setItem('onbAsked', '1'); } catch { /* fine */ }
@@ -278,20 +279,6 @@ function proposalsInto(box, redraw) {
   box.append(g);
 }
 const openReview = () => (track('sheet', { s: 'review' }), openReviewSheet({ getState: () => state, today, onChanged: refreshAll }));
-// what you said to Siri since the app was last open: applied, then a short note of what happened
-let siriBusy = false;
-async function siriInbox() {
-  if (siriBusy) return;
-  siriBusy = true;
-  try {
-    const done = await applyInbox();
-    if (!done.length) return;
-    state = await load();
-    render();
-    toast(done.length === 1 ? `From Siri: ${done[0].reply}` : `From Siri: ${done.length} things done`);
-    if (done.some((d) => d.p.kind === 'focus') && !state.activeSession) { const t = nextUp(); startOn(t ? `t:${t.id}` : null); }
-  } finally { siriBusy = false; }
-}
 // the voyage sheet (it took over from the old rewards sheet; rewards are set by the owner on the admin page)
 let rewards = DEFAULT_REWARDS;
 const openRewards = () => (track('sheet', { s: 'voyage' }), openVoyage({ getState: () => state, today, getRewards: () => rewards, onChanged: refreshAll }));
@@ -315,7 +302,8 @@ function renderForm() {
   $('#note').value = state.days[today]?.note ?? '';
   form = buildCheckin({ box: $('#goalQs'), dayKey: today, getState: () => state, onSaved: () => { renderHeader(); renderProgress(); }, compact: true, tidy: true,
     getTactic: (g) => tacticLine(state, g, today), onUrge: urgeFor, onPlan: () => openPlan(),
-    getStake: (g, values) => stakeLine(g, state, today, values), onOpen: openPb });
+    getStake: (g, values) => stakeLine(g, state, today, values), onOpen: openPb,
+    onRemove: async (g) => { if (await removeHabitFlow(g, today)) refreshAll(); } });
   renderProgress();
 }
 $('#note').addEventListener('change', () => form?.saveNote($('#note').value.trim()));
@@ -385,7 +373,7 @@ function setSide(s) {
 document.querySelectorAll('.sideSeg [data-side]').forEach((b) => (b.onclick = () => { if (b.dataset.side !== side) track('side', { s: b.dataset.side }); setSide(b.dataset.side); }));
 const segN = (id, which, text, cls = '') => { const i = $(`#${id} [data-side="${which}"] .segN`); i.textContent = text; i.className = `segN ${cls}`; i.hidden = text === '' || text == null; };
 
-const tkFold = { later: false, done: false, doneToday: false, parked: false };
+const tkFold = { later: false, done: false, doneToday: false };
 const openAdd = (when = 'today') => openAddTask({ today, when, habitFor: (wk) => (timedHabits(wk, state).some((g) => g.id === 'work') ? 'work' : null), onAdded: async (t) => {
   state = await load();
   renderTasks();
@@ -449,18 +437,6 @@ function renderTasks() {
       card.append(b);
     }
     td.append(card);
-  }
-  // thoughts parked during focus and not sorted yet
-  const parked = parkedList(state);
-  if (parked.length) {
-    const b = Object.assign(document.createElement('button'), { type: 'button', className: `foldRow parkFold ${tkFold.parked ? 'open' : ''}` });
-    b.innerHTML = `<span class="frMain"><b>💭 Parked · ${parked.length}</b> <span class="muted">sort them: a task, a note, or let go</span></span><span class="chev">›</span>`;
-    b.onclick = () => { tkFold.parked = !tkFold.parked; renderTasks(); };
-    const box = document.createElement('div');
-    box.className = 'taskList parkBox';
-    box.append(b);
-    if (tkFold.parked) for (const t of parked) box.append(parkedRow(t, state, today, async () => { state = await load(); renderTasks(); }));
-    td.prepend(box);
   }
   const lateN = g.today.filter((t) => t.due && t.due <= today).length;
   segN('todaySeg', 'tasks', g.today.length || '', lateN ? 'alert' : '');
@@ -526,7 +502,8 @@ const renderReflection = () => { reflection.refresh(); $('#reflectCard').open = 
 // ---------- implementation intention: when is the next session? ----------
 
 function offerNext(rec) {
-  const on = rec && isPlayOn(state, 'intention');
+  const on = false; // 1.2: no "when's your next session?" prompt
+  void rec;
   $('#sNext').hidden = !on;
   if (!on) return;
   const d = new Date(Date.now() + 2 * 3600000);
@@ -632,7 +609,6 @@ function renderSession() {
   $('#sWork').hidden = a.phase !== 'procrast';
   $('#sWork').textContent = a.workStart ? '▶ Back to work' : '▶ Start working';
   $('#sPause').hidden = a.phase === 'procrast';
-  renderParked();
   $('#sPause').textContent = a.phase === 'paused' ? '▶ Resume' : '⏸ Pause';
   $('#sStarted').textContent = `since ${timeOf(a.start)} · ${a.minutes} min session`;
   const len = (a.minutes || state.settings.sessionMinutes) * 60000;
@@ -706,9 +682,10 @@ $('#sStartBtn').onclick = () => {
 };
 // The active experiment's start ritual (first action, environment checklist, two-minute rule, blocker).
 function renderRitual() {
-  const e = activeExperiment(state);
   const box = $('#sRitual');
-  box.hidden = !e;
+  box.hidden = true; // 1.2: no pre-start checklist; focus starts in one tap
+  return;
+  const e = activeExperiment(state);
   if (!e) return;
   const p = playById(e.playId);
   let html = `<b>🧪 ${esc(p.title)}</b>`;
@@ -844,19 +821,8 @@ $('#sPause').onclick = async () => {
   state.activeSession = state.activeSession?.phase === 'paused' ? await resumeWork() : await pauseWork();
   renderSession();
 };
-// parked thoughts: on the focus screen while the session runs, sorted when it ends
-function renderParked() {
-  const a = state.activeSession;
-  const box = $('#sParked');
-  const list = a ? parkedSince(state, a.start) : [];
-  box.hidden = !list.length;
-  box.innerHTML = list.length ? `<small>Parked · ${list.length}</small>${list.map((t) => `<span>💭 ${esc(t.title)}</span>`).join('')}` : '';
-}
-$('#sPark').onclick = () => openPark({ session: state.activeSession, onParked: async () => { state = await load(); renderParked(); } });
 $('#sEnd').onclick = async () => {
-  const startedAt = state.activeSession?.start;
   const rec = await endSession();
-  if (startedAt) setTimeout(() => openSortParked({ getState: () => state, reload: async () => { state = await load(); renderTasks(); }, since: startedAt, today, onDone: () => renderTasks() }), 400);
   nowPlayingOff();
   radioStop();
   state = await load();
@@ -1037,7 +1003,24 @@ async function setSetting(patch) {
   renderPlayer();
   renderMusic();
 }
+// Me → Focus music: the source, stations or playlists, and (on the phone app) the lock screen
 function renderMusic() {
+  renderMusicBody();
+  const can = isWebApp && nowPlayingSupported();
+  if (!can) return;
+  const row = document.createElement('div');
+  row.className = 'notifRow lockMe';
+  row.innerHTML = '<div class="nMain"><b>Show on the lock screen</b><div class="small muted">The session and its music, on your iPhone’s lock screen</div></div>';
+  row.append(toggle({ checked: !!state.settings.lockScreen, label: 'Show on lock screen', onChange: async (v) => {
+    const st = await load();
+    st.settings.lockScreen = v;
+    await save({ settings: st.settings });
+    state = await load();
+    if (v && state.activeSession) { if (await nowPlayingOn(npHandlers)) toast('On the lock screen'); renderSession(); } else nowPlayingOff();
+  } }));
+  $('#meMusic').append(row);
+}
+function renderMusicBody() {
   const box = $('#meMusic');
   box.innerHTML = '';
   const seg = document.createElement('div');
@@ -1571,8 +1554,57 @@ function insightGo(a) {
 
 // ---------- Me ----------
 
+// Me: who you are, then seven rows in three groups; each opens a sheet with that section's settings
+const ME_ROWS = [
+  [['course', '🧭', 'Your course', '#meCourse'], ['athena', '🦉', 'Athena', '#meAthena']],
+  [['music', '🎵', 'Focus music', '#meMusicBox'], ['notif', '🔔', 'Reminders', '#meNotifBox'], ['pause', '⏸', 'Pause', '#mePause']],
+  [['account', '👤', 'Account', '#meAccountBox'], ['data', '⬇️', 'Export your data', '#meData']],
+];
+let meUser = null;
 function renderMe() {
-  currentUser().then((u) => { $('#meSub').textContent = u ? `Signed in as ${u.username}` : 'Not signed in'; }).catch(() => {});
+  currentUser().then((u) => { meUser = u; drawMe(); }).catch(() => drawMe());
+  drawMe();
+}
+function drawMe() {
+  const p = state.profile;
+  const V = sail(state, today);
+  const name = meUser?.username ? meUser.username.charAt(0).toUpperCase() + meUser.username.slice(1) : 'You';
+  $('#meHead').innerHTML = `<span class="meAvatar">${esc(name.charAt(0))}</span><span class="meWho"><b>${esc(name)}</b>${p?.identity ? `<i>${esc(p.identity)}</i>` : ''}
+    <small>⛵ ${V.peril ? esc(V.peril.name) : `Harbour ${V.harbour + 1} · ${esc(V.at.name)}`} · ${meUser ? 'signed in' : 'not signed in'}</small></span>`;
+  const plan = planOf(today, state);
+  const s = state.settings;
+  const value = {
+    course: p?.onboardedAt ? (p.habits || []).map((h) => plan?.goals.find((g) => g.id === h.goalId)?.name).filter(Boolean).slice(0, 2).join(', ') || 'Set' : 'Set it up',
+    athena: s.athenaOn === false ? 'Off' : (s.tone || 'direct') === 'gentle' ? 'Gentle' : 'Direct',
+    music: s.playerOn === false ? 'Off' : musicSource() === 'radio' ? stationById(s, s.radioStation)?.name || 'Radio' : 'Your playlist',
+    notif: `${['morningOn', 'middayOn', 'checkinOn', 'planOn', 'cuesOn'].filter((k) => s[k] !== false).length} on`,
+    pause: pauseOn(state, today) ? 'On' : 'Off',
+    account: meUser ? meUser.username : 'Sign in',
+    data: '',
+  };
+  const box = $('#meRows');
+  box.innerHTML = '';
+  for (const group of ME_ROWS) {
+    const g = document.createElement('div');
+    g.className = 'iosGroup meGroup';
+    for (const [id, icon, title, sel] of group) {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'cell meRow';
+      b.innerHTML = `<span class="cIcon">${icon}</span><span class="cMain"><span>${esc(title)}</span></span><span class="meVal">${esc(value[id])}</span><span class="chev">›</span>`;
+      b.onclick = () => openMeSheet(title, sel, id);
+      g.append(b);
+    }
+    box.append(g);
+  }
+}
+function openMeSheet(title, sel, id) {
+  const node = $(sel);
+  const wrap = document.createElement('div');
+  wrap.className = 'meSheetWrap';
+  wrap.append(node);
+  track('sheet', { s: `me_${id}` });
+  openDrawer(title, wrap, { onClose: () => { $('#meStore').append(node); drawMe(); } });
 }
 
 // Me → Your course: your Ithaca and focus habits; edit the answers any time.
@@ -1591,7 +1623,11 @@ function renderCourse() {
   b.onclick = startOnboarding;
   b.style.width = '100%';
   box.append(b);
-  if (!p?.onboardedAt) return;
+  renderAthena2();
+}
+function renderAthena2() {
+  const box = $('#meAthena');
+  box.innerHTML = '';
   const row = document.createElement('div');
   row.className = 'notifRow athenaToggle';
   row.innerHTML = '<div class="nMain"><b>Athena’s notes</b><div class="small muted">A line each morning, the weekly read, suggestions in Plan. Written from your own data.</div></div>';

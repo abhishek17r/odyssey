@@ -968,3 +968,37 @@ button.wkDay:disabled { cursor: default; }
 @media (prefers-color-scheme: dark) {
   .calDay.b-green { color: #9fd3b8; } .calDay.b-yellow { color: #e0b77a; } .calDay.b-red { color: #e29a8b; }
 }
+
+/* 1.2: a clean focus screen. The ring, the task, the controls and the music; nothing else while it runs. */
+#sessionCard .split, #sessionCard .legend, #sGoalName, #sFirst, #sLockRow, #sStarted { display: none !important; }
+body.focusing #sPhase { opacity: .7; }
+
+/* removing a habit: the choice dialog, and the Remove link in a habit's row */
+.hLinks { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.rmLink { color: var(--ios-red) !important; }
+.dlgBack { position: fixed; inset: 0; z-index: 120; background: rgba(20, 22, 28, 0); display: flex; align-items: center; justify-content: center; padding: 24px; transition: background .18s ease; }
+.dlgBack.in { background: rgba(20, 22, 28, .4); }
+.dlg { width: 100%; max-width: 340px; background: var(--ios-cell); color: var(--ios-label); border-radius: 18px; padding: 20px 16px 12px; display: flex; flex-direction: column; gap: 8px; transform: scale(.96); opacity: 0; transition: transform .18s ease, opacity .18s ease; }
+.dlgBack.in .dlg { transform: none; opacity: 1; }
+.dlgTitle { font-size: 18px; text-align: center; }
+.dlgText { margin: 0 0 6px; font-size: 15px; line-height: 1.4; color: var(--ios-label-2); text-align: center; }
+.dlgBtn { min-height: 48px; border: 0; border-radius: 12px; font: inherit; font-size: 16px; font-weight: 600; background: var(--ios-fill) !important; color: var(--ios-blue) !important; }
+.dlgBtn.primary { background: var(--ios-blue) !important; color: #fff !important; }
+.dlgBtn.danger { color: var(--ios-red) !important; }
+@media (prefers-color-scheme: dark) { .dlgBtn.primary { color: #0e1116 !important; } }
+
+/* 1.2: Me on one screen. Who you are, then rows; each opens a sheet. */
+.meHead { display: flex; align-items: center; gap: 14px; }
+.meAvatar { width: 56px; height: 56px; border-radius: 50%; flex-shrink: 0; background: linear-gradient(135deg, #5b6993, #d295a2 60%, #fbca8c); color: #fff; font-size: 24px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+.meWho { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.meWho b { font-size: 18px; }
+.meWho i { font-family: 'Iowan Old Style', Georgia, serif; font-size: 15px; color: var(--ios-label-2); }
+.meWho small { font-size: 13px; color: var(--ios-label-2); }
+.meGroup { margin-top: 16px; }
+.meRow { min-height: 54px; }
+.meRow .cIcon { width: 30px; height: 30px; border-radius: 8px; background: var(--accent-tint); display: flex; align-items: center; justify-content: center; font-size: 16px; }
+.meVal { color: var(--ios-label-2); font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 45%; }
+.meSheetWrap .meSheet > h3, .meSheetWrap .meSheet h3:first-child { display: none; }
+.meSheetWrap .meSheet { padding-bottom: 16px; }
+#view-me .appVersion { margin-top: 18px; }
+#view-me .meGroup .cIcon { display: flex !important; }

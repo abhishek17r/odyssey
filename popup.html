@@ -110,10 +110,8 @@
       <div class="tBtns">
         <button class="primary" id="sWork">▶ Start working</button>
         <button id="sPause">⏸ Pause</button>
-        <button id="sPark" title="Save a thought without breaking the session">💭 Park</button>
         <button id="sEnd">■ End</button>
       </div>
-      <div class="sParked" id="sParked" hidden></div>
       <div class="fsRadio" id="sRadio" hidden></div>
       <div class="fsPlayer" id="sPlayer" hidden><iframe id="sPlayerFrame" title="Focus playlist" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe></div>
       <a class="small fsAddMusic" id="sAddMusic" hidden>🎵 Add a focus playlist in Me → Focus music</a>
@@ -203,19 +201,23 @@
 
   <!-- ME -->
   <main class="view" id="view-me" hidden>
-    <header class="topbar"><div><div class="tbDay">Me</div><div class="tbDate" id="meSub"></div></div></header>
-    <section class="card" id="meCourse"></section>
-    <section class="card" id="mePause"></section>
-    <section class="card"><h3>Focus music</h3><div id="meMusic"></div></section>
-    <section class="card"><h3>Notifications</h3><div id="meNotif"></div></section>
-    <!-- Siri: hidden until the native app (ROADMAP.md); lib/siri.js and the odyssey-say function stay ready -->
-    <section class="card" hidden><h3>Siri</h3><div id="meSiri"></div></section>
-    <section class="card"><h3>Account</h3><div id="meAccount"></div></section>
-    <section class="card" id="meData"><h3>Your data</h3>
-      <p class="small muted" style="margin:0 0 10px">Everything lives on this phone. Export a copy to keep one somewhere else.</p>
-      <div class="dataBtns"><button type="button" class="soft" id="dExport">Export a copy</button></div>
-    </section>
-      <p class="appVersion" id="appVersion"></p>
+    <header class="topbar"><div><div class="tbDay">Me</div></div></header>
+    <!-- one screen: who you are, then rows; each row opens a sheet with that section (kept in #meStore) -->
+    <section class="card meHead" id="meHead"></section>
+    <div id="meRows"></div>
+    <p class="appVersion" id="appVersion"></p>
+    <div id="meStore" hidden>
+      <section class="meSheet" id="meCourse"></section>
+      <section class="meSheet" id="meAthena"></section>
+      <section class="meSheet" id="meMusicBox"><div id="meMusic"></div></section>
+      <section class="meSheet" id="meNotifBox"><div id="meNotif"></div></section>
+      <section class="meSheet" id="mePause"></section>
+      <section class="meSheet" id="meAccountBox"><div id="meAccount"></div></section>
+      <section class="meSheet" id="meData">
+        <p class="small muted" style="margin:0 0 10px">Everything lives on this phone. Export a copy to keep one somewhere else.</p>
+        <div class="dataBtns"><button type="button" class="soft" id="dExport">Export a copy</button></div>
+      </section>
+    </div>
   </main>
 
   <!-- the running session, minimised -->

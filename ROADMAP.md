@@ -19,6 +19,8 @@ Athena stays the voice that coaches you. **Hermes** is the one who acts: the mes
 - Act, then tell you, with Undo: only what you've said "always" to.
 - Never: send email, accept invites, delete, buy.
 
+**Voice** (only with Hermes): talking to the agent is when voice earns its place: “I’m wiped today”, “move my gym to Saturday”. No separate voice mode or Siri shortcut before then; on iPhone, Siri comes with the native app. (1.1’s mic, Siri Shortcut and “park a thought” were removed in 1.2.)
+
 **Phases**
 1. No integrations: chat, plan my day, re-plan, protect, Friday draft, from data the app already has.
 2. Google sign-in + Calendar: free / busy, blocks on the Odyssey calendar (calendar scopes are "sensitive": Google review, no paid assessment).
@@ -34,7 +36,6 @@ Athena stays the voice that coaches you. **Hermes** is the one who acts: the mes
 ## Soon (owner)
 
 - Check the admin page's **Rewards at harbours** section signed in as the owner, and set the first real rewards per harbour. (`supabase/voyage.sql` is run; its functions are checked: the app's read works and the owner-only ones refuse anyone else.)
-- Try the mic on Add task and Park a thought on the iPhone Home Screen app; if speech is unreliable there, keep the keyboard's dictation.
 
 ## Later
 
@@ -46,7 +47,6 @@ Athena stays the voice that coaches you. **Hermes** is the one who acts: the mes
   - Screen Time limits and an app shield (needs Apple's approval); usage time on Android
   - Widgets and lock-screen buttons (log a cigarette, a session)
   - A lock-screen focus timer and iPhone Focus mode during blocks
-  - **Siri, built in**: "Hey Siri, log gym", "add call the bank tomorrow", "how's my day" through the native app's own Siri actions, with no Shortcut to set up. The web groundwork is already there and can be reused: the phrase parser (`lib/say.js`), the `odyssey-say` function and its inbox (`supabase/siri.sql`, already run), and the Me → Siri card (hidden for now).
 - Calendar blocking for tasks from the app (folds into Hermes phase 2)
 - A product-analytics tool, once there are enough users to need one
 - Splash, the alternative: **A · Dusk on paper** (the app's light paper sky warming to a sunset band at the horizon, a hazy harbour city behind, the galley on pale water). Kept on the mock canvas beside D, which ships. Worth trying if the dark sunset ever feels too heavy next to the light app, or for a light-mode splash.
