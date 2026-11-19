@@ -31,6 +31,10 @@ Athena stays the voice that coaches you. **Hermes** is the one who acts: the mes
 - Model: OpenAI is wired; compare tool-use reliability before choosing. Cheap model daily, stronger one for the weekly draft and chat.
 - Budget per user per month; keep features with > 40% of proposals accepted, cut those under 25%.
 
+## Soon (owner)
+
+- Check the admin page's **Rewards at harbours** section signed in as the owner, and set the first real rewards per harbour. (`supabase/voyage.sql` is run; its functions are checked: the app's read works and the owner-only ones refuse anyone else.)
+
 ## Later
 
 - Google sign-up (OAuth), a domain and a reply-to address
