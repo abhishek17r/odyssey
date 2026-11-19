@@ -2,6 +2,17 @@
 
 What's planned after the current build, roughly in order. Shipped work is in the git log.
 
+## The order (decided 19 Nov 2026)
+
+The UX is close to final: the owner uses 1.2 for a few days before it's frozen. No new features meanwhile. Then:
+
+1. **AI brain and Hermes**: the brain first (what Odyssey knows about you, and memory), then Hermes on top of it.
+2. **Commercials and legal**: cost per user from the admin ledger, pricing and plans (Free / Plus), privacy policy, terms, DPDP consent and account deletion, store requirements.
+3. **Launch or kill**: a deliberate go / no-go decision on what steps 1 and 2 show (does the brain earn its keep, does the cost per user work at a price people pay).
+4. **The rest**, in order: launch basics (Google and Apple sign-in, delete account, consent screens), the native app (Capacitor), health data, Calendar, the pillars (Gym, Screen time, Reading, Meditation), email.
+
+Long-lead applications to start early, whatever the decision: Apple Developer and Play Console accounts, a domain and support address, Apple's Screen Time (Family Controls) entitlement, Google's Calendar scope review.
+
 ## Next: Hermes, the agent
 
 Athena stays the voice that coaches you. **Hermes** is the one who acts: the messenger who runs errands between worlds, the patron of travellers. He reads your habits, tasks and (later) calendar and email, then does the work with your OK. (Achilles was the other candidate; Hermes fits a helper who carries messages and runs errands better than a warrior does.)
