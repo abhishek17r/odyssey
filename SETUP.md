@@ -121,7 +121,9 @@ How the cost stays low:
 2. **Set rewards**: open `/admin.html` signed in as the owner → **Rewards at harbours**. Pick a harbour (1 Delos … 12 Ithaca), an icon, a name, and Everyone or one account. Each harbour can hold several.
 3. Until there are any, the app shows its four built-in rewards (`DEFAULT_REWARDS` in `rewards.config.js`). Point values and the distance between harbours (`POINTS`, `VOYAGE`) are in the same file.
 
-## 8. Siri (signed-in accounts)
+## 8. Siri (signed-in accounts) · parked until the native app
+
+The Me → Siri card is hidden for now (see ROADMAP.md); everything below is kept for when it comes back.
 
 1. **SQL**: in Supabase → SQL Editor, run `supabase/siri.sql` (once; safe to run again). It adds a per-account Siri key (only its hash is stored) and an inbox.
 2. **Function**: `odyssey-say` deploys with the others (the GitHub workflow). Shortcuts calls it with the key and the dictated words; it answers Siri in plain text and leaves the words in the inbox. The app applies them when it opens.
