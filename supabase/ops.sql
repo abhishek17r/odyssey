@@ -60,7 +60,8 @@ create table if not exists public.odyssey_ai_config (
   id                  int primary key default 1 check (id = 1),
   enabled             boolean not null default true,
   monthly_cap_usd     numeric(10, 2) not null default 5,
-  user_daily_cap_usd  numeric(10, 4) not null default 0.02,
+  user_daily_cap_usd  numeric(10, 4) not null default 0.005,
+  user_monthly_cap_usd numeric(10, 4) not null default 0.05,  -- guardrails.sql adds it to an existing setup
   inactive_days       int not null default 14,     -- no AI for accounts not seen in this many days
   updated_at          timestamptz not null default now()
 );
@@ -86,7 +87,10 @@ returns jsonb language sql stable security definer set search_path = public as $
     'month', (select coalesce(sum(cost_usd), 0) from public.odyssey_ai_calls where at >= date_trunc('month', now())),
     'day', coalesce((select jsonb_object_agg(user_id, s) from (
       select user_id, sum(cost_usd) s from public.odyssey_ai_calls
-      where at >= now() - interval '24 hours' and user_id is not null group by user_id) x), '{}'::jsonb));
+      where at >= now() - interval '24 hours' and user_id is not null group by user_id) x), '{}'::jsonb),
+    'user_month', coalesce((select jsonb_object_agg(user_id, s) from (
+      select user_id, sum(cost_usd) s from public.odyssey_ai_calls
+      where at >= date_trunc('month', now()) and user_id is not null group by user_id) x), '{}'::jsonb));
 $$;
 revoke all on function public.odyssey_ai_spend() from public, anon, authenticated;
 
@@ -165,6 +169,7 @@ begin
     enabled            = coalesce((cfg->>'enabled')::boolean, enabled),
     monthly_cap_usd    = coalesce((cfg->>'monthly_cap_usd')::numeric, monthly_cap_usd),
     user_daily_cap_usd = coalesce((cfg->>'user_daily_cap_usd')::numeric, user_daily_cap_usd),
+    user_monthly_cap_usd = coalesce((cfg->>'user_monthly_cap_usd')::numeric, user_monthly_cap_usd),
     inactive_days      = coalesce((cfg->>'inactive_days')::int, inactive_days),
     updated_at         = now()
   where id = 1;

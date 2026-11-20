@@ -81,3 +81,10 @@ test('crisis words are caught in code, ordinary bad days are not', () => {
   const state = { settings: {}, profile: {}, days: { '2026-11-19': { values: {}, reflection: 'Nothing I do matters anymore' } }, weeks: {}, tickets: {}, sessions: {}, pauses: [], notes: {} };
   assert.equal(buildRequest('evening', state, '2026-11-19'), null); // never sent to the AI
 });
+
+test('every test request fits its input budget', () => {
+  for (const p of PERSONAS) {
+    const d = digest(p.build(), todayOf(p));
+    for (const job of ['morning', 'weekly', 'proposals']) { const r = buildJob(job, d); assert.ok(!r.overBudget, `${p.id}/${job}: ${r.estIn}`); }
+  }
+});

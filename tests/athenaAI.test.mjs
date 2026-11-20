@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { buildRequest, parseReply, costOf, textHash, noteIds, MODELS, noteFor, needsNote, effortFor } from '../lib/athenaAI.js';
+import { buildRequest, parseReply, costOf, textHash, noteIds, MODELS, noteFor, needsNote, effortFor, GUARDS, estTokens, overBudget, costAlert } from '../lib/athenaAI.js';
 import { morningLine, eveningReply, weeklyRead } from '../lib/athena.js';
 import { goalFor } from '../lib/strategies.js';
 
@@ -89,4 +89,14 @@ test('the reasoning setting matches each model family', () => {
   assert.equal(effortFor('gpt-5'), 'minimal');
   assert.equal(effortFor('gpt-5.6-luna'), 'none');
   assert.equal(costOf('gpt-5.6-luna', 1e6, 1e6), 1.4);
+});
+
+test('cost guardrails: input budget per prompt and a cost alert per call', () => {
+  const small = { kind: 'morning', messages: [{ content: 'x'.repeat(3600) }] };
+  const big = { kind: 'morning', messages: [{ content: 'x'.repeat(3.6 * (GUARDS.inputTokens.morning + 10)) }] };
+  assert.equal(estTokens(small), 1000);
+  assert.equal(overBudget(small), false);
+  assert.equal(overBudget(big), true);
+  assert.equal(costAlert({ kind: 'weekly' }, 0.0005), false);
+  assert.equal(costAlert({ kind: 'weekly' }, 0.002), true);
 });

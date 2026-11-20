@@ -80,6 +80,7 @@ function render() {
   const d = data, t = d.totals, c = d.config || {};
   const capFrac = Math.min(1, Number(t.ai_cost_month) / Math.max(0.0001, Number(c.monthly_cap_usd)));
   const maxUsers = Math.max(1, Number(t.users));
+  const alerts = (d.recent_calls || []).filter((r) => String(r.detail || '').startsWith('cost alert'));
   $('#out').innerHTML = `
     <div class="tiles">
       <div class="tile"><b>${num(t.users)}</b><small>accounts</small></div>
@@ -89,6 +90,7 @@ function render() {
       <div class="tile"><b>${usd(t.ai_cost_month, 3)}</b><small>AI this month, of ${usd(c.monthly_cap_usd, 2)} cap${c.enabled === false ? ' · AI OFF' : ''}</small>
         <div class="meter ${capFrac > 0.8 ? 'hot' : ''}"><i style="width:${(capFrac * 100).toFixed(1)}%"></i></div></div>
       <div class="tile"><b>${usd(t.ai_cost_today, 4)}</b><small>AI today</small></div>
+      <div class="tile"><b>${num(alerts.length)}</b><small>cost alerts in recent calls (a call over ~3× its usual cost)</small></div>
     </div>
 
     <h2>Every day</h2>
@@ -126,7 +128,8 @@ function render() {
     <div class="card"><form class="caps" id="caps">
       <label>AI on<select name="enabled"><option value="true" ${c.enabled !== false ? 'selected' : ''}>On</option><option value="false" ${c.enabled === false ? 'selected' : ''}>Off (templates only)</option></select></label>
       <label>Monthly cap (US$)<input type="number" step="0.5" min="0" name="monthly_cap_usd" value="${esc(c.monthly_cap_usd)}" /></label>
-      <label>Per account, 24 h (US$)<input type="number" step="0.005" min="0" name="user_daily_cap_usd" value="${esc(c.user_daily_cap_usd)}" /></label>
+      <label>Per account, 24 h (US$)<input type="number" step="0.001" min="0" name="user_daily_cap_usd" value="${esc(c.user_daily_cap_usd)}" /></label>
+      ${c.user_monthly_cap_usd != null ? `<label>Per account, month (US$)<input type="number" step="0.01" min="0" name="user_monthly_cap_usd" value="${esc(c.user_monthly_cap_usd)}" /></label>` : '<p class="muted">Run supabase/guardrails.sql to add the per-account monthly cap.</p>'}
       <label>Skip accounts idle for (days)<input type="number" step="1" min="1" name="inactive_days" value="${esc(c.inactive_days)}" /></label>
       <button class="primary">Save caps</button>
       <button type="button" id="runNow">Run Athena now (my account)</button>
@@ -136,7 +139,7 @@ function render() {
     <div class="card"><table>
       <tr><th>When</th><th>Account</th><th>Feature</th><th>Model</th><th class="n">In / out</th><th class="n">Cost</th><th class="n">Time</th><th>Outcome</th></tr>
       ${d.recent_calls.map((r) => `<tr><td>${ago(r.at)}</td><td>${esc(r.user)}</td><td>${esc(r.kind)}</td><td>${esc(r.model)}</td><td class="n">${num(r.in)} / ${num(r.out)}</td><td class="n">${usd(r.cost, 5)}</td>
-        <td class="n">${r.ms ? `${(r.ms / 1000).toFixed(1)} s` : '—'}</td><td><span class="tag ${esc(r.outcome)}" title="${esc(r.detail || '')}">${esc(r.outcome)}</span></td></tr>`).join('') || '<tr><td colspan="8" class="muted">None yet.</td></tr>'}
+        <td class="n">${r.ms ? `${(r.ms / 1000).toFixed(1)} s` : '—'}</td><td><span class="tag ${esc(r.outcome)}" title="${esc(r.detail || '')}">${esc(r.outcome)}</span>${String(r.detail || '').startsWith('cost alert') ? ' <span class="tag error">cost alert</span>' : ''}</td></tr>`).join('') || '<tr><td colspan="8" class="muted">None yet.</td></tr>'}
     </table></div>`;
 
   $('#caps').onsubmit = async (e) => {

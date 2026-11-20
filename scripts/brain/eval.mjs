@@ -34,6 +34,8 @@ const jobs = list('jobs', Object.keys(JOBS));
 const CORE = ['smoker-slipping', 'gym-stall', 'overloaded', 'paused-week', 'deadline-crunch', 'comeback', 'low-mood'];
 const people = PERSONAS.filter((p) => list('people', arg('set') === 'core' ? CORE : PERSONAS.map((x) => x.id)).includes(p.id));
 const maxSpend = Number(arg('max-spend', 0.30));
+const monthlyCap = Number(arg('monthly-cap', 5));      // all testing this calendar month, from the ledger
+const personCap = Number(arg('person-cap', 0.01));     // one test person, one run
 const fresh = process.argv.includes('--fresh');
 const outDir = path.join(here, 'out');
 const ledger = path.join(outDir, 'ledger.jsonl');
@@ -128,6 +130,12 @@ if (unpriced.length) { console.error(`No price for ${unpriced.join(', ')}: add i
 const planned = models.reduce((a, m) => a + estimate(m, requests), 0) * repeat;
 console.log(`About ${fmtUSD(planned)} to run (${people.length} people, ${models.join(', ')}).`);
 if (planned > maxSpend) { console.error(`That's over the cap of ${fmtUSD(maxSpend)}. Use --set core, fewer --models, or raise --max-spend.`); process.exit(1); }
+const monthStart = new Date(); monthStart.setDate(1); monthStart.setHours(0, 0, 0, 0);
+const spentThisMonth = (fs.existsSync(ledger) ? fs.readFileSync(ledger, 'utf8').trim().split('\n').filter(Boolean).map((l) => JSON.parse(l)) : [])
+  .filter((r) => new Date(r.at.length > 19 ? r.at : `${r.at.slice(0, 10)}T${r.at.slice(11).replace(/-/g, ':')}Z`) >= monthStart).reduce((a, r) => a + r.spend, 0);
+if (spentThisMonth + planned > monthlyCap) { console.error(`Testing has spent ${fmtUSD(spentThisMonth)} this month; this run would pass the ${fmtUSD(monthlyCap)} monthly cap. Raise --monthly-cap to go on.`); process.exit(1); }
+const over = requests.filter((r) => r.req.overBudget);
+if (over.length) console.log(`${over.length} request(s) over their input budget will not be sent: ${over.map((r) => `${r.p.id}/${r.req.job} ${r.req.estIn}`).join(', ')}`);
 
 // ---------- run ----------
 const stamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
@@ -136,13 +144,18 @@ fs.mkdirSync(out, { recursive: true });
 const jobsToRun = [];
 for (let i = 0; i < repeat; i++) for (const r of requests) for (const m of models) jobsToRun.push({ ...r, model: m, i });
 const results = [];
+const personSpend = {};
 let done = 0;
 async function worker() {
   while (jobsToRun.length) {
     const j = jobsToRun.shift();
     let a = j.req.fixed ? { ok: true, text: JSON.stringify(j.req.fixed), model: 'code', tin: 0, tout: 0, ms: 0, free: true } : j.i === 0 ? fromCache(j.model, j.req) : null;
     if (a && !a.free) a = { ...a, cached: true };
+    const pk = `${j.p.id}|${j.model}|${j.i}`;
+    if (!a && j.req.overBudget) a = { ok: false, text: '', model: j.model, tin: 0, tout: 0, ms: 0, error: `over input budget (${j.req.estIn} tokens)` };
+    if (!a && (personSpend[pk] || 0) >= personCap) a = { ok: false, text: '', model: j.model, tin: 0, tout: 0, ms: 0, error: `person cap ($${personCap}) reached` };
     if (!a) { a = await call(j.req, j.model, keys); if (a.ok && j.i === 0) toCache(j.model, j.req, a); }
+    personSpend[pk] = (personSpend[pk] || 0) + costOf(a);
     const c = a.ok ? check(j.req, a.text, j.p, j.d) : { pass: false, checks: [{ name: 'call', ok: false, detail: a.error }], text: '' };
     const row = { person: j.p.id, job: j.req.job, model: j.model, servedBy: a.model, run: j.i, ok: a.ok, cached: !!a.cached, pass: c.pass, failed: c.checks.filter((x) => !x.ok).map((x) => `${x.name}${x.detail ? ` (${x.detail})` : ''}`), text: c.text, raw: a.text, tin: a.tin, tout: a.tout, cachedIn: a.cachedIn || 0, cost: costOf(a), ms: a.ms, stop: a.stop, fallback: a.fallback || false, error: a.error || null };
     results.push(row);
@@ -192,6 +205,11 @@ if (tierPick.small || tierPick.large) {
   const month = jobs.reduce((a, job) => { const pick = tierPick[JOBS[job].tier]; return a + (pick ? (cell[`${pick.m}|${job}`]?.cost || 0) * (MONTH[job] || 0) : 0); }, 0);
   lines.push('', `**Suggested by the checks alone:** small tier → ${tierPick.small?.m || '—'}, large tier → ${tierPick.large?.m || '—'} (cheapest within 5 points of the best pass rate) · about $${month.toFixed(4)} (₹${(month * 88).toFixed(2)}) per active user per month. Read the answers below before deciding: the checks catch wrong numbers and unsafe advice, not tone.`);
 }
+// cost alerts: paid calls over 3x the average for their model and job in this run
+const avgCost = {};
+for (const r of results.filter((x) => !x.cached && x.cost > 0)) (avgCost[`${r.model}|${r.job}`] ??= []).push(r.cost);
+const alerts = results.filter((r) => !r.cached && r.cost > 0 && r.cost > 3 * mean(avgCost[`${r.model}|${r.job}`], (x) => x));
+lines.push('', '## Cost alerts', '', ...(alerts.length ? alerts.map((r) => `- ${r.model} · ${r.job} · ${r.person}: ${fmt$(r.cost)} (${r.tin} in / ${r.tout} out)`) : ['None: no call cost more than 3× its average.']));
 const fails = by(results.flatMap((r) => r.failed.map((f) => ({ ...r, f: f.replace(/ \(.*/, '') }))), (x) => `${x.model} · ${x.f}`);
 lines.push('', '## Most common failures', '', ...Object.entries(fails).sort((a, b) => b[1].length - a[1].length).slice(0, 20).map(([k, xs]) => `- ${k}: ${xs.length} (${[...new Set(xs.map((x) => x.person))].slice(0, 4).join(', ')})`));
 lines.push('', '## The answers, side by side', '');

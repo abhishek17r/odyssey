@@ -13,7 +13,7 @@
 
 import { createClient } from 'npm:@supabase/supabase-js@2.45.4';
 import { fromRecords } from './lib/sync.js';
-import { buildRequest, parseReply, costOf, PRICES, noteFor, needsNote, noteIds, effortFor } from './lib/athenaAI.js';
+import { buildRequest, parseReply, costOf, PRICES, noteFor, needsNote, noteIds, effortFor, overBudget, costAlert, estTokens } from './lib/athenaAI.js';
 import { weekKeyOf, weekDays, addDays, parseKey, dateKey } from './lib/score.js';
 
 const env = (k: string) => Deno.env.get(k) ?? '';
@@ -129,7 +129,9 @@ Deno.serve(async (req) => {
   let month = Number(spend?.month || 0);
   const day: Record<string, number> = spend?.day || {};
   const monthCap = Number(cfg?.monthly_cap_usd ?? 5);
-  const userCap = Number(cfg?.user_daily_cap_usd ?? 0.02);
+  const userCap = Number(cfg?.user_daily_cap_usd ?? 0.005);
+  const userMonthCap = Number(cfg?.user_monthly_cap_usd ?? 0.05);
+  const userMonth: Record<string, number> = spend?.user_month || {};
   if (month >= monthCap) return json({ note: `monthly cap reached ($${month.toFixed(4)} of $${monthCap})` });
 
   // who: the owner alone (Run now), or every account seen in the last N days
@@ -158,17 +160,21 @@ Deno.serve(async (req) => {
         if (!needsNote(c.req, existing)) continue; // already written for this draft: the cheapest cache
         if ((existing?.n || 0) >= MAX_REWRITES[c.req.kind as keyof typeof MAX_REWRITES] && !force) { r.push(`${c.req.kind}: rewrites used up`); continue; }
         if ((day[uid] || 0) >= userCap) { r.push(`${c.req.kind}: account cap`); break; }
+        if ((userMonth[uid] || 0) >= userMonthCap) { r.push(`${c.req.kind}: account monthly cap`); break; }
+        if (overBudget(c.req)) { r.push(`${c.req.kind}: over input budget (${estTokens(c.req)} tokens)`); continue; }
         if (month >= monthCap || calls >= MAX_CALLS_PER_RUN) break;
         calls++;
         const a = await ask(c.req, uid);
         const cost = a.gatewayHit ? 0 : costOf(a.model, a.tin, a.tout, prices, a.cached);
         month += cost;
         day[uid] = (day[uid] || 0) + cost;
+        userMonth[uid] = (userMonth[uid] || 0) + cost;
+        const alert = costAlert(c.req, cost);
         const reply = a.ok ? parseReply(c.req, a.text) : null;
         const outcome = !a.ok ? 'error' : !reply ? 'rejected' : a.gatewayHit ? 'gateway-cache' : 'used';
         await db.from('odyssey_ai_calls').insert({
           user_id: uid, kind: c.req.kind, model: a.model, tokens_in: a.tin, tokens_out: a.tout, cached_in: a.cached,
-          cost_usd: cost, ms: a.ms, outcome, detail: a.error || (reply ? null : String(a.text).slice(0, 200)),
+          cost_usd: cost, ms: a.ms, outcome, detail: a.error || (reply ? (alert ? `cost alert: $${cost.toFixed(5)}` : null) : String(a.text).slice(0, 200)),
         });
         if (reply) await saveNote(uid, { ...noteFor(c.req, reply, c.day, c.wk, a.model), n: (existing?.n || 0) + 1 });
         r.push(`${c.req.kind}: ${outcome}`);

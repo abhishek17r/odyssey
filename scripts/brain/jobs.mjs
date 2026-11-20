@@ -29,6 +29,9 @@ const strOrNull = orNull(str);
 const numOrNull = orNull({ type: 'number' });
 const obj = (properties) => ({ type: 'object', properties, required: Object.keys(properties), additionalProperties: false });
 
+// Per-prompt input budgets in tokens (about 3x today's sizes): a bigger request is never sent.
+export const INPUT_BUDGET = { morning: 1200, evening: 1200, weekly: 1500, proposals: 2000 };
+
 export const KINDS = ['move_task', 'split_task', 'shrink_habit', 'set_target', 'plan_session', 'note'];
 
 export const JOBS = {
@@ -86,6 +89,8 @@ export function buildJob(job, d, { memory = null, reflection = null } = {}) {
   const user = { task: J.task, facts, ...(valid ? { valid } : {}), ...(memory ? { memory } : {}), ...(reflection ? { reflection: String(reflection).slice(0, 600) } : {}) };
   const req = { job, tier: J.tier, system: SYSTEM, user: JSON.stringify(user), schema: J.schema, maxWords: J.maxWords, allowed: numbersIn({ facts, memory }) };
   if (job === 'evening' && crisisIn(reflection)) req.fixed = { text: CRISIS_LINE };
+  req.estIn = Math.ceil((req.system.length + req.user.length) / 3.6);
+  req.overBudget = req.estIn > INPUT_BUDGET[job];
   return req;
 }
 
