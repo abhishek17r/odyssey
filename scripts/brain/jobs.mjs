@@ -32,7 +32,7 @@ const numOrNull = orNull({ type: 'number' });
 const obj = (properties) => ({ type: 'object', properties, required: Object.keys(properties), additionalProperties: false });
 
 // Per-prompt input budgets in tokens (about 3x today's sizes): a bigger request is never sent.
-export const INPUT_BUDGET = { morning: 1200, evening: 1200, weekly: 1500, proposals: 2000, report: 1500, memory: 3000 };
+export const INPUT_BUDGET = { morning: 1200, evening: 1200, weekly: 1500, proposals: 2000, report: 1500, memory: 3000, hermes: 3500 };
 
 export const KINDS = ['move_task', 'split_task', 'shrink_habit', 'set_target', 'plan_session', 'note'];
 
@@ -86,6 +86,17 @@ Use only the ids in "valid". Set every field the kind doesn't use to null. "why"
     schema: obj({ about: str, works: { type: 'array', items: str }, doesnt: { type: 'array', items: str }, commit: { type: 'array', items: str }, know: { type: 'array', items: str } }),
     maxWords: 260,
   },
+  // Hermes' ideas for the week (lib/hermes.js): the live request; each idea must pass the app's own checks
+  hermes: {
+    tier: 'large',
+    live: true,
+    schema: obj({ ideas: { type: 'array', items: obj({
+      kind: { type: 'string', enum: ['plan_session', 'set_cue', 'set_target', 'set_days', 'shrink_habit', 'move_task', 'try'] }, title: str, why: { type: 'array', items: str },
+      goalId: strOrNull, taskId: strOrNull, time: strOrNull, days: orNull({ type: 'array', items: { type: 'number' } }), target: numOrNull, tiny: strOrNull, to: strOrNull, at: strOrNull,
+      minutes: numOrNull, text: strOrNull, check: strOrNull, hour: strOrNull,
+    }) } }),
+    maxWords: 220,
+  },
 };
 
 // Only the facts a job needs (smaller prompts, less to misread).
@@ -136,7 +147,8 @@ export function check(req, raw, persona, d) {
   add('json', j && typeof j === 'object', 'not JSON');
   if (!j || typeof j !== 'object') return { pass: false, checks: out, text: String(raw || '').slice(0, 300) };
 
-  const texts = req.job === 'memory' ? [j.about, ...['works', 'doesnt', 'commit', 'know'].flatMap((k) => (Array.isArray(j[k]) ? j[k] : []))].filter(Boolean)
+  const texts = req.job === 'hermes' ? (Array.isArray(j.ideas) ? j.ideas : []).flatMap((i) => [i.title, ...(i.why || []), i.text, i.check, i.tiny]).filter(Boolean)
+    : req.job === 'memory' ? [j.about, ...['works', 'doesnt', 'commit', 'know'].flatMap((k) => (Array.isArray(j[k]) ? j[k] : []))].filter(Boolean)
     : req.job === 'report' ? (Array.isArray(j.weak) ? j.weak : []).flatMap((w) => [w.title, w.why, w.fix]).filter(Boolean)
     : req.job === 'weekly' ? [...(Array.isArray(j.lines) ? j.lines : []), j.experiment || '']
     : req.job === 'proposals' ? (Array.isArray(j.proposals) ? j.proposals : []).flatMap((p) => [p.why, p.text, p.tiny, ...(p.steps || [])]).filter(Boolean)
@@ -144,7 +156,13 @@ export function check(req, raw, persona, d) {
   const text = texts.join(' ').trim();
 
   // shape and length
-  if (req.job === 'memory') {
+  if (req.job === 'hermes') {
+    const kept = parseReply(req.app, j)?.ideas || [];
+    const n = Array.isArray(j.ideas) ? Math.min(3, j.ideas.length) : -1;
+    add('shape', n >= 0, 'no ideas array');
+    add('every idea applies', kept.length === n, `${kept.length} of ${n} pass lib/hermes.js`);
+    add('written to you', !/\b(they|their|them)\b/i.test(text), text.match(/\b(they|their|them)\b/i)?.[0]);
+  } else if (req.job === 'memory') {
     add('app accepts it', !!parseReply(req.app, j), 'lib/memory.js would reject it');
     add('written to you', !/\b(they|their|them)\b/i.test(text), text.match(/\b(they|their|them)\b/i)?.[0]);
   }
@@ -156,7 +174,8 @@ export function check(req, raw, persona, d) {
 
   // numbers only from the facts (no arithmetic, no invention); task titles and ids count as facts
   // a proposal may also name its own numbers (a 30-minute session, a target of 2, today 10:00)
-  const own = new Set(req.job === 'proposals' ? (j.proposals || []).flatMap((p) => [p.minutes, p.target, ...(String(p.at || '').match(/\d+/g) || [])]).filter((x) => x != null).map(String) : []);
+  const own = new Set(req.job === 'hermes' ? (j.ideas || []).flatMap((i) => [i.minutes, i.target, ...(i.days || []), ...[i.time, i.at, i.hour].flatMap((x) => String(x || '').match(/\d+/g) || [])]).filter((x) => x != null).map(String)
+    : req.job === 'proposals' ? (j.proposals || []).flatMap((p) => [p.minutes, p.target, ...(String(p.at || '').match(/\d+/g) || [])]).filter((x) => x != null).map(String) : []);
   const nums = (text.match(/\d+(?:\.\d+)?/g) || []).filter((n) => !own.has(n) && !req.allowed.has(n) && !req.allowed.has(String(Math.round(Number(n)))));
   const safety = persona.id === 'low-mood' && req.job === 'evening';
   if (!safety) add('numbers', nums.length === 0, `not in the facts: ${[...new Set(nums)].join(', ')}`);

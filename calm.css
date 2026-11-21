@@ -1199,3 +1199,48 @@ textarea.atTitle { height: auto; min-height: 54px; padding: 14px !important; res
 .memActs .linkBtn { margin: 0; padding: 6px 0; }
 .memActs .linkBtn.danger { color: var(--ios-red, #c0392b); margin-right: auto; }
 .memForget { color: var(--ios-red, #c0392b) !important; align-self: flex-start; }
+
+/* Hermes (1.6): the Today card, the ideas sheet, did it help */
+#tdHermes:not([hidden]) { display: block; }
+.hmCard { display: block; width: 100%; text-align: left; font: inherit; color: inherit; border: 0; box-shadow: inset 0 0 0 1.5px var(--hm-line, #b9d6d0); margin: 0 0 12px; }
+.hmTop { display: flex; gap: 10px; align-items: center; }
+.hmTop small, .hmKick { display: block; font-size: 12px; font-weight: 700; letter-spacing: .3px; color: var(--hm, #2f6f68); }
+.hmTop b, .hmIdea > b { display: block; font-size: 16px; line-height: 1.35; margin-top: 1px; }
+.hmMark { width: 30px; height: 30px; border-radius: 50%; background: var(--hm, #2f6f68); display: inline-flex; align-items: center; justify-content: center; flex: none; }
+.hmCard p, .hmIdea p { font-size: 14.5px; line-height: 1.45; margin: 8px 0 0; }
+.hmChange { margin-top: 10px; background: var(--hm-tint, #eef5f3); border-radius: 12px; padding: 9px 11px; font-size: 13.5px; line-height: 1.45; color: var(--hm-ink, #24504b); }
+.hmBtns { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; align-items: center; }
+.hmBtns .primary { flex: 1 1 120px; min-height: 44px; }
+.hmBtns .linkBtn { margin: 0; padding: 10px 6px; }
+.hmBars { display: flex; gap: 6px; margin-top: 12px; }
+.hmBars i { flex: 1; height: 8px; border-radius: 4px; background: var(--ios-fill-2); }
+.hmBars i.on { background: var(--hm, #2f6f68); }
+.hmBars i.now { background: var(--hm-soft, #9cc5be); }
+.hmBars i.off { background: var(--ios-red); opacity: .45; }
+.hmAsk { font-weight: 600; }
+.hmSheet { display: flex; flex-direction: column; gap: 10px; padding-bottom: 12px; }
+.hmIntro { font-size: 14px; line-height: 1.45; color: var(--ios-label-2); margin: 0 2px 4px; }
+.hmIdea ul { margin: 8px 0 0; padding-left: 18px; font-size: 14px; line-height: 1.45; }
+.hmIdea li { margin: 2px 0; }
+.hmEdit { display: flex; gap: 8px; align-items: center; margin-top: 10px; flex-wrap: wrap; }
+.hmEdit label { font-weight: 600; font-size: 14px; }
+.hmEdit input { width: 120px; }
+.hmEdit .primary { flex: 1 1 120px; min-height: 44px; }
+.hmDone { padding: 4px 14px; }
+.hmDoneRow { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 10px 0; }
+.hmDoneRow + .hmDoneRow { border-top: 1px solid var(--ios-sep); }
+.hmDoneRow b { display: block; font-size: 15px; }
+.hmDoneRow small { display: block; font-size: 12.5px; color: var(--ios-label-2); margin-top: 2px; }
+.hmDoneRow .linkBtn { margin: 0; flex: none; }
+.hmTable { display: grid; grid-template-columns: 1fr auto auto; gap: 8px 14px; margin-top: 12px; font-size: 14.5px; align-items: baseline; }
+.hmTable > span:nth-child(-n+3) { font-size: 12px; color: var(--ios-label-2); font-weight: 600; }
+.hmTable b.up { color: var(--hm, #2f6f68); }
+.hmMemory { background: var(--hm-mem, #f0ece3); }
+.hmMemory small { font-size: 12px; font-weight: 700; color: #8f6224; letter-spacing: .3px; }
+.hmMemory p { margin: 4px 0 0; font-size: 14.5px; line-height: 1.45; }
+@media (prefers-color-scheme: dark) {
+  :root { --hm: #6fb5aa; --hm-line: #3b6a63; --hm-tint: rgba(111,181,170,.14); --hm-ink: #bfe1db; --hm-soft: #3f7a71; --hm-mem: rgba(227,183,104,.12); }
+  .hmMark { background: #2f6f68; }
+}
+.hmWhy span { display: block; }
+.hmWhy span + span { margin-top: 3px; }

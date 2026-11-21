@@ -41,6 +41,7 @@ import { voyageStrip, journeyMap, questCardHTML } from './lib/journey.js';
 import { currentUser, callFunction } from './lib/cloud.js';
 import { syncNow } from './lib/syncRunner.js';
 import { openMemory, memoryValue } from './lib/memorySheet.js';
+import { hermesCard, openHermes, hermesValue } from './lib/hermesSheet.js';
 import { VERSION } from './version.js';
 import { track, trackOpen } from './lib/usage.js';
 import { weekMetrics } from './lib/metrics.js';
@@ -161,6 +162,7 @@ function routeOpen(open, id) {
     plan: () => openPlan(),
     rewards: openRewards,
     week: () => showView('week'),
+    hermes: () => { showView('today'); openHermes(hermesCtx(), id || null); },
   }[open];
   go?.();
 }
@@ -186,7 +188,9 @@ function render() {
 }
 
 // ---------- the journey on Today, and side quests ----------
+const hermesCtx = () => ({ getState: () => state, today, onChanged: () => refreshAll() }); // refreshAll is defined further down
 function renderJourneyToday() {
+  hermesCard($('#tdHermes'), hermesCtx());
   voyageStrip($('#tdVoyage'), state, today, rewards);
   const q = questsOf(state).active;
   $('#tdQuest').hidden = !q;
@@ -1690,7 +1694,7 @@ function insightGo(a) {
 
 // Me: who you are, then seven rows in three groups; each opens a sheet with that section's settings
 const ME_ROWS = [
-  [['course', '🧭', 'Your course', '#meCourse'], ['athena', '🦉', 'Athena', '#meAthena'], ['memory', '🧠', 'What Athena knows', null]],
+  [['course', '🧭', 'Your course', '#meCourse'], ['athena', '🦉', 'Athena', '#meAthena'], ['memory', '🧠', 'What Athena knows', null], ['hermes', '🪽', 'Hermes', null]],
   [['music', '🎵', 'Focus music', '#meMusicBox'], ['notif', '🔔', 'Reminders', '#meNotifBox'], ['pause', '⏸', 'Pause', '#mePause']],
   [['account', '👤', 'Account', '#meAccountBox'], ['data', '⬇️', 'Export your data', '#meData']],
 ];
@@ -1710,6 +1714,7 @@ function drawMe() {
   const value = {
     course: p?.onboardedAt ? (p.habits || []).map((h) => plan?.goals.find((g) => g.id === h.goalId)?.name).filter(Boolean).slice(0, 2).join(', ') || 'Set' : 'Set it up',
     memory: memoryValue(state),
+    hermes: hermesValue(state, today),
     athena: s.athenaOn === false ? 'Off' : (s.tone || 'direct') === 'gentle' ? 'Gentle' : 'Direct',
     music: s.playerOn === false ? 'Off' : musicSource() === 'radio' ? stationById(s, s.radioStation)?.name || 'Radio' : 'Your playlist',
     notif: `${['morningOn', 'middayOn', 'checkinOn', 'planOn', 'cuesOn'].filter((k) => s[k] !== false).length} on`,
@@ -1727,7 +1732,9 @@ function drawMe() {
       b.type = 'button';
       b.className = 'cell meRow';
       b.innerHTML = `<span class="cIcon">${icon}</span><span class="cMain"><span>${esc(title)}</span></span><span class="meVal">${esc(value[id])}</span><span class="chev">›</span>`;
-      b.onclick = () => (id === 'memory' ? openMemory({ getState: () => state, onChanged: async () => { state = await load(); drawMe(); } }) : openMeSheet(title, sel, id));
+      b.onclick = () => (id === 'memory' ? openMemory({ getState: () => state, onChanged: async () => { state = await load(); drawMe(); } })
+        : id === 'hermes' ? openHermes({ getState: () => state, today, onChanged: async () => { await refreshAll(); drawMe(); } })
+          : openMeSheet(title, sel, id));
       g.append(b);
     }
     box.append(g);

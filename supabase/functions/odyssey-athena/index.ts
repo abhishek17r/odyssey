@@ -24,7 +24,7 @@ const db = createClient(env('SUPABASE_URL'), env('SUPABASE_SERVICE_ROLE_KEY'), {
 const BASE = (env('AI_BASE_URL') || 'https://api.openai.com/v1').replace(/\/$/, '');
 const prices = (() => { try { return { ...PRICES, ...JSON.parse(env('AI_PRICES') || '{}') }; } catch { return PRICES; } })();
 const MAX_CALLS_PER_RUN = 40;
-const MAX_REWRITES = { morning: 2, evening: 3, weekly: 2, report: 2, goal: 3, memory: 99 }; // memory: its own once-a-week gate (lib/memory.js) // per note: a draft that keeps moving stops costing
+const MAX_REWRITES = { morning: 2, evening: 3, weekly: 2, report: 2, goal: 3, memory: 99, hermes: 3 }; // memory: its own once-a-week gate (lib/memory.js) // per note: a draft that keeps moving stops costing
 
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), {
   status, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, apikey, content-type, x-client-info' },
@@ -65,7 +65,7 @@ function localNow(tz: string) {
 const shift = (k: string, n: number) => dateKey(addDays(parseKey(k), n));
 
 // What could be written for this person now: [{ req, day, wk }]
-function candidates(state: any, day: string, hour: number, force: boolean) {
+function candidates(state: any, day: string, hour: number, force: boolean, hard = false) {
   const out: any[] = [];
   const wake = Number(String(state.profile?.wakeTime || '07:00').slice(0, 2));
   if (force || (hour >= Math.max(4, wake - 1) && hour < 12)) out.push({ req: buildRequest('morning', state, day), day, wk: weekKeyOf(day) });
@@ -82,6 +82,8 @@ function candidates(state: any, day: string, hour: number, force: boolean) {
   // a habit goal's plan in Athena's words, once it's set or changed
   for (const id of Object.keys(state.profile?.visions || {})) out.push({ req: buildRequest('goal', state, day, cur, id), day, wk: cur });
   // Athena's memory: rebuilt once a week (from 5 am), and first, so this run's notes are written with it
+  // Hermes' ideas for the week: once a week, after the memory (rebuilt only by the owner's Run now)
+  if (hour >= 6 || force) out.unshift({ req: buildRequest('hermes', state, day, cur, null, { force: hard }), day, wk: cur });
   if (hour >= 5 || force) out.unshift({ req: buildRequest('memory', state, day, cur, null, { force }), day, wk: cur });
   return out.filter((c) => c.req);
 }
@@ -100,7 +102,7 @@ async function ask(req: any, uid: string) {
       },
       body: JSON.stringify({
         model: req.model, messages: req.messages, response_format: { type: 'json_object' },
-        reasoning_effort: effortFor(req.model), max_completion_tokens: req.kind === 'memory' ? 1200 : ['weekly', 'report', 'goal'].includes(req.kind) ? 900 : 500,
+        reasoning_effort: effortFor(req.model), max_completion_tokens: ['memory', 'hermes'].includes(req.kind) ? 1200 : ['weekly', 'report', 'goal'].includes(req.kind) ? 900 : 500,
         prompt_cache_key: `athena-${req.kind}`, // the system prompt is shared: OpenAI's cache makes it cheaper
       }),
     });
@@ -174,7 +176,8 @@ Deno.serve(async (req) => {
       if (launch && launchHours > 0 && Date.now() - (state.notes['ai-launch']?.at || 0) < launchHours * 36e5) { r.push('launch: ran lately'); continue; }
       if (launch) await saveNote(uid, { id: 'ai-launch', kind: 'ai', of: 'launch', at: Date.now() });
       const { day: today, hour } = localNow(state.settings.tz || tzOf(uid) || env('DEFAULT_TZ') || 'Asia/Kolkata');
-      let list = candidates(state, today, hour, force);
+      const hard = 'owner' in who && !!body.force; // only the owner's Run now rewrites a week's ideas
+      let list = candidates(state, today, hour, force, hard);
       for (let i = 0; i < list.length; i++) {
         const c = list[i];
         const id = c.req.noteId || noteIdOf(c.req.kind, c.day, c.wk);
@@ -203,7 +206,7 @@ Deno.serve(async (req) => {
           const m = reply ? mergeMemory(existing, reply, { wk: c.req.wk, forHash: c.req.forHash, model: a.model, notes: c.req.input.yourWords.eveningNotes.length > 0 }) : triedMemory(existing, c.req.wk);
           await saveNote(uid, m);
           state.notes[MEMORY_ID] = m;
-          if (reply) list = [c, ...candidates(state, today, hour, force).filter((x) => x.req.kind !== 'memory')]; // the rest of this run writes with the new memory
+          if (reply) list = [c, ...candidates(state, today, hour, force, hard).filter((x) => x.req.kind !== 'memory')]; // the rest of this run writes with the new memory
           r.push(`memory: ${outcome}`);
           continue;
         }

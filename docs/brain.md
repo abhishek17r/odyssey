@@ -86,6 +86,14 @@ Proposals are synced records. **The phone applies an accepted one** with the app
 
 Where they show: a quiet **Hermes** card on Today (at most 3, one tap Accept / Not now), the Plan sheet (already has Athena's proposals), and inside chat. Declines teach: three declines of the same kind and Hermes stops offering it for a month.
 
+**As built (H1a, 1.6.0, 22 Nov 2026).** `lib/hermes.js` (pure) and `lib/hermesSheet.js` (screens); the mock is row 5 of the design canvas.
+- **Ideas**: up to 3 a week, written by `odyssey-athena` once a week (after the memory) from this week's facts, last week's on-track, up to 6 evening notes and Athena's memory. Kinds: a time to start a task (its reminder), a habit reminder, a target, fixed days, a smaller start, moving a task, and "try" (a change the app can't set; asked about each evening). Stored in `ai-hermes-<wk>`; your answers and trials in `hermes-<wk>`, so a rebuild never touches them.
+- **Checks (code)**: each idea on its own: ids exist, values in range, applies cleanly, numbers and weekdays from the facts (or the idea's own time/target), no medical, diet-number or mental-health words; nothing tried or declined in the last 30 days. No ideas while paused or after a crisis note; in a hard week (under 60%) only easier changes, and no notification.
+- **What changes** is written by code, not the AI, and shown before you accept. Change it: your own time or number. Every change can be undone (Stop the trial, or Undo in the sheet).
+- **Trial**: 7 days, on Today. Then "Did it help?": before vs during from your logs (on track %, the habit's daily amount, or the evening answers). Keep it (if it helped, Athena remembers it, as a line she never overwrites) or drop it (undone; not offered again for a month).
+- **Notification**: at most one a day, at the hour the idea is about (in the push function's 90-minute window), only for an open idea.
+- **Gate**: a week of history and 3 logged days in the last 4 weeks (many people log only the days it happened).
+
 ### Chat (H1 · second)
 
 A sheet from the Hermes card: you type ("I'm wiped today", "I have a flight Thursday"). Hermes answers in two or three lines and attaches proposals. Each message is one job call with the memory + digest + the last few messages. No open-ended agent loop in H1: one call, structured output, code-checked.
