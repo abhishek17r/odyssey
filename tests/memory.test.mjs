@@ -106,3 +106,23 @@ test('every Athena note is written with the memory, and never brings up what you
   assert.equal(memoryFacts(s), null);
   assert.ok(!buildRequest('morning', s, day).messages[1].content.includes('"memory"'));
 });
+
+test('one week of logs: no trends sent, none kept; written to you; intentions from notes count', () => {
+  const p = persona('one-week-in');
+  const s = p.build();
+  const req = memoryRequest(s, todayOf(p));
+  assert.equal(req.input.weeksOfData, 1);
+  assert.ok(req.input.thisWeek.habits.every((h) => h.trend === undefined));
+  const reply = {
+    about: 'You want to be healthy and train regularly, with less procrastination.',
+    works: ['Gym is trending up over several weeks', 'Starting with 20 minutes counts for Gym'],
+    doesnt: ['Scrolling slips at midday'],
+    commit: ['Move work to mornings so gym doesn’t get missed'],
+    know: ['You work from home on Mondays'],
+  };
+  const out = parseMemory(req, JSON.stringify(reply));
+  assert.deepEqual(out.works, ['Starting with 20 minutes counts for Gym'], 'a trend from one week is dropped');
+  assert.deepEqual(out.commit, ['Move work to mornings so gym doesn’t get missed']);
+  assert.equal(mergeMemory(null, out, { wk: 'w', notes: true }).lines.find((l) => l.list === 'commit').from, 'notes');
+  assert.equal(parseMemory(req, JSON.stringify({ ...reply, about: 'They want to be healthy.' })), null, 'not written to them');
+});

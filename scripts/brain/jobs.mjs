@@ -144,7 +144,10 @@ export function check(req, raw, persona, d) {
   const text = texts.join(' ').trim();
 
   // shape and length
-  if (req.job === 'memory') add('app accepts it', !!parseReply(req.app, j), 'lib/memory.js would reject it');
+  if (req.job === 'memory') {
+    add('app accepts it', !!parseReply(req.app, j), 'lib/memory.js would reject it');
+    add('written to you', !/\b(they|their|them)\b/i.test(text), text.match(/\b(they|their|them)\b/i)?.[0]);
+  }
   else if (req.job === 'report') add('shape', Array.isArray(j.weak) && j.weak.length === req.draft.weak.length && j.weak.every((w, i) => w.id === req.draft.weak[i].id && w.title && w.why && w.fix), 'not the same weak spots');
   else if (req.job === 'weekly') add('shape', Array.isArray(j.lines) && j.lines.length >= 3 && j.lines.length <= 4 && j.experiment, `${j.lines?.length} lines`);
   else if (req.job === 'proposals') add('shape', Array.isArray(j.proposals) && j.proposals.length <= 3, `${j.proposals?.length} proposals`);

@@ -31,7 +31,7 @@ const dry = process.argv.includes('--dry');
 const models = list('models', MODELS);
 const jobs = list('jobs', Object.keys(JOBS));
 // the core set: one of each kind of hard case (the safety case is answered in code and costs nothing)
-const CORE = ['smoker-slipping', 'gym-stall', 'overloaded', 'paused-week', 'deadline-crunch', 'comeback', 'low-mood'];
+const CORE = ['one-week-in', 'smoker-slipping', 'gym-stall', 'overloaded', 'paused-week', 'deadline-crunch', 'comeback', 'low-mood'];
 const people = PERSONAS.filter((p) => list('people', arg('set') === 'core' ? CORE : PERSONAS.map((x) => x.id)).includes(p.id));
 const maxSpend = Number(arg('max-spend', 0.30));
 const monthlyCap = Number(arg('monthly-cap', 5));      // all testing this calendar month, from the ledger

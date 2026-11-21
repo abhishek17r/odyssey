@@ -1,4 +1,4 @@
-// B0 test set: 20 synthetic people (docs/brain.md → Evaluation). Each builds an app state from code (seeded, so
+// B0 test set: 21 synthetic people (docs/brain.md → Evaluation). Each builds an app state from code (seeded, so
 // every run is the same), with what a good answer must and must not do. Nothing here is real data.
 
 import { makeHabit, limitOn } from '../../lib/playbooks.js';
@@ -250,6 +250,20 @@ export const PERSONAS = [
     },
     expect: { mention: { weekly: [/gym|focus|lights/i] }, avoid: /!|amazing|incredible|crushing it/i, proposalsMax: 1 },
     good: 'Short, steady; no hype; no proposals or at most one.',
+  },
+  {
+    id: 'one-week-in', about: 'One week of logs: gym skipped, midday scrolling, wants work in the mornings',
+    build() {
+      const p = person({ today: TODAY, days: 7, seed: 21, identity: 'healthy, training regularly, less procrastination' });
+      p.habit('gym', { target: 4 }, (k, ago) => ago === 5);
+      const sc = p.habit('scrolling', { usual: 2, pace: 0.5 }, () => undefined);
+      p.log(sc, () => [{ h: 13, n: 1 }, { h: 14, n: 0.5 }]);
+      p.reflect(5, 'Procrastinated but worked a bit. Skipped gym. Need to push work to mornings so I have buffer in the day and gym doesn’t get missed. I work from home on Mondays.');
+      p.task({ title: 'Office work', sizeH: 2, due: 1 });
+      return p.done();
+    },
+    expect: { mention: { memory: [/morning/i] }, avoid: /\b(trend\w*|over (several|recent) weeks|weeks in a row|usually)\b/i },
+    good: 'Written to "you"; the morning plan in what you’re working towards; working from home on Mondays kept; no trends from one week.',
   },
   {
     id: 'comeback', about: 'Missed nine days, back yesterday',

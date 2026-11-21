@@ -8,8 +8,8 @@ import { buildRequest } from '../lib/athenaAI.js';
 
 const get = (id) => { const p = PERSONAS.find((x) => x.id === id); return { p, d: digest(p.build(), todayOf(p)) }; };
 
-test('the test set has 20 people and every digest builds', () => {
-  assert.equal(PERSONAS.length, 20);
+test('the test set has 21 people and every digest builds', () => {
+  assert.equal(PERSONAS.length, 21);
   for (const p of PERSONAS) {
     const d = digest(p.build(), todayOf(p));
     assert.ok(d.day && Array.isArray(d.habits) && d.tasks, p.id);
