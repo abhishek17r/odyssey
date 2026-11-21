@@ -48,10 +48,12 @@
         </div>
       </button>
     </header>
+    <button type="button" class="jyStrip" id="tdVoyage"></button>
     <div class="cheerLine" hidden><span class="band" id="bandLabel"></span> <span class="cheer" id="cheer"></span></div>
 
     <section class="athenaLine" id="athenaLine" hidden></section>
     <section class="card pausedBanner" id="pausedBanner" hidden></section>
+    <button type="button" class="questCard active" id="tdQuest" hidden></button>
     <div class="sideSeg" id="todaySeg" role="tablist" aria-label="Show">
       <button type="button" role="tab" data-side="habits"><span>Habits</span><i class="segN"></i></button>
       <button type="button" role="tab" data-side="tasks"><span>Tasks</span><i class="segN"></i></button>
@@ -162,15 +164,18 @@
 
   <!-- WEEK -->
   <main class="view" id="view-week" hidden>
-    <header class="topbar"><div><div class="tbDay">This week</div><button type="button" class="tbDate wkCal" id="wkSub" title="Calendar"></button></div>
+    <header class="topbar"><div><div class="tbDay">Journey</div><div class="tbDate" id="jySub"></div></div>
       <button type="button" class="kleosChip" id="wkKleos" title="Your voyage"></button></header>
+    <button type="button" class="jyMap" id="jyMap" aria-label="The voyage"></button>
+    <h3 class="rpSec jySec"><span>Side quests</span></h3>
+    <div id="jyQuests"></div>
+    <h3 class="rpSec jySec"><span>This week</span><button type="button" class="tbDate wkCal" id="wkSub" title="Calendar"></button></h3>
     <section class="card wkHero">
       <div class="wkKpis" id="wkKpis"></div>
-      <button type="button" class="voyageStrip" id="wkVoyage"></button>
     </section>
     <div class="wkActions">
-      <button type="button" id="wkPlan"><span class="waIcon"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5" width="16" height="15" rx="3"/><path d="M4 10h16M9 3v4M15 3v4"/></svg></span>Plan</button>
-      <button type="button" id="wkReview"><span class="waIcon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19l5-6 4 3 7-9"/></svg></span>Review</button>
+      <button type="button" id="wkPlan"><span class="waIcon"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5" width="16" height="15" rx="3"/><path d="M4 10h16M9 3v4M15 3v4"/></svg></span>Plan the week</button>
+      <button type="button" id="wkReview"><span class="waIcon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 3h8.5l4 4v14h-12.5z"/><path d="M9.5 12h6M9.5 16h4"/></svg></span>Week report</button>
     </div>
     <div class="sideSeg" id="weekSeg" role="tablist" aria-label="Show">
       <button type="button" role="tab" data-side="habits"><span>Habits</span><i class="segN"></i></button>
@@ -232,7 +237,7 @@
 
   <nav class="tabbar" id="tabbar">
     <button type="button" data-view="today"><span class="tabIcon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M5.3 18.7l1.6-1.6M17.1 6.9l1.6-1.6"/></svg></span>Today</button>
-    <button type="button" data-view="week"><span class="tabIcon"><svg viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="15.5" rx="3"/><path d="M3.5 10h17M8 3v4M16 3v4"/><path d="M8 14.2l2 2 4-4"/></svg></span>Week</button>
+    <button type="button" data-view="week"><span class="tabIcon"><svg viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="15.5" rx="3"/><path d="M3 17.5h18l-3 3.5H6z"/><path d="M12 2.5v14M12 3.5l7 10h-7"/></svg></span>Journey</button>
     <button type="button" data-view="trends"><span class="tabIcon"><svg viewBox="0 0 24 24"><path d="M6.5 3h8.5l4 4v14h-12.5z"/><path d="M9.5 12h6M9.5 16h4"/></svg></span>Report</button>
     <button type="button" data-view="me"><span class="tabIcon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9.2"/><circle cx="12" cy="10" r="3.2"/><path d="M6.2 18.4c1.4-2.1 3.4-3.1 5.8-3.1s4.4 1 5.8 3.1"/></svg></span>Me</button>
   </nav>

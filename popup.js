@@ -34,6 +34,10 @@ import { openOnTrack } from './lib/onTrack.js';
 import { weekReport, reportWeekFor, withAthena } from './lib/report.js';
 import { reportHash, visionHash } from './lib/athenaAI.js';
 import { openGoalSheet, visionLine } from './lib/goalSheet.js';
+import { offers, questsOf } from './lib/quests.js';
+import { settleQuest } from './lib/questStore.js';
+import { openQuests, openQuest, questDone } from './lib/questSheet.js';
+import { voyageStrip, journeyMap, questCardHTML } from './lib/journey.js';
 import { currentUser } from './lib/cloud.js';
 import { VERSION } from './version.js';
 import { track, trackOpen } from './lib/usage.js';
@@ -153,11 +157,51 @@ function render() {
   renderSession();
   renderReflection();
   renderWeek();
+  renderJourneyToday();
   renderMe();
   renderPause();
   renderCourse();
   renderAthena();
   renderMiss();
+}
+
+// ---------- the journey on Today, and side quests ----------
+function renderJourneyToday() {
+  voyageStrip($('#tdVoyage'), state, today, rewards);
+  const q = questsOf(state).active;
+  $('#tdQuest').hidden = !q;
+  if (q) $('#tdQuest').innerHTML = questCardHTML(q, state, today, { active: true });
+  settleNow();
+}
+function renderQuests() {
+  const box = $('#jyQuests');
+  box.innerHTML = '';
+  const Q = questsOf(state);
+  if (Q.active) {
+    const b = Object.assign(document.createElement('button'), { type: 'button', className: 'questCard active', innerHTML: questCardHTML(Q.active, state, today, { active: true }) });
+    b.onclick = () => openQuest({ getState: () => state, today, onChanged: refreshAll });
+    box.append(b);
+  }
+  const n = offers(state, today).length;
+  const more = Object.assign(document.createElement('button'), { type: 'button', className: 'card jyMore' });
+  more.innerHTML = n ? `<span>${n} quest${n > 1 ? 's' : ''} picked for you</span><span class="chev">›</span>` : `<span>${Q.active ? 'All quests' : 'No quests right now'}</span><span class="chev">›</span>`;
+  more.onclick = () => { track('sheet', { s: 'quests' }); openQuests({ getState: () => state, today, onChanged: refreshAll }); };
+  box.append(more);
+}
+// a quest done (or over) since last time: settle it; done → the moment, with the ship
+let settling = false;
+async function settleNow() {
+  if (settling || !questsOf(state).active) return;
+  settling = true;
+  try {
+    const before = sail(state, today);
+    const q = await settleQuest(state, today);
+    if (!q) return;
+    state = await load();
+    render();
+    if (q.status === 'done') questDone(q, before, sail(state, today));
+    else toast(`Quest ended: ${q.title}. No Kleos lost.`);
+  } finally { settling = false; }
 }
 
 // ---------- header ----------
@@ -1323,9 +1367,11 @@ function renderMini() {
 // ---------- Week: the week at a glance, its habits and tasks; the backlog in a sheet ----------
 
 $('#wkPlan').onclick = () => openPlan();
-$('#wkReview').onclick = () => openReview();
+$('#wkReview').onclick = () => { reportWeek = null; showView('trends'); };
 $('#wkKleos').onclick = () => openRewards();
-$('#wkVoyage').onclick = () => openRewards();
+$('#jyMap').onclick = () => openRewards();
+$('#tdVoyage').onclick = () => showView('week');
+$('#tdQuest').onclick = () => openQuest({ getState: () => state, today, onChanged: refreshAll });
 $('#qtForm').addEventListener('click', (e) => { if (!e.target.closest('button')) $('#qtWhat').focus(); });
 // rows with a switch (settings): tap anywhere on the row to flip it
 document.addEventListener('click', (e) => {
@@ -1397,8 +1443,10 @@ function renderWeek() {
   $('#wkSub').innerHTML = `${f(days[0])} – ${f(days[6])} · ${left ? `${left} day${left > 1 ? 's' : ''} left` : 'last day'} <span class="calLink">📅 ›</span>`;
   const K = kleos(state, today);
   $('#wkKleos').innerHTML = `<b>${K.week >= 0 ? '+' : '−'}${Math.abs(K.week)}</b><span>${POINTS.name} this week</span>`;
-  // the voyage: the harbour you're at (or the peril), and Kleos to the next one
-  weekCard($('#wkVoyage'), state, today, rewards);
+  // the journey: the map, then side quests
+  const v = journeyMap($('#jyMap'), state, today, rewards);
+  $('#jySub').textContent = `Delos to Ithaca · harbour ${v.harbour + 1} of 12${v.voyageNo > 1 ? ` · voyage ${v.voyageNo}` : ''}`;
+  renderQuests();
 
   // the 7 days, coloured by score
   $('#wkDays').innerHTML = days.map((k) => {
