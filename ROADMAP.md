@@ -15,7 +15,7 @@ The UX is close to final: the owner uses 1.2 for a few days before it's frozen. 
 1. **AI brain and Hermes**: the brain first (what Odyssey knows about you, and memory), then Hermes on top of it.
 2. **Commercials and legal**: cost per user from the admin ledger, pricing and plans (Free / Plus), privacy policy, terms, DPDP consent and account deletion, store requirements.
 3. **Launch or kill**: a deliberate go / no-go decision on what steps 1 and 2 show (does the brain earn its keep, does the cost per user work at a price people pay).
-4. **The rest**, in order: launch basics (Google and Apple sign-in, delete account, consent screens), the native app (Capacitor), health data, Calendar, the pillars (Gym, Screen time, Reading, Meditation), email.
+4. **The rest**, in order: launch basics (set the `AI_LAUNCH_HOURS` secret to 24 so Athena runs on launch at most once a day, not every launch as while testing; Google and Apple sign-in, delete account, consent screens), the native app (Capacitor), health data, Calendar, the pillars (Gym, Screen time, Reading, Meditation), email.
 
 Long-lead applications to start early, whatever the decision: Apple Developer and Play Console accounts, a domain and support address, Apple's Screen Time (Family Controls) entitlement, Google's Calendar scope review.
 

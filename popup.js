@@ -38,7 +38,8 @@ import { offers, questsOf } from './lib/quests.js';
 import { settleQuest } from './lib/questStore.js';
 import { openQuests, openQuest, questDone } from './lib/questSheet.js';
 import { voyageStrip, journeyMap, questCardHTML } from './lib/journey.js';
-import { currentUser } from './lib/cloud.js';
+import { currentUser, callFunction } from './lib/cloud.js';
+import { syncNow } from './lib/syncRunner.js';
 import { openMemory, memoryValue } from './lib/memorySheet.js';
 import { VERSION } from './version.js';
 import { track, trackOpen } from './lib/usage.js';
@@ -105,6 +106,8 @@ async function init() {
   refreshRewards().then((r) => { if (r) { rewards = r; renderWeek(); } });
   voyageMoment();
 
+  athenaOnLaunch();
+
   // first launch: set your course (once per launch until done; the splash covers it until it fades)
   let asked = false;
   try { asked = !!sessionStorage.getItem('onbAsked'); sessionStorage.setItem('onbAsked', '1'); } catch { /* fine */ }
@@ -117,6 +120,22 @@ async function init() {
     const u = new URL(e.data.url, location.href);
     routeOpen(u.searchParams.get('open'), u.searchParams.get('id'));
   });
+}
+
+// Athena on launch: while the splash is up, ask the server to write her notes and memory from the latest data
+// (it decides how often: every launch while testing, at most once a day in prod). Never blocks the app.
+async function athenaOnLaunch() {
+  try {
+    if (state.settings.athenaOn === false || !isOnboarded(state) || !(await currentUser())) return;
+    if ('odysseyReady' in window && !window.odysseyReady) await new Promise((r) => addEventListener('odyssey:ready', r, { once: true }));
+    await syncNow(); // the server reads the synced copy: send today's logs first
+    const res = await callFunction('odyssey-athena', { launch: true });
+    track('athena_launch', { n: res?.calls || 0 });
+    if (!res?.calls) return;
+    await syncNow(); // and bring her new notes back
+    state = await load();
+    render();
+  } catch { /* offline, signed out or capped: the templates stand */ }
 }
 
 // Where each notification lands. Closes whatever sheet is open first.

@@ -1,5 +1,7 @@
 // odyssey-athena: writes Athena's AI notes. Called every 10 minutes by pg_cron (see .secrets/athena-setup.sql)
-// with the x-cron-secret header, or by the owner from admin.html ("Run now") with their sign-in token.
+// with the x-cron-secret header, or by the owner from admin.html ("Run now") with their sign-in token, or by the
+// app on launch for the signed-in account only ({ launch: true }). AI_LAUNCH_HOURS sets how often a launch may run:
+// 0 (the default, while testing) = every launch, ignoring the time windows; 24 in prod = at most once a day, within them.
 //
 // For each account seen lately, with Athena on: in the morning window, after an evening reflection, and once
 // a week has ended, it builds the request from lib/athenaAI.js (the template is the draft), asks the model,
@@ -28,14 +30,14 @@ const json = (body: unknown, status = 200) => new Response(JSON.stringify(body),
   status, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, apikey, content-type, x-client-info' },
 });
 
-async function caller(req: Request): Promise<{ cron: true } | { owner: string } | null> {
+async function caller(req: Request): Promise<{ cron: true } | { owner: string } | { user: string } | null> {
   if (env('CRON_SECRET') && req.headers.get('x-cron-secret') === env('CRON_SECRET')) return { cron: true };
   const token = (req.headers.get('authorization') || '').replace(/^Bearer /, '');
   if (!token) return null;
   const { data } = await db.auth.getUser(token);
   if (!data?.user) return null;
   const { data: o } = await db.from('odyssey_owner').select('user_id').eq('id', 1).maybeSingle();
-  return o?.user_id === data.user.id ? { owner: data.user.id } : null;
+  return o?.user_id === data.user.id ? { owner: data.user.id } : { user: data.user.id };
 }
 
 async function loadState(userId: string) {
@@ -128,11 +130,16 @@ Deno.serve(async (req) => {
   const who = await caller(req);
   if (!who) return json({ error: 'not allowed' }, 401);
   const body = await req.json().catch(() => ({}));
-  const force = 'owner' in who && !!body.force; // the owner's "Run now": ignore the time windows, for their own account
+  // the app's launch run: only for the signed-in account (anyone else's token gets nothing more)
+  const launchHours = Number(env('AI_LAUNCH_HOURS') || 0);
+  const launch = 'user' in who || ('owner' in who && !!body.launch);
+  if ('user' in who && !body.launch) return json({ error: 'not allowed' }, 401);
+  // the owner's "Run now", and every launch while testing: ignore the time windows, for their own account
+  const force = ('owner' in who && !!body.force) || (launch && launchHours === 0);
   if (!env('OPENAI_API_KEY')) return json({ error: 'OPENAI_API_KEY is not set' }, 500);
 
   const { data: cfg } = await db.from('odyssey_ai_config').select('*').eq('id', 1).maybeSingle();
-  if (cfg && !cfg.enabled) return json({ note: 'Athena AI is turned off (admin)' });
+  if (cfg && !cfg.enabled) return json('user' in who ? { calls: 0, report: ['off'] } : { note: 'Athena AI is turned off (admin)' });
   const { data: spend } = await db.rpc('odyssey_ai_spend');
   let month = Number(spend?.month || 0);
   const day: Record<string, number> = spend?.day || {};
@@ -140,11 +147,13 @@ Deno.serve(async (req) => {
   const userCap = Number(cfg?.user_daily_cap_usd ?? 0.005);
   const userMonthCap = Number(cfg?.user_monthly_cap_usd ?? 0.05);
   const userMonth: Record<string, number> = spend?.user_month || {};
+  if (month >= monthCap && 'user' in who) return json({ calls: 0, report: ['monthly cap'] });
   if (month >= monthCap) return json({ note: `monthly cap reached ($${month.toFixed(4)} of $${monthCap})` });
 
   // who: the owner alone (Run now), or every account seen in the last N days
   let users: string[];
   if ('owner' in who) users = [who.owner];
+  else if ('user' in who) users = [who.user];
   else {
     const { data: acc } = await db.rpc('odyssey_accounts');
     const cutoff = Date.now() - Number(cfg?.inactive_days ?? 14) * 864e5;
@@ -161,6 +170,9 @@ Deno.serve(async (req) => {
     try {
       const state = await loadState(uid);
       if (state.settings.athenaOn === false || !state.profile?.onboardedAt) { r.push('off'); continue; }
+      // a launch run at most every AI_LAUNCH_HOURS (prod: 24); its time is a synced note, so every device sees it
+      if (launch && launchHours > 0 && Date.now() - (state.notes['ai-launch']?.at || 0) < launchHours * 36e5) { r.push('launch: ran lately'); continue; }
+      if (launch) await saveNote(uid, { id: 'ai-launch', kind: 'ai', of: 'launch', at: Date.now() });
       const { day: today, hour } = localNow(state.settings.tz || tzOf(uid) || env('DEFAULT_TZ') || 'Asia/Kolkata');
       let list = candidates(state, today, hour, force);
       for (let i = 0; i < list.length; i++) {
@@ -203,5 +215,7 @@ Deno.serve(async (req) => {
       r.push(`failed: ${e?.message}`);
     }
   }
+  // an account's own launch sees only what was written for it, not the app's spend
+  if ('user' in who) return json({ calls, report: Object.values(report)[0] || [] });
   return json({ calls, month_usd: Number(month.toFixed(6)), report });
 });
