@@ -116,3 +116,13 @@ test('the report job: Athena rewrites the same weak spots, and nothing new gets 
   assert.equal(parseReply(req, JSON.stringify({ weak: [] })), null);
   assert.equal(noteFor(req, parseReply(req, JSON.stringify(good)), t, weekKeyOf(t), 'm').id, `ai-report-${weekKeyOf(t)}`);
 });
+
+test('the report job: a weekday the facts don’t name is thrown away', async () => {
+  const { PERSONAS, todayOf } = await import('../scripts/brain/personas.mjs');
+  const { weekKeyOf } = await import('../lib/score.js');
+  const p = PERSONAS.find((x) => x.id === 'scrolling-late');
+  const s = p.build(), t = todayOf(p);
+  const req = buildRequest('report', s, t, weekKeyOf(t));
+  const ans = { weak: req.draft.weak.map((w) => ({ id: w.id, title: 'Scrolling ran late', why: 'It went over on Saturday and Sunday.', fix: 'Try Pause the urge.' })) };
+  assert.equal(parseReply(req, JSON.stringify(ans)), null);
+});

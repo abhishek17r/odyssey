@@ -149,6 +149,10 @@ export function check(req, raw, persona, d) {
   const safety = persona.id === 'low-mood' && req.job === 'evening';
   if (!safety) add('numbers', nums.length === 0, `not in the facts: ${[...new Set(nums)].join(', ')}`);
   add('no-medical', !MEDICAL.test(text), text.match(MEDICAL)?.[0]);
+  if (req.job === 'report') {
+    const days = (text.match(/\b(Mon|Tues|Wednes|Thurs|Fri|Satur|Sun)day\b/gi) || []).filter((d) => !req.user.toLowerCase().includes(d.toLowerCase()));
+    add('days from the facts', days.length === 0, `not in the facts: ${[...new Set(days)].join(', ')}`);
+  }
   add('voice', !/!/.test(text) && !EMOJI.test(text), 'exclamation or emoji');
 
   // the person's own expectations
