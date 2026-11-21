@@ -15,13 +15,14 @@ import { createClient } from 'npm:@supabase/supabase-js@2.45.4';
 import { fromRecords } from './lib/sync.js';
 import { buildRequest, parseReply, costOf, PRICES, noteFor, needsNote, noteIdOf, effortFor, overBudget, costAlert, estTokens } from './lib/athenaAI.js';
 import { weekKeyOf, weekDays, addDays, parseKey, dateKey } from './lib/score.js';
+import { mergeMemory, triedMemory, MEMORY_ID } from './lib/memory.js';
 
 const env = (k: string) => Deno.env.get(k) ?? '';
 const db = createClient(env('SUPABASE_URL'), env('SUPABASE_SERVICE_ROLE_KEY'), { auth: { persistSession: false } });
 const BASE = (env('AI_BASE_URL') || 'https://api.openai.com/v1').replace(/\/$/, '');
 const prices = (() => { try { return { ...PRICES, ...JSON.parse(env('AI_PRICES') || '{}') }; } catch { return PRICES; } })();
 const MAX_CALLS_PER_RUN = 40;
-const MAX_REWRITES = { morning: 2, evening: 3, weekly: 2, report: 2, goal: 3 }; // per note: a draft that keeps moving stops costing
+const MAX_REWRITES = { morning: 2, evening: 3, weekly: 2, report: 2, goal: 3, memory: 99 }; // memory: its own once-a-week gate (lib/memory.js) // per note: a draft that keeps moving stops costing
 
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), {
   status, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, apikey, content-type, x-client-info' },
@@ -78,6 +79,8 @@ function candidates(state: any, day: string, hour: number, force: boolean) {
   }
   // a habit goal's plan in Athena's words, once it's set or changed
   for (const id of Object.keys(state.profile?.visions || {})) out.push({ req: buildRequest('goal', state, day, cur, id), day, wk: cur });
+  // Athena's memory: rebuilt once a week (from 5 am), and first, so this run's notes are written with it
+  if (hour >= 5 || force) out.unshift({ req: buildRequest('memory', state, day, cur, null, { force }), day, wk: cur });
   return out.filter((c) => c.req);
 }
 
@@ -95,7 +98,7 @@ async function ask(req: any, uid: string) {
       },
       body: JSON.stringify({
         model: req.model, messages: req.messages, response_format: { type: 'json_object' },
-        reasoning_effort: effortFor(req.model), max_completion_tokens: ['weekly', 'report', 'goal'].includes(req.kind) ? 900 : 500,
+        reasoning_effort: effortFor(req.model), max_completion_tokens: req.kind === 'memory' ? 1200 : ['weekly', 'report', 'goal'].includes(req.kind) ? 900 : 500,
         prompt_cache_key: `athena-${req.kind}`, // the system prompt is shared: OpenAI's cache makes it cheaper
       }),
     });
@@ -159,7 +162,9 @@ Deno.serve(async (req) => {
       const state = await loadState(uid);
       if (state.settings.athenaOn === false || !state.profile?.onboardedAt) { r.push('off'); continue; }
       const { day: today, hour } = localNow(state.settings.tz || tzOf(uid) || env('DEFAULT_TZ') || 'Asia/Kolkata');
-      for (const c of candidates(state, today, hour, force)) {
+      let list = candidates(state, today, hour, force);
+      for (let i = 0; i < list.length; i++) {
+        const c = list[i];
         const id = c.req.noteId || noteIdOf(c.req.kind, c.day, c.wk);
         const existing = state.notes[id];
         if (!needsNote(c.req, existing)) continue; // already written for this draft: the cheapest cache
@@ -181,6 +186,15 @@ Deno.serve(async (req) => {
           user_id: uid, kind: c.req.kind, model: a.model, tokens_in: a.tin, tokens_out: a.tout, cached_in: a.cached,
           cost_usd: cost, ms: a.ms, outcome, detail: a.error || (reply ? (alert ? `cost alert: $${cost.toFixed(5)}` : null) : String(a.text).slice(0, 200)),
         });
+        if (c.req.kind === 'memory') {
+          // merged into what's there (their own lines stay); a rejected answer is counted so it's tried at most twice a week
+          const m = reply ? mergeMemory(existing, reply, { wk: c.req.wk, forHash: c.req.forHash, model: a.model, notes: c.req.input.yourWords.eveningNotes.length > 0 }) : triedMemory(existing, c.req.wk);
+          await saveNote(uid, m);
+          state.notes[MEMORY_ID] = m;
+          if (reply) list = [c, ...candidates(state, today, hour, force).filter((x) => x.req.kind !== 'memory')]; // the rest of this run writes with the new memory
+          r.push(`memory: ${outcome}`);
+          continue;
+        }
         if (reply) await saveNote(uid, { ...noteFor(c.req, reply, c.day, c.wk, a.model), n: (existing?.n || 0) + 1 });
         r.push(`${c.req.kind}: ${outcome}`);
       }

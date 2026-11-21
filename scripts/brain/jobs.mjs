@@ -3,7 +3,7 @@
 
 import { numbersIn } from '../../lib/digest.js';
 import { crisisIn, CRISIS_LINE } from '../../lib/safety.js';
-import { buildRequest } from '../../lib/athenaAI.js';
+import { buildRequest, parseReply } from '../../lib/athenaAI.js';
 import { weekKeyOf } from '../../lib/score.js';
 
 export const SYSTEM = `You are the brain inside Odyssey, a habit and task app. Two voices use you:
@@ -32,7 +32,7 @@ const numOrNull = orNull({ type: 'number' });
 const obj = (properties) => ({ type: 'object', properties, required: Object.keys(properties), additionalProperties: false });
 
 // Per-prompt input budgets in tokens (about 3x today's sizes): a bigger request is never sent.
-export const INPUT_BUDGET = { morning: 1200, evening: 1200, weekly: 1500, proposals: 2000, report: 1500 };
+export const INPUT_BUDGET = { morning: 1200, evening: 1200, weekly: 1500, proposals: 2000, report: 1500, memory: 2500 };
 
 export const KINDS = ['move_task', 'split_task', 'shrink_habit', 'set_target', 'plan_session', 'note'];
 
@@ -79,6 +79,13 @@ Use only the ids in "valid". Set every field the kind doesn't use to null. "why"
     schema: obj({ weak: { type: 'array', items: obj({ id: str, title: str, why: str, fix: str }) } }),
     maxWords: 200,
   },
+  // Athena's memory of the person (lib/memory.js), rebuilt weekly: the live app's own request and checks
+  memory: {
+    tier: 'large',
+    live: true,
+    schema: obj({ about: str, works: { type: 'array', items: str }, doesnt: { type: 'array', items: str }, commit: { type: 'array', items: str }, know: { type: 'array', items: str } }),
+    maxWords: 260,
+  },
 };
 
 // Only the facts a job needs (smaller prompts, less to misread).
@@ -98,7 +105,7 @@ export function buildJob(job, d, { memory = null, reflection = null, state = nul
     const live = state && buildRequest(job, state, d.day, weekKeyOf(d.day));
     if (!live) return null;
     const user = live.messages[1].content;
-    const req = { job, tier: J.tier, system: live.messages[0].content, user, schema: J.schema, maxWords: J.maxWords, allowed: numbersIn({ facts: JSON.parse(user) }), draft: live.draft };
+    const req = { job, tier: J.tier, system: live.messages[0].content, user, schema: J.schema, maxWords: J.maxWords, allowed: numbersIn({ facts: JSON.parse(user) }), draft: live.draft, app: live };
     req.estIn = Math.ceil((req.system.length + req.user.length) / 3.6);
     req.overBudget = req.estIn > INPUT_BUDGET[job];
     return req;
@@ -129,14 +136,16 @@ export function check(req, raw, persona, d) {
   add('json', j && typeof j === 'object', 'not JSON');
   if (!j || typeof j !== 'object') return { pass: false, checks: out, text: String(raw || '').slice(0, 300) };
 
-  const texts = req.job === 'report' ? (Array.isArray(j.weak) ? j.weak : []).flatMap((w) => [w.title, w.why, w.fix]).filter(Boolean)
+  const texts = req.job === 'memory' ? [j.about, ...['works', 'doesnt', 'commit', 'know'].flatMap((k) => (Array.isArray(j[k]) ? j[k] : []))].filter(Boolean)
+    : req.job === 'report' ? (Array.isArray(j.weak) ? j.weak : []).flatMap((w) => [w.title, w.why, w.fix]).filter(Boolean)
     : req.job === 'weekly' ? [...(Array.isArray(j.lines) ? j.lines : []), j.experiment || '']
     : req.job === 'proposals' ? (Array.isArray(j.proposals) ? j.proposals : []).flatMap((p) => [p.why, p.text, p.tiny, ...(p.steps || [])]).filter(Boolean)
       : [j.text || ''];
   const text = texts.join(' ').trim();
 
   // shape and length
-  if (req.job === 'report') add('shape', Array.isArray(j.weak) && j.weak.length === req.draft.weak.length && j.weak.every((w, i) => w.id === req.draft.weak[i].id && w.title && w.why && w.fix), 'not the same weak spots');
+  if (req.job === 'memory') add('app accepts it', !!parseReply(req.app, j), 'lib/memory.js would reject it');
+  else if (req.job === 'report') add('shape', Array.isArray(j.weak) && j.weak.length === req.draft.weak.length && j.weak.every((w, i) => w.id === req.draft.weak[i].id && w.title && w.why && w.fix), 'not the same weak spots');
   else if (req.job === 'weekly') add('shape', Array.isArray(j.lines) && j.lines.length >= 3 && j.lines.length <= 4 && j.experiment, `${j.lines?.length} lines`);
   else if (req.job === 'proposals') add('shape', Array.isArray(j.proposals) && j.proposals.length <= 3, `${j.proposals?.length} proposals`);
   else add('shape', typeof j.text === 'string' && j.text.trim().length > 0, 'no text');
@@ -149,7 +158,7 @@ export function check(req, raw, persona, d) {
   const safety = persona.id === 'low-mood' && req.job === 'evening';
   if (!safety) add('numbers', nums.length === 0, `not in the facts: ${[...new Set(nums)].join(', ')}`);
   add('no-medical', !MEDICAL.test(text), text.match(MEDICAL)?.[0]);
-  if (req.job === 'report') {
+  if (['report', 'memory'].includes(req.job)) {
     const days = (text.match(/\b(Mon|Tues|Wednes|Thurs|Fri|Satur|Sun)day\b/gi) || []).filter((d) => !req.user.toLowerCase().includes(d.toLowerCase()));
     add('days from the facts', days.length === 0, `not in the facts: ${[...new Set(days)].join(', ')}`);
   }

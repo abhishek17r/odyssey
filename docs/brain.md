@@ -49,6 +49,13 @@ memory = {
 
 Rules: nothing goes into memory that isn't backed by the digest or something you said; you can delete any line; "Forget everything" clears it and stops it rebuilding until you turn it back on.
 
+**As built (B2, 1.5.0, 21 Nov 2026).** `lib/memory.js`, stored as the synced note `notes.memory` (no new record kind, so older versions sync it untouched). Lists: about, works, doesnt, commit, know (lasting facts from your evening notes or your own words), avoid (yours only: "don't bring up"). Each line says where it came from: your logs, your evening notes, or you.
+- Built by `odyssey-athena` once a week (from 5 am on the week's first day), first in the run, so that run's notes use it. Input: this week's digest, what changed in the three weeks before, your goals and quests, and the last two weeks of evening notes (on by default, toggle in the sheet; a note with crisis words is never sent). About 700–1,000 input tokens; ~US$0.001 a build.
+- Checked by code (`parseMemory`): length, every number and weekday from the input, no medical or mental-health words. A rejected build is retried at most twice a week.
+- Merged, never overwritten: your lines and your "about" stay as written; a line of Athena's you edit becomes yours; one you delete goes into `dropped` and is never written again.
+- Used by every job: morning, evening, weekly, report and goal requests carry `memory`; numbers in it count as facts; an answer that names a "don't bring up" topic is thrown away (the template stays).
+- Me → What Athena knows: read, edit, delete, add, learn-from-notes toggle, Forget everything (off until turned back on).
+
 ### 3. Reasoning (AI, per job)
 
 Each job gets: the system rules (Athena's existing safety rules, kept), the memory, today's digest (only the parts the job needs), and the job's instructions. Output is JSON, checked by code before use (numbers must match the digest, length limits, no medical claims); anything that fails falls back to the template, as today.

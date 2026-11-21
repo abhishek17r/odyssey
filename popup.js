@@ -39,6 +39,7 @@ import { settleQuest } from './lib/questStore.js';
 import { openQuests, openQuest, questDone } from './lib/questSheet.js';
 import { voyageStrip, journeyMap, questCardHTML } from './lib/journey.js';
 import { currentUser } from './lib/cloud.js';
+import { openMemory, memoryValue } from './lib/memorySheet.js';
 import { VERSION } from './version.js';
 import { track, trackOpen } from './lib/usage.js';
 import { weekMetrics } from './lib/metrics.js';
@@ -1670,7 +1671,7 @@ function insightGo(a) {
 
 // Me: who you are, then seven rows in three groups; each opens a sheet with that section's settings
 const ME_ROWS = [
-  [['course', '🧭', 'Your course', '#meCourse'], ['athena', '🦉', 'Athena', '#meAthena']],
+  [['course', '🧭', 'Your course', '#meCourse'], ['athena', '🦉', 'Athena', '#meAthena'], ['memory', '🧠', 'What Athena knows', null]],
   [['music', '🎵', 'Focus music', '#meMusicBox'], ['notif', '🔔', 'Reminders', '#meNotifBox'], ['pause', '⏸', 'Pause', '#mePause']],
   [['account', '👤', 'Account', '#meAccountBox'], ['data', '⬇️', 'Export your data', '#meData']],
 ];
@@ -1689,6 +1690,7 @@ function drawMe() {
   const s = state.settings;
   const value = {
     course: p?.onboardedAt ? (p.habits || []).map((h) => plan?.goals.find((g) => g.id === h.goalId)?.name).filter(Boolean).slice(0, 2).join(', ') || 'Set' : 'Set it up',
+    memory: memoryValue(state),
     athena: s.athenaOn === false ? 'Off' : (s.tone || 'direct') === 'gentle' ? 'Gentle' : 'Direct',
     music: s.playerOn === false ? 'Off' : musicSource() === 'radio' ? stationById(s, s.radioStation)?.name || 'Radio' : 'Your playlist',
     notif: `${['morningOn', 'middayOn', 'checkinOn', 'planOn', 'cuesOn'].filter((k) => s[k] !== false).length} on`,
@@ -1706,7 +1708,7 @@ function drawMe() {
       b.type = 'button';
       b.className = 'cell meRow';
       b.innerHTML = `<span class="cIcon">${icon}</span><span class="cMain"><span>${esc(title)}</span></span><span class="meVal">${esc(value[id])}</span><span class="chev">›</span>`;
-      b.onclick = () => openMeSheet(title, sel, id);
+      b.onclick = () => (id === 'memory' ? openMemory({ getState: () => state, onChanged: async () => { state = await load(); drawMe(); } }) : openMeSheet(title, sel, id));
       g.append(b);
     }
     box.append(g);

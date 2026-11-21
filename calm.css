@@ -1180,3 +1180,22 @@ textarea.atTitle { height: auto; min-height: 54px; padding: 14px !important; res
 .qdRoute { display: flex; align-items: center; gap: 10px; width: 100%; max-width: 360px; font-weight: 600; }
 .qDone p { font-size: 15px; line-height: 1.45; max-width: 360px; }
 .qDone .primary { width: 100%; max-width: 360px; margin-top: 18px; background: #fff !important; color: #1f2430 !important; }
+
+/* Me → What Athena knows (1.5) */
+.memSheet { display: flex; flex-direction: column; gap: 6px; padding-bottom: 12px; }
+.memIntro { font-size: 14px; line-height: 1.45; color: var(--ios-label-2); margin: 0 2px 6px; }
+.memSheet .rpSec { margin-top: 12px; }
+.memAbout { display: block; width: 100%; text-align: left; border: 0; font: inherit; font-size: 15px; line-height: 1.45; color: inherit; cursor: pointer; }
+.memAbout.empty { color: var(--ios-label-2); }
+.memAbout small, .memLine small { display: block; font-size: 12px; color: var(--ios-label-2); margin-top: 4px; }
+.memList { padding: 4px 14px; }
+.memLine { display: block; width: 100%; text-align: left; background: none; border: 0; font: inherit; color: inherit; font-size: 15px; line-height: 1.4; padding: 10px 0; cursor: pointer; }
+.memLine + .memLine, .memLine + .memAdd, .memLine + .memEdit, .memEdit + .memLine { border-top: 1px solid var(--ios-sep, rgba(60,60,67,.12)); }
+.memLine, .memAdd { border-radius: 0 !important; background: none !important; box-shadow: none !important; min-height: 0; }
+.memAdd { display: block; width: 100%; text-align: left; border: 0; padding: 10px 0; color: var(--ios-blue); font-weight: 600; font-size: 15px; cursor: pointer; }
+.memEdit { padding: 10px 0; }
+.memEdit textarea { width: 100%; box-sizing: border-box; font: inherit; font-size: 15px; line-height: 1.4; border-radius: 10px; padding: 8px 10px; resize: vertical; }
+.memActs { display: flex; justify-content: flex-end; align-items: center; gap: 14px; margin-top: 6px; }
+.memActs .linkBtn { margin: 0; padding: 6px 0; }
+.memActs .linkBtn.danger { color: var(--ios-red, #c0392b); margin-right: auto; }
+.memForget { color: var(--ios-red, #c0392b) !important; align-self: flex-start; }
