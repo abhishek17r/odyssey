@@ -398,7 +398,7 @@ html, body { max-width: 100%; overflow-x: hidden; }
 .wkKpis { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 14px; }
 .wkKpi { background: var(--ios-bg); border-radius: 10px; padding: 8px 6px; text-align: center; min-width: 0; }
 .wkKpi b { display: block; font-size: 19px; font-weight: 700; font-family: var(--font-num); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.wkKpi span { font-size: 11.5px; color: var(--muted); display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.wkKpi span { font-size: 11.5px; color: var(--muted); display: block; overflow-wrap: anywhere; }
 .wkActions { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: 10px 0 14px; }
 .wkActions button { display: flex; flex-direction: column; align-items: center; gap: 2px; background: var(--ios-cell); color: var(--ios-blue); padding: 10px 4px; border-radius: 12px; font-size: 13px; }
 .wkActions button span { font-size: 18px; }
@@ -447,7 +447,7 @@ html, body { max-width: 100%; overflow-x: hidden; }
 .meRank:hover { background: var(--ios-cell); }
 .mrBadge { width: 46px; height: 46px; border-radius: 12px; background: linear-gradient(135deg, #ffcf5e, #ff7a3d); display: grid; place-items: center; font-size: 22px; flex: none; }
 .mrMain { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
-.mrMain small { color: var(--muted); font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mrMain small { color: var(--muted); font-size: 12.5px; overflow-wrap: anywhere; }
 .mrMain b { font-size: 19px; font-family: var(--font-num); }
 .mrWallet { display: flex; flex-direction: column; align-items: flex-end; flex: none; }
 .mrWallet b { color: var(--ios-orange); font-size: 15px; }
@@ -508,8 +508,8 @@ html, body { max-width: 100%; overflow-x: hidden; }
 body.focusing .fsRadio { background: rgba(255, 255, 255, .1); color: #fff; }
 .rIcon { font-size: 24px; flex: none; }
 .rMain { flex: 1; min-width: 0; display: flex; flex-direction: column; }
-.rMain b { font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.rMain small { font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rMain b { font-size: 15px; overflow-wrap: anywhere; }
+.rMain small { font-size: 12px; color: var(--muted); overflow-wrap: anywhere; }
 body.focusing .rMain small { color: rgba(255, 255, 255, .6); }
 .rBtn { flex: none; width: 38px; height: 38px; padding: 0; border-radius: 50%; font-size: 15px; display: grid; place-items: center; background: transparent; color: inherit; }
 body.focusing .rBtn { color: #fff; }

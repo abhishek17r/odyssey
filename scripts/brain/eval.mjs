@@ -66,12 +66,13 @@ for (const p of people) {
     const reflection = state.days?.[day]?.reflection || null;
     if (job === 'evening' && !reflection) continue;
     if (p.id === 'low-mood' && job !== 'evening') continue; // the safety case is only about the evening reply
-    requests.push({ p, d, req: buildJob(job, d, { reflection: job === 'evening' ? reflection : null }) });
+    const req = buildJob(job, d, { reflection: job === 'evening' ? reflection : null, state });
+    if (req) requests.push({ p, d, req });
   }
 }
 
 const estIn = (r) => Math.round((r.req.system.length + r.req.user.length + JSON.stringify(r.req.schema).length) / 3.6);
-const EST_OUT = { morning: 350, evening: 350, weekly: 900, proposals: 900 }; // incl. a little thinking/reasoning
+const EST_OUT = { morning: 350, evening: 350, weekly: 900, proposals: 900, report: 700 }; // incl. a little thinking/reasoning
 const fmt$ = (x) => (x < 0.01 ? `$${x.toFixed(5)}` : `$${x.toFixed(4)}`);
 
 // ---------- cache and estimates ----------

@@ -13,7 +13,7 @@
 
 import { createClient } from 'npm:@supabase/supabase-js@2.45.4';
 import { fromRecords } from './lib/sync.js';
-import { buildRequest, parseReply, costOf, PRICES, noteFor, needsNote, noteIds, effortFor, overBudget, costAlert, estTokens } from './lib/athenaAI.js';
+import { buildRequest, parseReply, costOf, PRICES, noteFor, needsNote, noteIdOf, effortFor, overBudget, costAlert, estTokens } from './lib/athenaAI.js';
 import { weekKeyOf, weekDays, addDays, parseKey, dateKey } from './lib/score.js';
 
 const env = (k: string) => Deno.env.get(k) ?? '';
@@ -21,7 +21,7 @@ const db = createClient(env('SUPABASE_URL'), env('SUPABASE_SERVICE_ROLE_KEY'), {
 const BASE = (env('AI_BASE_URL') || 'https://api.openai.com/v1').replace(/\/$/, '');
 const prices = (() => { try { return { ...PRICES, ...JSON.parse(env('AI_PRICES') || '{}') }; } catch { return PRICES; } })();
 const MAX_CALLS_PER_RUN = 40;
-const MAX_REWRITES = { morning: 2, evening: 3, weekly: 2 }; // per note: a draft that keeps moving stops costing
+const MAX_REWRITES = { morning: 2, evening: 3, weekly: 2, report: 2, goal: 3 }; // per note: a draft that keeps moving stops costing
 
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), {
   status, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, apikey, content-type, x-client-info' },
@@ -70,9 +70,14 @@ function candidates(state: any, day: string, hour: number, force: boolean) {
   // the weekly read once the week is (nearly) over: its last day from 5 pm, or the two days after
   const cur = weekKeyOf(day);
   const last = weekDays(cur)[6];
-  if (day === last && (hour >= 17 || force)) out.push({ req: buildRequest('weekly', state, last, cur), day: last, wk: cur });
-  const prev = shift(cur, -7);
-  if (weekDays(cur).indexOf(day) <= 1) out.push({ req: buildRequest('weekly', state, weekDays(prev)[6], prev), day: weekDays(prev)[6], wk: prev });
+  // …and the report's weak spots, in Athena's words (the Friday-night notification opens the report)
+  for (const kind of ['weekly', 'report']) {
+    if (day === last && (hour >= 17 || force)) out.push({ req: buildRequest(kind, state, last, cur), day: last, wk: cur });
+    const prev = shift(cur, -7);
+    if (weekDays(cur).indexOf(day) <= 1) out.push({ req: buildRequest(kind, state, weekDays(prev)[6], prev), day: weekDays(prev)[6], wk: prev });
+  }
+  // a habit goal's plan in Athena's words, once it's set or changed
+  for (const id of Object.keys(state.profile?.visions || {})) out.push({ req: buildRequest('goal', state, day, cur, id), day, wk: cur });
   return out.filter((c) => c.req);
 }
 
@@ -90,7 +95,7 @@ async function ask(req: any, uid: string) {
       },
       body: JSON.stringify({
         model: req.model, messages: req.messages, response_format: { type: 'json_object' },
-        reasoning_effort: effortFor(req.model), max_completion_tokens: req.kind === 'weekly' ? 900 : 500,
+        reasoning_effort: effortFor(req.model), max_completion_tokens: ['weekly', 'report', 'goal'].includes(req.kind) ? 900 : 500,
         prompt_cache_key: `athena-${req.kind}`, // the system prompt is shared: OpenAI's cache makes it cheaper
       }),
     });
@@ -155,7 +160,7 @@ Deno.serve(async (req) => {
       if (state.settings.athenaOn === false || !state.profile?.onboardedAt) { r.push('off'); continue; }
       const { day: today, hour } = localNow(state.settings.tz || tzOf(uid) || env('DEFAULT_TZ') || 'Asia/Kolkata');
       for (const c of candidates(state, today, hour, force)) {
-        const id = c.req.kind === 'weekly' ? noteIds.weekly(c.wk) : noteIds[c.req.kind as 'morning' | 'evening'](c.day);
+        const id = c.req.noteId || noteIdOf(c.req.kind, c.day, c.wk);
         const existing = state.notes[id];
         if (!needsNote(c.req, existing)) continue; // already written for this draft: the cheapest cache
         if ((existing?.n || 0) >= MAX_REWRITES[c.req.kind as keyof typeof MAX_REWRITES] && !force) { r.push(`${c.req.kind}: rewrites used up`); continue; }

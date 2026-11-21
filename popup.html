@@ -61,7 +61,7 @@
       <div id="tdList"></div>
     </section>
     <form class="quickTimer" id="qtForm" autocomplete="off" hidden>
-      <input type="text" id="qtWhat" maxlength="80" placeholder="What will you focus on?" />
+      <input type="text" id="qtWhat" maxlength="200" placeholder="What will you focus on?" />
       <button type="button" class="qtMore" id="qtMore" title="More options: pick a task, set the length">⋯</button>
       <button type="submit" class="qtGo" title="Start focusing" aria-label="Start focusing">▶</button>
     </form>
@@ -70,7 +70,7 @@
       <button class="startBig" id="sStartBtn"><span class="play">▶</span><span><b>Start a focus session</b><small>The clock starts in procrastination mode</small></span></button>
       <div id="sAsk" hidden>
         <div class="row between"><h3 style="margin:0">New focus session</h3><a class="small" id="sCancel">Cancel</a></div>
-        <input type="text" id="sWhat" class="whatInput" maxlength="80" placeholder="What are you working on?" autocomplete="off" />
+        <input type="text" id="sWhat" class="whatInput" maxlength="200" placeholder="What are you working on?" autocomplete="off" />
         <div class="pickChips" id="sPicks"></div>
         <details class="allTasks" id="sAll"><summary class="small">All tasks and the backlog</summary><select id="sGoal"></select></details>
         <div id="sAdhoc" class="subPanel">
@@ -185,12 +185,11 @@
 
   <!-- TRENDS: habits and tasks together -->
   <main class="view" id="view-trends" hidden>
-    <header class="topbar"><div><div class="tbDay">Trends</div><div class="tbDate">How it’s going, in plain words</div></div></header>
-    <section class="card trPace" id="trPace" hidden></section>
-    <div id="trLines"></div>
-    <div id="trInsights"></div>
-    <details class="card foldCard trAll"><summary>All the charts</summary>
-      <div class="cardHead"><h3>Each week</h3><span class="trLegend"><i class="lgH"></i>Habit score <i class="lgT"></i>Tasks done</span></div><div class="weekBars" id="trWeekly"></div>
+    <header class="topbar"><div><div class="tbDay">Report</div><div class="tbDate" id="rpWeek"></div></div>
+      <div class="rpNav"><button type="button" id="rpPrev" aria-label="Earlier week">‹</button><button type="button" id="rpNext" aria-label="Later week">›</button></div></header>
+    <div id="rpBody"></div>
+    <details class="card foldCard trAll"><summary>Longer view: all the charts</summary>
+      <div class="cardHead"><h3>Each week</h3><span class="trLegend"><i class="lgH"></i>On track <i class="lgT"></i>Tasks done</span></div><div class="weekBars" id="trWeekly"></div>
       <section class="statsGrid" id="trKpis"></section>
       <h4>Daily score · 28 days</h4><div class="bars28" id="trChart"></div><span class="small muted" id="trChartSub"></span>
       <h4>Each habit · 7 days vs 28</h4><div id="trHabits"></div>
@@ -234,7 +233,7 @@
   <nav class="tabbar" id="tabbar">
     <button type="button" data-view="today"><span class="tabIcon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M5.3 18.7l1.6-1.6M17.1 6.9l1.6-1.6"/></svg></span>Today</button>
     <button type="button" data-view="week"><span class="tabIcon"><svg viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="15.5" rx="3"/><path d="M3.5 10h17M8 3v4M16 3v4"/><path d="M8 14.2l2 2 4-4"/></svg></span>Week</button>
-    <button type="button" data-view="trends"><span class="tabIcon"><svg viewBox="0 0 24 24"><path d="M5 20V13M10 20V8M15 20V11M20 20V4"/></svg></span>Trends</button>
+    <button type="button" data-view="trends"><span class="tabIcon"><svg viewBox="0 0 24 24"><path d="M6.5 3h8.5l4 4v14h-12.5z"/><path d="M9.5 12h6M9.5 16h4"/></svg></span>Report</button>
     <button type="button" data-view="me"><span class="tabIcon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9.2"/><circle cx="12" cy="10" r="3.2"/><path d="M6.2 18.4c1.4-2.1 3.4-3.1 5.8-3.1s4.4 1 5.8 3.1"/></svg></span>Me</button>
   </nav>
 

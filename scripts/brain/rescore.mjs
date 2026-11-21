@@ -14,7 +14,7 @@ for (const r of rows) {
   const p = PERSONAS.find((x) => x.id === r.person);
   const state = p.build(); const day = todayOf(p);
   const d = (cache[p.id] ??= digest(state, day, { hour: 8 }));
-  const req = buildJob(r.job, d, { reflection: r.job === 'evening' ? state.days?.[day]?.reflection : null });
+  const req = buildJob(r.job, d, { reflection: r.job === 'evening' ? state.days?.[day]?.reflection : null, state });
   const c = check(req, r.raw, p, d);
   r.pass = c.pass; r.failed = c.checks.filter((x) => !x.ok).map((x) => `${x.name}${x.detail ? ` (${x.detail})` : ''}`);
 }

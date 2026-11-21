@@ -68,7 +68,7 @@
     async create(id, opts) {
       if (!('Notification' in window) || Notification.permission !== 'granted') return;
       const reg = await navigator.serviceWorker?.ready;
-      if (reg) reg.showNotification(opts.title, { body: opts.message, icon: 'icons/icon-192.png', badge: 'icons/icon-192.png', tag: String(id).split('-')[0] });
+      if (reg) reg.showNotification(opts.title, { body: opts.message, icon: 'icons/icon-192.png', badge: 'icons/icon-192.png', tag: String(id).split('-')[0], data: { url: opts.url || './' } });
       else new Notification(opts.title, { body: opts.message });
     },
     onClicked: { addListener() {} }, onButtonClicked: { addListener() {} }, clear() {},

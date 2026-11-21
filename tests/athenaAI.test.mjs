@@ -100,3 +100,19 @@ test('cost guardrails: input budget per prompt and a cost alert per call', () =>
   assert.equal(costAlert({ kind: 'weekly' }, 0.0005), false);
   assert.equal(costAlert({ kind: 'weekly' }, 0.002), true);
 });
+
+test('the report job: Athena rewrites the same weak spots, and nothing new gets through', async () => {
+  const { PERSONAS, todayOf } = await import('../scripts/brain/personas.mjs');
+  const { weekKeyOf } = await import('../lib/score.js');
+  const p = PERSONAS.find((x) => x.id === 'procrastinator');
+  const s = p.build(), t = todayOf(p);
+  const req = buildRequest('report', s, t, weekKeyOf(t));
+  assert.ok(req && req.draft.weak.length >= 1);
+  const good = { weak: req.draft.weak.map((w) => ({ id: w.id, title: 'A short title', why: w.why, fix: 'Try it on Monday morning.' })) };
+  assert.deepEqual(parseReply(req, JSON.stringify(good)).weak.map((w) => w.id), req.draft.weak.map((w) => w.id));
+  const invented = { weak: good.weak.map((w, i) => (i ? w : { ...w, why: 'You missed 9 days in a row.' })) };
+  assert.equal(parseReply(req, JSON.stringify(invented)), null);
+  if (req.draft.weak.length > 1) assert.equal(parseReply(req, JSON.stringify({ weak: [...good.weak].reverse() })), null); // ids out of order
+  assert.equal(parseReply(req, JSON.stringify({ weak: [] })), null);
+  assert.equal(noteFor(req, parseReply(req, JSON.stringify(good)), t, weekKeyOf(t), 'm').id, `ai-report-${weekKeyOf(t)}`);
+});

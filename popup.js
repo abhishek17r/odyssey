@@ -11,13 +11,13 @@ import { stakeLine, missedYesterdayCard, taskStake, weekLoad, trendLines, applyS
 import { openReviewSheet } from './lib/reviewSheet.js';
 import { insights, daysText } from './lib/insights.js';
 import { kleos, plannedOn, POINTS } from './lib/points.js';
-import { moveTicket, startPause, endPause, saveOnboarding, saveTactics, logUrge, deleteTicket, withoutDeviceKeys } from './lib/storage.js';
+import { moveTicket, rankTickets, startPause, endPause, saveOnboarding, saveTactics, logUrge, deleteTicket, withoutDeviceKeys } from './lib/storage.js';
 import { parseQuickAdd } from './lib/quickAdd.js';
 import { openAddTask } from './lib/addTask.js';
 import { openCalendar } from './lib/calendar.js';
 import { removeHabitFlow } from './lib/habitRemove.js';
-import { taskGroups, remindText } from './lib/when.js';
-import { swipeToDelete, undoToast } from './lib/controls.js';
+import { taskGroups, remindText, whenPatch } from './lib/when.js';
+import { swipeActions, dragReorder, undoToast } from './lib/controls.js';
 import { openOnboarding } from './lib/onboarding.js';
 import { openUrgePause } from './lib/urgePause.js';
 import { runEngine, tacticLine } from './lib/engine.js';
@@ -30,6 +30,10 @@ import { DEFAULT_REWARDS } from './rewards.config.js';
 import { athena, galley } from './lib/figures.js';
 import { isOnboarded, habitType } from './lib/profile.js';
 import { openDrawer } from './lib/controls.js';
+import { openOnTrack } from './lib/onTrack.js';
+import { weekReport, reportWeekFor, withAthena } from './lib/report.js';
+import { reportHash, visionHash } from './lib/athenaAI.js';
+import { openGoalSheet, visionLine } from './lib/goalSheet.js';
 import { currentUser } from './lib/cloud.js';
 import { VERSION } from './version.js';
 import { track, trackOpen } from './lib/usage.js';
@@ -67,6 +71,7 @@ const CHEER = {
 
 let state;
 let tick = null;
+let reportWeek = null; // the week the Report tab shows (null: the latest finished one)
 
 async function init() {
   state = await load();
@@ -99,14 +104,41 @@ async function init() {
   let asked = false;
   try { asked = !!sessionStorage.getItem('onbAsked'); sessionStorage.setItem('onbAsked', '1'); } catch { /* fine */ }
   if (!isOnboarded(state) && !asked) startOnboarding();
-  // links from notifications: ?open=review | plan | rewards | week
-  const open = new URLSearchParams(location.search).get('open');
-  const tid = new URLSearchParams(location.search).get('id');
-  if (open) {
-    history.replaceState(null, '', location.pathname);
-    ({ review: openReview, plan: () => openPlan(), rewards: openRewards, week: () => showView('week'), tasks: () => { setSide('tasks'); showView('today'); },
-      task: () => { setSide('tasks'); showView('week'); if (tid && state.tickets[tid]) openTicket(tid); } })[open]?.();
-  }
+  // links from notifications: ?open=… (on launch), or a message from the service worker (app already open)
+  const q = new URLSearchParams(location.search);
+  if (q.get('open')) { history.replaceState(null, '', location.pathname); routeOpen(q.get('open'), q.get('id')); }
+  navigator.serviceWorker?.addEventListener('message', (e) => {
+    if (e.data?.type !== 'odyssey:open') return;
+    const u = new URL(e.data.url, location.href);
+    routeOpen(u.searchParams.get('open'), u.searchParams.get('id'));
+  });
+}
+
+// Where each notification lands. Closes whatever sheet is open first.
+function routeOpen(open, id) {
+  if (!open) return;
+  document.querySelectorAll('.drawerX').forEach((x) => x.click());
+  const flash = (sel) => setTimeout(() => {
+    const n = document.querySelector(sel);
+    if (!n || !n.offsetParent) return;
+    n.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    n.classList.add('justAdded');
+    setTimeout(() => n.classList.remove('justAdded'), 2400);
+  }, 120);
+  const go = {
+    today: () => showView('today'),
+    tasks: () => { setSide('tasks'); showView('today'); },
+    checkin: () => { setSide('habits'); showView('today'); $('#reflectCard').open = true; flash('#reflectCard'); },
+    habit: () => { setSide('habits'); showView('today'); if (id) flash(`.habit[data-goal="${CSS.escape(id)}"]`); },
+    task: () => { setSide('tasks'); showView('week'); if (id && state.tickets[id]) openTicket(id); },
+    session: () => { if (state.activeSession) setFullscreen(true); else showView('today'); },
+    report: () => { reportWeek = id || null; showView('trends'); },
+    review: () => { reportWeek = null; showView('trends'); },
+    plan: () => openPlan(),
+    rewards: openRewards,
+    week: () => showView('week'),
+  }[open];
+  go?.();
 }
 
 function render() {
@@ -198,13 +230,23 @@ function urgeFor(g) {
 
 // ---------- sheets: plan, review, rewards (in the app) ----------
 const refreshAll = async () => { state = await load(); render(); if (view === 'trends') renderTrends(); };
-const openPlan = (wk = weekKeyOf(today)) => (track('sheet', { s: 'plan' }), openPlanSheet({ wk, onSaved: refreshAll, top: proposalsInto, onAddHabit: addHabitFlow }));
+// fixes: the report's suggestions, shown on top so the plan can take them in
+const openPlan = (wk = weekKeyOf(today), { fixes = [] } = {}) => (track('sheet', { s: 'plan' }), openPlanSheet({ wk, onSaved: refreshAll, onAddHabit: addHabitFlow, top: (box, redraw) => {
+  if (fixes.length) {
+    const c = document.createElement('section');
+    c.className = 'card planFixes';
+    c.innerHTML = `<h3>From your report: try this week</h3><ul>${fixes.map((f) => `<li><b>${esc(f.title)}</b><span>${esc(f.fix)}</span></li>`).join('')}</ul>`;
+    box.append(c);
+  }
+  proposalsInto(box, redraw);
+} }));
 
 // ---------- playbooks: add a habit, a habit's page, the morning after a miss ----------
 const pbFocus = (g) => {
   startOn(null);
   setTimeout(() => { if ([...$('#sHabit').options].some((o) => o.value === g.id)) $('#sHabit').value = g.id; $('#sWhat').focus(); }, 80);
 };
+const openGoal = (g) => (track('sheet', { s: 'goal' }), openGoalSheet({ goal: g, today, getState: () => state, onSaved: refreshAll, hash: visionHash }));
 const openPb = (g) => (track('sheet', { s: 'playbook' }), openPlaybook({ goalId: g.id, today, onChanged: refreshAll, onUrge: urgeFor, onFocus: pbFocus }));
 const addHabitFlow = () => (track('sheet', { s: 'add_habit' }), openAddHabit({ today, onAdded: async (g) => { await refreshAll(); openPb(g); } }));
 $('#addHabitBtn').onclick = addHabitFlow;
@@ -303,6 +345,7 @@ function renderForm() {
   form = buildCheckin({ box: $('#goalQs'), dayKey: today, getState: () => state, onSaved: () => { renderHeader(); renderProgress(); }, compact: true, tidy: true,
     getTactic: (g) => tacticLine(state, g, today), onUrge: urgeFor, onPlan: () => openPlan(),
     getStake: (g, values) => stakeLine(g, state, today, values), onOpen: openPb,
+    getVision: (g) => visionLine(state.profile?.visions?.[g.id], today), onGoal: openGoal,
     onRemove: async (g) => { if (await removeHabitFlow(g, today)) refreshAll(); } });
   renderProgress();
 }
@@ -396,6 +439,8 @@ function taskBlock(box, items, empty) {
   if (!items.length && empty) list.innerHTML = `<div class="emptyLine">${empty}</div>`;
   for (const t of items) list.append(taskRow(t));
   box.append(list);
+  // hold a task and drag it to put it where you want it
+  dragReorder(list, '.tkRow', async (ids) => { await rankTickets(ids); state = await load(); renderTasks(); });
   return list;
 }
 function foldRow(list, key, label, sub, items, build, rerender) {
@@ -415,10 +460,14 @@ function renderTasks() {
   const td = $('#tdList');
   td.innerHTML = '';
   const doneToday = g.done.filter((t) => dateKey(new Date(t.doneAt)) === today);
-  const tl = taskBlock(td, g.today, g.week.length ? 'Nothing due today.' : 'Nothing due today. Add one above.');
+  // at least 5 open tasks: what's due, then the rest of the week in your order
+  const shown = [...g.today, ...g.week.slice(0, Math.max(0, 5 - g.today.length))];
+  const rest = g.week.length - (shown.length - g.today.length);
+  const tl = taskBlock(td, shown, 'Nothing to do this week. Add one above.');
   foldRow(tl, 'doneToday', 'Done today', doneToday.map((t) => t.title).join(', '), doneToday, taskRow, renderTasks);
-  if (g.week.length) {
-    const more = Object.assign(document.createElement('button'), { type: 'button', className: 'linkBtn', textContent: `${g.week.length} more this week ›` });
+  if (shown.length > 1) td.append(Object.assign(document.createElement('p'), { className: 'reorderHint', textContent: 'Hold and drag to reorder · swipe right to finish · swipe left for more' }));
+  if (rest > 0) {
+    const more = Object.assign(document.createElement('button'), { type: 'button', className: 'linkBtn', textContent: `${rest} more this week ›` });
     more.onclick = () => { setSide('tasks'); showView('week'); };
     td.append(more);
   }
@@ -1303,6 +1352,19 @@ function taskRow(t) {
   const sk = t.status !== 'done' && taskStake(t, state, today, loggedH);
   if (sk) main.insertAdjacentHTML('beforeend', `<div class="tStake tone-${sk.tone}">${esc(sk.text)}</div>`);
   if (t.loss && t.status !== 'done') main.querySelector('.tMeta')?.insertAdjacentHTML('beforeend', ' <span class="hardTag">Hard deadline</span>');
+  // its open steps, right under it (tick them here); finished ones stay in the task sheet
+  const openKids = t.status !== 'done' ? kids.filter((k) => k.status !== 'done') : [];
+  if (openKids.length) {
+    const steps = Object.assign(document.createElement('div'), { className: 'tSteps' });
+    for (const k of openKids.slice(0, 4)) {
+      const srow = Object.assign(document.createElement('div'), { className: 'tStep' });
+      const sc = checkBtn({ state: null, title: 'Step done', onChange: async (v) => { if (v) { await updateTicket(k.id, { status: 'done' }); toast('Step done'); } } });
+      srow.append(sc, Object.assign(document.createElement('span'), { textContent: k.title }));
+      steps.append(srow);
+    }
+    if (openKids.length > 4) steps.append(Object.assign(document.createElement('div'), { className: 'tStepMore', textContent: `+ ${openKids.length - 4} more steps` }));
+    main.append(steps);
+  }
   row.append(chk, main);
   if (t.status !== 'done') {
     const go = Object.assign(document.createElement('button'), { className: 'playBtn', title: 'Focus on this', innerHTML: '▶' });
@@ -1311,7 +1373,18 @@ function taskRow(t) {
     row.append(go);
   }
   row.onclick = (e) => { if (!e.target.closest('button')) openTicket(t.id); };
-  swipeToDelete(row, () => removeTask(t));
+  // swipe right: done. swipe left: Tomorrow · Move · Delete
+  const open = t.status !== 'done';
+  swipeActions(row, {
+    onRight: open ? () => tickTask(row, chk, t)(true) : null,
+    actions: [
+      ...(open ? [
+        { label: 'Tomorrow', fn: async () => { const p = whenPatch('tomorrow', today); if ((p.sprint ?? null) !== (t.sprint ?? null)) await moveTicket(t.id, p.sprint); await updateTicket(t.id, { due: p.due }); toast('Moved to tomorrow'); } },
+        { label: 'Move…', cls: 'amber', fn: () => openTicket(t.id) },
+      ] : []),
+      { label: 'Delete', cls: 'red', fn: () => removeTask(t) },
+    ],
+  });
   return row;
 }
 
@@ -1344,10 +1417,12 @@ function renderWeek() {
   const tm = timeOnDays(state, days.filter((k) => k <= today));
   const overdue = tasks.filter((t) => t.status !== 'done' && t.due && t.due < today).length;
   $('#wkKpis').innerHTML = [
-    [sum.avg ?? '—', 'week score', ''],
+    [sum.avg == null ? '—' : `${sum.avg}%`, 'on track ⓘ', '', 'onTrack'],
     [`${sts.filter((x) => x === 'done' || x === 'on').length} of ${goals.length}`, 'habits on track', ''],
     [`${doneT} of ${tasks.length}`, overdue ? `tasks · ${overdue} late` : 'tasks done', overdue ? 'red' : ''],
-  ].map(([v, l, c]) => `<div class="wkKpi"><b class="${c ? `band ${c}` : ''}">${v}</b><span>${l}</span></div>`).join('');
+  ].map(([v, l, c, act]) => `<div class="wkKpi"${act ? ` data-act="${act}" role="button" tabindex="0"` : ''}><b class="${c ? `band ${c}` : ''}">${v}</b><span>${l}</span></div>`).join('');
+  const ot = $('#wkKpis [data-act="onTrack"]');
+  if (ot) ot.onclick = () => openOnTrack({ wk, state, uptoKey: today });
 
   // habits: where each one stands this week
   const hb = $('#wkHabits');
@@ -1392,66 +1467,7 @@ function renderWeek() {
 
 const bandOf = (sc) => band(sc);
 function renderTrends() {
-  // in plain words first: where you're heading, then one sentence per habit
-  const wkNow = weekKeyOf(today);
-  const focusOf = (wk) => timeOnDays(state, weekDays(wk).filter((k) => k <= today)).totalMin;
-  const usualF = [1, 2, 3, 4].map((i) => focusOf(dateKey(addDays(parseKey(wkNow), -7 * i))));
-  const TL = trendLines(state, today, { focusMin: { week: focusOf(wkNow), usual: usualF.some((x) => x) ? usualF.reduce((a, b) => a + b, 0) / 4 : null } });
-  $('#trPace').hidden = !TL.pace;
-  $('#trPace').innerHTML = TL.pace ? `<small>At this pace</small><p>${TL.pace}</p>` : '';
-  $('#trLines').innerHTML = TL.lines.length ? TL.lines.map((l) => `<div class="card trLine"><span class="tlIcon">${esc(l.icon || '⭐')}</span><p>${l.html}</p>${l.go ? '<button type="button" class="linkBtn" data-go="tasks">See them ›</button>' : ''}</div>`).join('')
-    : '<section class="card"><div class="emptyLine">Log a couple of weeks and the plain-words story of your habits shows up here.</div></section>';
-  $('#trLines').querySelectorAll('[data-go]').forEach((b) => (b.onclick = () => { setSide('tasks'); showView('week'); }));
-  const box = $('#trInsights');
-  box.innerHTML = '';
-  // Athena's weekly read leads; the rule-based nudges are the fallback when she's switched off
-  const read = weeklyRead(state, today);
-  if (read) {
-    const card = document.createElement('section');
-    card.className = 'card';
-    card.append(athenaRead(read, 'Athena · this week'));
-    box.append(card);
-  }
-  const ins = read ? [] : insights(state, today);
-  const todo = ins.filter((x) => x.tone !== 'good');
-  const good = ins.filter((x) => x.tone === 'good');
-  const cell = (x) => {
-    const c = document.createElement('div');
-    c.className = `insight ${x.tone}`;
-    c.innerHTML = `<span class="inDot"></span><div class="inMain"><b>${esc(x.title)}</b><div class="small">${esc(x.body)}</div></div>`;
-    if (x.action) {
-      const b = document.createElement('button');
-      b.type = 'button';
-      b.className = 'inGo';
-      b.textContent = x.action.label;
-      b.onclick = (e) => { e.stopPropagation(); insightGo(x.action); };
-      c.append(b);
-      c.classList.add('tappable');
-      c.onclick = () => insightGo(x.action);
-    }
-    return c;
-  };
-  if (!read && !ins.length) box.innerHTML = '<section class="card"><div class="emptyLine">Log a few days and run some focus sessions; what matters shows up here.</div></section>';
-  if (todo.length) {
-    const card = document.createElement('section');
-    card.className = 'card insights';
-    card.innerHTML = '<h3>Worth your attention</h3>';
-    todo.slice(0, 3).forEach((x) => card.append(cell(x)));
-    if (todo.length > 3) {
-      const more = document.createElement('details');
-      more.className = 'moreIns';
-      more.innerHTML = `<summary>${todo.length - 3} more</summary>`;
-      todo.slice(3).forEach((x) => more.append(cell(x)));
-      card.append(more);
-    }
-    box.append(card);
-  }
-  if (good.length) {
-    const card = document.createElement('section');
-    card.className = 'card insights good';
-    card.innerHTML = `<h3>Going well</h3><ul class="wins">${good.map((x) => `<li>${esc(x.title)}</li>`).join('')}</ul>`;
-    box.append(card);
-  }
+  renderReport();
   const last7 = lastNDays(today, 7);
   const last28 = lastNDays(today, 28);
   const t7 = timeOnDays(state, last7);
@@ -1472,7 +1488,7 @@ function renderTrends() {
   };
   const W = wks.map(wkStat);
   const fmtW = (wk) => parseKey(wk).toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
-  $('#trWeekly').innerHTML = `<div class="wbRow">${W.map((w) => `<div class="wbCol ${w.wk === cur ? 'now' : ''}" title="${fmtW(w.wk)}: habit score ${w.habit ?? '—'} · tasks ${w.done} of ${w.tasks}">
+  $('#trWeekly').innerHTML = `<div class="wbRow">${W.map((w) => `<div class="wbCol ${w.wk === cur ? 'now' : ''}" title="${fmtW(w.wk)}: on track ${w.habit ?? '—'}% · tasks ${w.done} of ${w.tasks}">
       <i class="wbH" style="height:${w.habit == null ? 2 : Math.max(3, w.habit)}%"></i><i class="wbT" style="height:${w.taskPct == null ? 2 : Math.max(3, w.taskPct)}%"></i></div>`).join('')}</div>
     <div class="wbAxis"><span>${fmtW(wks[0])}</span><span>this week, so far</span></div>`;
   const avg = (xs) => { const v = xs.filter((x) => x != null); return v.length ? v.reduce((p, x) => p + x, 0) / v.length : null; };
@@ -1489,7 +1505,7 @@ function renderTrends() {
   const fw = avg(last4.map((w) => w.focusMin)), fwP = avg(prev4.map((w) => w.focusMin));
   const sm = avg(last4.map((w) => w.startMin)), smP = avg(prev4.map((w) => w.startMin));
   $('#trKpis').innerHTML = [
-    ['Habit score · 4 weeks', hk == null ? '—' : Math.round(hk), diff(hk == null ? null : Math.round(hk), hkP == null ? null : Math.round(hkP))],
+    ['On track · 4 weeks', hk == null ? '—' : Math.round(hk), diff(hk == null ? null : Math.round(hk), hkP == null ? null : Math.round(hkP))],
     ['Tasks done · 4 weeks', tn ? `${dn} of ${tn}` : '—', tn ? `<span class="kD">${Math.round((100 * dn) / tn)}%</span>` : ''],
     ['Focus a week', fw == null ? '—' : hm(fw), fw >= 60 ? diff(fw == null ? null : Math.round(fw / 6) / 10, fwP == null ? null : Math.round(fwP / 6) / 10, ' h') : diff(fw == null ? null : Math.round(fw), fwP == null ? null : Math.round(fwP), ' min')],
     ['Time to get started', sm == null ? '—' : `${Math.round(sm)} min`, diff(sm == null ? null : Math.round(sm), smP == null ? null : Math.round(smP), '', true)],
@@ -1541,6 +1557,56 @@ function renderTrends() {
     const r = x.id === 'unrecorded' ? { icon: '❔', label: 'No reason given' } : reasonById(x.id) || { icon: '', label: x.id };
     return `<div class="trReason"><span class="trrName">${r.icon} ${esc(r.label)}</span><div class="thBar"><i style="width:${Math.round((100 * x.min) / tot)}%"></i></div><b>${Math.round(x.min)} min</b></div>`;
   }).join('') : '<div class="emptyLine">No procrastination logged in 4 weeks. 👏</div>';
+}
+
+// ---------- Report: the week in numbers, what went well, the weak spots and what to try, then plan next week ----------
+function renderReport() {
+  const latest = reportWeekFor(today);
+  const cur = weekKeyOf(today);
+  const wk = reportWeek && reportWeek <= cur ? reportWeek : latest;
+  const R = withAthena(weekReport(state, wk, today), state, reportHash);
+  $('#rpWeek').textContent = `${wk === cur && !R.finished ? 'This week so far' : 'Week of'} ${R.label}`;
+  const prevWk = dateKey(addDays(parseKey(wk), -7)), nextWk = dateKey(addDays(parseKey(wk), 7));
+  $('#rpPrev').onclick = () => { reportWeek = prevWk; renderReport(); };
+  $('#rpNext').disabled = nextWk > cur;
+  $('#rpNext').onclick = () => { reportWeek = nextWk; renderReport(); };
+  const box = $('#rpBody');
+  box.innerHTML = '';
+  const diff = R.onTrack != null && R.onTrackBefore != null ? `${R.onTrackBefore}% the week before` : 'on track';
+  const tiles = document.createElement('section');
+  tiles.className = 'rpTiles';
+  tiles.innerHTML = `<button type="button" class="rpTile" data-ot><b class="good">${R.onTrack == null ? '—' : `${R.onTrack}%`}</b><span>on track ⓘ<br>${esc(diff)}</span></button>
+    <div class="rpTile"><b>${R.tasks.done} of ${R.tasks.total}</b><span>tasks done${R.tasks.movedOn ? `<br>${R.tasks.movedOn} moved on` : ''}</span></div>
+    <div class="rpTile"><b>${R.focusH} h</b><span>focused${R.usualFocusH ? `<br>usual ${R.usualFocusH} h` : ''}</span></div>`;
+  tiles.querySelector('[data-ot]').onclick = () => openOnTrack({ wk, state, uptoKey: R.finished ? weekDays(wk)[6] : today });
+  box.append(tiles);
+  if (R.read) { const c = document.createElement('section'); c.className = 'card'; c.append(athenaRead(R.read, 'Athena')); box.append(c); }
+  if (R.wins.length) {
+    const c = document.createElement('section');
+    c.className = 'card rpWins';
+    c.innerHTML = `<h3>Went well</h3><ul>${R.wins.map((w) => `<li>${esc(w)}</li>`).join('')}</ul>`;
+    box.append(c);
+  }
+  const h = document.createElement('h3');
+  h.className = 'rpSec';
+  h.innerHTML = R.weak.length ? `Weak spots${R.weakAI ? ' <small>· Athena, written with AI from your numbers</small>' : ''}` : 'Weak spots: none stood out';
+  box.append(h);
+  for (const w of R.weak) {
+    const c = document.createElement('section');
+    c.className = 'card rpWeak';
+    c.innerHTML = `<b>${esc(w.title)}</b><p>${esc(w.why)}</p><div class="rpFix"><span aria-hidden="true">→</span><span>${esc(w.fix)}</span></div>`;
+    box.append(c);
+  }
+  // plan the week after the one shown (only for the current or last week)
+  const planWk = nextWk;
+  if (planWk >= cur) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'primary rpPlan';
+    b.textContent = planWk === cur ? 'Plan this week' : 'Plan next week';
+    b.onclick = () => { track('report_plan'); openPlan(planWk, { fixes: R.weak }); };
+    box.append(b);
+  }
 }
 
 function insightGo(a) {

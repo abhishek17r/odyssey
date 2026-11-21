@@ -30,10 +30,10 @@ chrome.storage.onChanged.addListener((changes) => { if (triggersSync(Object.keys
 chrome.alarms.onAlarm.addListener(async ({ name }) => {
   const { activeSession: s } = await chrome.storage.local.get('activeSession');
   if (name === 'sessionEnd' && s?.phase === 'work') {
-    chrome.notifications.create('session', { title: `⏰ ${s.minutes} min done`, message: `“${s.task}”: end the session, or keep going.` });
+    chrome.notifications.create('session', { title: `⏰ ${s.minutes} min done`, message: `“${s.task}”: end the session, or keep going.`, url: './?open=session' });
     navigator.vibrate?.([200, 100, 200]);
   }
-  if (name === 'twoMin' && s?.phase === 'work') chrome.notifications.create('session', { title: '✅ Two minutes in. You started.', message: 'That was the hard part.' });
+  if (name === 'twoMin' && s?.phase === 'work') chrome.notifications.create('session', { title: '✅ Two minutes in. You started.', message: 'That was the hard part.', url: './?open=session' });
 });
 // a session started elsewhere (or before a reload): put its end alarm back
 async function rearm() {

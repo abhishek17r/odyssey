@@ -3,6 +3,8 @@
 
 import { numbersIn } from '../../lib/digest.js';
 import { crisisIn, CRISIS_LINE } from '../../lib/safety.js';
+import { buildRequest } from '../../lib/athenaAI.js';
+import { weekKeyOf } from '../../lib/score.js';
 
 export const SYSTEM = `You are the brain inside Odyssey, a habit and task app. Two voices use you:
 Athena speaks (morning line, evening reply, weekly read). Hermes proposes changes the person can accept or decline.
@@ -30,7 +32,7 @@ const numOrNull = orNull({ type: 'number' });
 const obj = (properties) => ({ type: 'object', properties, required: Object.keys(properties), additionalProperties: false });
 
 // Per-prompt input budgets in tokens (about 3x today's sizes): a bigger request is never sent.
-export const INPUT_BUDGET = { morning: 1200, evening: 1200, weekly: 1500, proposals: 2000 };
+export const INPUT_BUDGET = { morning: 1200, evening: 1200, weekly: 1500, proposals: 2000, report: 1500 };
 
 export const KINDS = ['move_task', 'split_task', 'shrink_habit', 'set_target', 'plan_session', 'note'];
 
@@ -70,6 +72,13 @@ Use only the ids in "valid". Set every field the kind doesn't use to null. "why"
     }) } }),
     maxWords: 160,
   },
+  // the Report tab's weak spots in Athena's words: the live app's own request (lib/athenaAI.js), run here to test it
+  report: {
+    tier: 'large',
+    live: true,
+    schema: obj({ weak: { type: 'array', items: obj({ id: str, title: str, why: str, fix: str }) } }),
+    maxWords: 200,
+  },
 };
 
 // Only the facts a job needs (smaller prompts, less to misread).
@@ -82,8 +91,18 @@ function factsFor(job, d) {
 
 // The request for one job: { job, tier, system, user, schema } (each provider adapter turns it into its own call).
 // A crisis reflection never reaches a model: the fixed line answers it (req.fixed).
-export function buildJob(job, d, { memory = null, reflection = null } = {}) {
+export function buildJob(job, d, { memory = null, reflection = null, state = null } = {}) {
   const J = JOBS[job];
+  if (J.live) {
+    // the report for this week as the app would ask it (null: no weak spots, nothing to write)
+    const live = state && buildRequest(job, state, d.day, weekKeyOf(d.day));
+    if (!live) return null;
+    const user = live.messages[1].content;
+    const req = { job, tier: J.tier, system: live.messages[0].content, user, schema: J.schema, maxWords: J.maxWords, allowed: numbersIn({ facts: JSON.parse(user) }), draft: live.draft };
+    req.estIn = Math.ceil((req.system.length + req.user.length) / 3.6);
+    req.overBudget = req.estIn > INPUT_BUDGET[job];
+    return req;
+  }
   const facts = factsFor(job, d);
   const valid = job === 'proposals' ? { taskIds: d.tasks.list.map((t) => t.id), habits: d.habits.map((h) => ({ goalId: h.id, name: h.name, target: h.target })) } : null;
   const user = { task: J.task, facts, ...(valid ? { valid } : {}), ...(memory ? { memory } : {}), ...(reflection ? { reflection: String(reflection).slice(0, 600) } : {}) };
@@ -110,13 +129,15 @@ export function check(req, raw, persona, d) {
   add('json', j && typeof j === 'object', 'not JSON');
   if (!j || typeof j !== 'object') return { pass: false, checks: out, text: String(raw || '').slice(0, 300) };
 
-  const texts = req.job === 'weekly' ? [...(Array.isArray(j.lines) ? j.lines : []), j.experiment || '']
+  const texts = req.job === 'report' ? (Array.isArray(j.weak) ? j.weak : []).flatMap((w) => [w.title, w.why, w.fix]).filter(Boolean)
+    : req.job === 'weekly' ? [...(Array.isArray(j.lines) ? j.lines : []), j.experiment || '']
     : req.job === 'proposals' ? (Array.isArray(j.proposals) ? j.proposals : []).flatMap((p) => [p.why, p.text, p.tiny, ...(p.steps || [])]).filter(Boolean)
       : [j.text || ''];
   const text = texts.join(' ').trim();
 
   // shape and length
-  if (req.job === 'weekly') add('shape', Array.isArray(j.lines) && j.lines.length >= 3 && j.lines.length <= 4 && j.experiment, `${j.lines?.length} lines`);
+  if (req.job === 'report') add('shape', Array.isArray(j.weak) && j.weak.length === req.draft.weak.length && j.weak.every((w, i) => w.id === req.draft.weak[i].id && w.title && w.why && w.fix), 'not the same weak spots');
+  else if (req.job === 'weekly') add('shape', Array.isArray(j.lines) && j.lines.length >= 3 && j.lines.length <= 4 && j.experiment, `${j.lines?.length} lines`);
   else if (req.job === 'proposals') add('shape', Array.isArray(j.proposals) && j.proposals.length <= 3, `${j.proposals?.length} proposals`);
   else add('shape', typeof j.text === 'string' && j.text.trim().length > 0, 'no text');
   add('length', words(text) <= req.maxWords, `${words(text)} words`);

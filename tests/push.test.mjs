@@ -24,3 +24,16 @@ test('at most three reminders a day; a finished session always gets through', ()
   const running = { ...state, activeSession: { id: 's', phase: 'work', minutes: 25, task: 'Doc', workMs: 0, phaseStart: at('08:00') } };
   assert.ok(duePushes(running, at('08:50'), sent).some((x) => x.key === 'end:s'));
 });
+
+test('every notification says where a tap lands', () => {
+  const urls = Object.fromEntries(duePushes(state, at('08:31')).map((x) => [x.key.split(':')[0], x.url]));
+  assert.equal(urls.morning, './?open=tasks');
+  const cue = duePushes(state, at('08:41'), new Set(['morning:2026-11-19', 'midday:2026-11-19'])).find((x) => x.key.startsWith('cue:'));
+  assert.equal(cue.url, './?open=habit&id=gym');
+  const fri = Date.parse('2026-11-20T20:05:00Z');
+  const rep = duePushes({ ...state, settings: { ...state.settings, planTime: '20:00' } }, fri).find((x) => x.key.startsWith('plan:'));
+  assert.equal(rep.url, './?open=report&id=2026-11-14');
+  assert.equal(rep.title, 'Your week is in');
+  const running = { ...state, activeSession: { id: 's', phase: 'work', minutes: 25, task: 'Doc', workMs: 0, phaseStart: at('08:00') } };
+  assert.equal(duePushes(running, at('08:50')).find((x) => x.key === 'end:s').url, './?open=session');
+});

@@ -36,7 +36,8 @@ self.addEventListener('notificationclick', (e) => {
   const url = new URL(e.notification.data?.url || './', self.registration.scope).href;
   e.waitUntil(self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((list) => {
     const open = list.find((c) => c.url.startsWith(self.registration.scope));
-    if (open) return open.navigate(url).then((c) => (c || open).focus()).catch(() => open.focus());
+    // an open app moves itself (iOS won't let a service worker navigate a window it already has)
+    if (open) { open.postMessage({ type: 'odyssey:open', url }); return open.focus().catch(() => {}); }
     return self.clients.openWindow(url);
   }));
 });
