@@ -19,6 +19,15 @@ The UX is close to final: the owner uses 1.2 for a few days before it's frozen. 
 
 Long-lead applications to start early, whatever the decision: Apple Developer and Play Console accounts, a domain and support address, Apple's Screen Time (Family Controls) entitlement, Google's Calendar scope review.
 
+## Added 21 Nov 2026
+
+Four workstreams from the owner, after 1.3 and 1.4. The AI one widens step 1 above; the other three run alongside it.
+
+1. **Testing notifications.** Prove every notification arrives on time and lands on its own screen, on a real iPhone and Android, with the app closed, in the background and open: morning, midday, evening, habit cues, task reminders, focus session done, Friday's report. A test page in Me that sends each one on demand, and a checklist run before each release.
+2. **A framework for gamification.** One written design for journeys (the voyage, harbours, perils), the points structure (what earns Kleos, what costs it, caps), side quests, laurels and the marketplace (what Kleos buys, prices, rewards per harbour), and how to stop people gaming it: self-reported quests and logs, retro-logging past days, ticking tasks made only to tick them, fast-day claims. Balance checked with simulated users before any change ships.
+3. **UX polish.** A pass over every screen on a real phone: spacing, wording, empty states, motion, dark mode, the gestures from 1.3, and anything still awkward to add, edit, move or review.
+4. **A coach nearly as good as a human (AI).** Deeper coaching expertise per habit (sleep, training, smoking, focus, diet) written as playbooks the model follows; a personal experience built from the person's own history; context that persists across days and conversations (memory, readable and editable in Me); and a full agent (Hermes) that plans, acts with your OK and follows up. Measured against human-coach answers on the test set before it ships, with the cost per user tracked.
+
 ## Next: Hermes, the agent
 
 Athena stays the voice that coaches you. **Hermes** is the one who acts: the messenger who runs errands between worlds, the patron of travellers. He reads your habits, tasks and (later) calendar and email, then does the work with your OK. (Achilles was the other candidate; Hermes fits a helper who carries messages and runs errands better than a warrior does.)
