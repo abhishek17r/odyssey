@@ -129,3 +129,13 @@ test('every answer is a record line in the thread, with where it was given; Athe
   const old = withRecord({ notes: { [LOG_ID]: { events: [{ id: 'x', at: Date.now() - 40 * 864e5, text: 'old' }] } } }, {}, { text: 'new' });
   assert.deepEqual(old.notes[LOG_ID].events.map((e) => e.text), ['new']);
 });
+
+test('eval fixes (1.9): "the client" is not third person; a reminder given only its hour uses it', () => {
+  const { s, day } = setup('overloaded');
+  const req = chatRequest(s, day, 10, 'This week is too much. What can I drop?', { now: NOW(day) });
+  assert.ok(parseChat(req, { reply: 'Keep the client prep for today.', ideas: [] }, s, day));
+  const n = setup('new-user');
+  const r2 = chatRequest(n.s, n.day, 10, 'What should I focus on today?', { now: NOW(n.day) });
+  const out = parseChat(r2, { reply: 'An evening cue for gym.', ideas: [{ kind: 'set_cue', title: 'Cue gym', why: ['Gym is still needed this week.'], goalId: 'gym', hour: '18:00' }] }, n.s, n.day);
+  assert.equal(out.ideas[0]?.time, '18:00');
+});
