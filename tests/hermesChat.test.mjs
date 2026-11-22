@@ -39,7 +39,7 @@ test('chat: a trip becomes a pause, checked by code; crisis never reaches the AI
 test('chat checks: written to you, no invented numbers, no medical advice beyond the fixed line', () => {
   const { s, day } = setup();
   const req = chatRequest(s, day, 10, 'Im wiped today', { now: NOW(day) });
-  assert.equal(parseChat(req, { reply: 'They should rest.', ideas: [] }, s, day), null, 'third person');
+  assert.equal(parseChat(req, { reply: 'The user should rest.', ideas: [] }, s, day), null, 'third person');
   assert.equal(parseChat(req, { reply: 'You slept 37 hours, so rest.', ideas: [] }, s, day), null, 'a number not in the facts');
   assert.equal(parseChat(req, { reply: 'Take melatonin tonight.', ideas: [] }, s, day), null, 'medical advice');
   const med = chatRequest(s, day, 10, 'Should I take melatonin to sleep earlier?', { now: NOW(day) });

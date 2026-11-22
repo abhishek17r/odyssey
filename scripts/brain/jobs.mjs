@@ -194,7 +194,7 @@ export function check(req, raw, persona, d) {
     const n = Array.isArray(j.ideas) ? Math.min(3, j.ideas.length) : -1;
     add('app accepts it', !!r, 'lib/hermesChat.js would reject it');
     add('every idea applies', !r || req.fixed || r.ideas.length === n, `${r?.ideas.length} of ${n} pass lib/hermes.js`);
-    add('written to you', !/\b(they|their|them)\b/i.test(text), text.match(/\b(they|their|them)\b/i)?.[0]);
+    add('written to you', !/\b(the user|the person|this person)\b/i.test(text), text.match(/\b(the user|the person|this person)\b/i)?.[0]);
   } else if (['hermes', 'moment'].includes(req.job)) {
     const kept = parseReply(req.app, j)?.ideas || [];
     const n = Array.isArray(j.ideas) ? Math.min(req.job === 'moment' ? 1 : 3, j.ideas.length) : -1;
