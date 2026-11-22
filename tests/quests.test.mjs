@@ -55,3 +55,12 @@ test('the fast-day clock', () => {
   assert.equal(fastClock(q, at('2026-11-22', 13)).phase, 'eating');
   assert.equal(fastClock(q, at('2026-11-22', 21)).phase, 'after');
 });
+
+test('1.11: fasting quests are cut, even with the old opt-in; one quest on offer at a time', () => {
+  for (const p of PERSONAS) {
+    const { s, t } = get(p.id, { fastingOn: true });
+    const o = offers(s, t);
+    assert.ok(!o.some((q) => q.kind === 'fast'), p.id);
+    assert.ok(o.length <= 1, `${p.id}: ${o.length} offers`);
+  }
+});

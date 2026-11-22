@@ -8,7 +8,6 @@ import { openPlanSheet } from './lib/planSheet.js';
 import { openAddHabit } from './lib/addHabit.js';
 import { openPlaybook } from './lib/playbookPage.js';
 import { stakeLine, missedYesterdayCard, taskStake, weekLoad, trendLines, applyStepDown } from './lib/playbooks.js';
-import { openReviewSheet } from './lib/reviewSheet.js';
 import { insights, daysText } from './lib/insights.js';
 import { kleos, plannedOn, POINTS } from './lib/points.js';
 import { moveTicket, rankTickets, startPause, endPause, saveOnboarding, saveTactics, logUrge, deleteTicket, withoutDeviceKeys } from './lib/storage.js';
@@ -319,7 +318,7 @@ const openPlan = (wk = weekKeyOf(today), { fixes = [] } = {}) => (track('sheet',
     c.innerHTML = `<h3>From your report: try this week</h3><ul>${fixes.map((f) => `<li><b>${esc(f.title)}</b><span>${esc(f.fix)}</span></li>`).join('')}</ul>`;
     box.append(c);
   }
-  proposalsInto(box, redraw);
+  // 1.11: Athena's old suggestions in Plan merged into her ideas (the thread); proposalsInto stays unused
 } }));
 
 // ---------- playbooks: add a habit, a habit's page, the morning after a miss ----------
@@ -401,7 +400,8 @@ function proposalsInto(box, redraw) {
   }
   box.append(g);
 }
-const openReview = () => (track('sheet', { s: 'review' }), openReviewSheet({ getState: () => state, today, onChanged: refreshAll }));
+// 1.11: the separate review sheet merged into the Report; everything that opened it opens the Report
+const openReview = () => { track('sheet', { s: 'review-to-report' }); showView('trends'); };
 // the voyage sheet (it took over from the old rewards sheet; rewards are set by the owner on the admin page)
 let rewards = DEFAULT_REWARDS;
 const openRewards = () => (track('sheet', { s: 'voyage' }), openVoyage({ getState: () => state, today, getRewards: () => rewards, onChanged: refreshAll }));
