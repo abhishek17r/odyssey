@@ -72,7 +72,7 @@ for (const p of people) {
 }
 
 const estIn = (r) => Math.round((r.req.system.length + r.req.user.length + JSON.stringify(r.req.schema).length) / 3.6);
-const EST_OUT = { morning: 350, evening: 350, weekly: 900, proposals: 900, report: 700, memory: 600, hermes: 700 }; // incl. a little thinking/reasoning
+const EST_OUT = { morning: 350, evening: 350, weekly: 900, proposals: 900, report: 700, memory: 600, hermes: 700, moment: 500 }; // incl. a little thinking/reasoning
 const fmt$ = (x) => (x < 0.01 ? `$${x.toFixed(5)}` : `$${x.toFixed(4)}`);
 
 // ---------- cache and estimates ----------

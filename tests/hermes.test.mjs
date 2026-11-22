@@ -142,3 +142,46 @@ test('a lower target only after two short weeks, never to match a slow week', ()
   h.weeksShortBefore = 1;
   assert.equal(parseReply(rq, { ideas: [idea] }).ideas.length, 0);
 });
+
+// ---------- moments ----------
+import { momentsNow, momentRequest, momentId, MOMENTS_A_WEEK } from '../lib/hermes.js';
+
+test('moments: code spots them, daytime only, one a day, not again for a week', () => {
+  const { s, day } = setup('deadline-crunch');
+  assert.deepEqual(momentsNow(s, day, 10).map((m) => m.type), ['deadline']);
+  assert.equal(momentsNow(s, day, 22).length, 0, 'not at night');
+  const req = buildRequest('moment', s, day, weekKeyOf(day), null, { hour: 10 });
+  assert.ok(req && req.kind === 'moment' && req.noteId === momentId(day) && req.input.moment.taskId === 't1');
+  s.notes[momentId(day)] = { ideas: [], moment: req.moment, at: Date.now() };
+  assert.equal(momentRequest(s, day, 10), null, 'one a day, a rejected one too');
+  assert.equal(momentsNow(s, shift(day, 1), 10).length, 0, 'the same moment not again for a week');
+  const p = setup('deadline-crunch'); p.s.pauses = [{ startDay: p.day, endDay: null }];
+  assert.equal(momentRequest(p.s, p.day, 10), null, 'never while paused');
+  const r = setup('scrolling-late');
+  assert.equal(momentsNow(r.s, r.day, 20)[0].type, 'slip', 'an hour before it usually slips');
+  assert.equal(momentsNow(r.s, r.day, 12).length, 0);
+  const n = setup('deadline-crunch'); n.s.days[n.day] = { ...(n.s.days[n.day] || {}), reflection: 'I need to start earlier tomorrow' };
+  assert.ok(momentsNow(n.s, n.day, 10).some((m) => m.type === 'note'));
+  assert.equal(MOMENTS_A_WEEK, 3);
+});
+
+test('a moment idea must be about the moment; it shows first and is pushed straight away', () => {
+  const { s, day } = setup('deadline-crunch');
+  s.settings.tz = 'UTC';
+  const req = buildRequest('moment', s, day, weekKeyOf(day), null, { hour: 10 });
+  const good = { kind: 'plan_session', title: 'Start the investor update', why: ['It is due tomorrow.'], taskId: 't1', at: 'today 11:00', minutes: 60 };
+  assert.equal(parseReply(req, { ideas: [{ ...good, taskId: 't2' }] }).ideas.length, 0, 'about another task');
+  const ideas = parseReply(req, { ideas: [good, { ...good, at: 'today 15:00' }] }).ideas;
+  assert.deepEqual(ideas.map((i) => i.id), [`${day}-m1`], 'one idea');
+  const at = Date.parse(`${day}T10:05:00Z`);
+  s.notes[ideasId(weekKeyOf(day))] = { ideas: [] };
+  s.notes[momentId(day)] = { ideas, moment: req.moment, at };
+  assert.equal(openIdeas(s, day)[0].id, `${day}-m1`);
+  const p = duePushes(s, at + 60000).filter((x) => x.key.startsWith('hermes:'));
+  assert.equal(p.length, 1); assert.match(p[0].url, /-m1/);
+  assert.equal(duePushes(s, at + 3 * 36e5).filter((x) => x.key.startsWith('hermes:')).length, 0, 'only while fresh');
+  // answered like any idea
+  Object.assign(s, answer(s, ideas[0], 'accepted', day));
+  assert.equal(activeTrials(s, day).length, 1);
+  assert.equal(openIdeas(s, day).length, 0);
+});

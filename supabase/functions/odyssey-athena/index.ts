@@ -24,7 +24,7 @@ const db = createClient(env('SUPABASE_URL'), env('SUPABASE_SERVICE_ROLE_KEY'), {
 const BASE = (env('AI_BASE_URL') || 'https://api.openai.com/v1').replace(/\/$/, '');
 const prices = (() => { try { return { ...PRICES, ...JSON.parse(env('AI_PRICES') || '{}') }; } catch { return PRICES; } })();
 const MAX_CALLS_PER_RUN = 40;
-const MAX_REWRITES = { morning: 2, evening: 3, weekly: 2, report: 2, goal: 3, memory: 99, hermes: 3 }; // memory: its own once-a-week gate (lib/memory.js) // per note: a draft that keeps moving stops costing
+const MAX_REWRITES = { morning: 2, evening: 3, weekly: 2, report: 2, goal: 3, memory: 99, hermes: 3, moment: 1 }; // memory: its own once-a-week gate (lib/memory.js) // per note: a draft that keeps moving stops costing
 
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), {
   status, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, apikey, content-type, x-client-info' },
@@ -83,6 +83,8 @@ function candidates(state: any, day: string, hour: number, force: boolean, hard 
   for (const id of Object.keys(state.profile?.visions || {})) out.push({ req: buildRequest('goal', state, day, cur, id), day, wk: cur });
   // Athena's memory: rebuilt once a week (from 5 am), and first, so this run's notes are written with it
   // Hermes' ideas for the week: once a week, after the memory (rebuilt only by the owner's Run now)
+  // a moment (something just happened): one idea now, at most one a day; it keeps its own hours, even on a launch
+  out.unshift({ req: buildRequest('moment', state, day, cur, null, { hour }), day, wk: cur });
   if (hour >= 6 || force) out.unshift({ req: buildRequest('hermes', state, day, cur, null, { force: hard }), day, wk: cur });
   if (hour >= 5 || force) out.unshift({ req: buildRequest('memory', state, day, cur, null, { force }), day, wk: cur });
   return out.filter((c) => c.req);
@@ -102,7 +104,7 @@ async function ask(req: any, uid: string) {
       },
       body: JSON.stringify({
         model: req.model, messages: req.messages, response_format: { type: 'json_object' },
-        reasoning_effort: effortFor(req.model), max_completion_tokens: ['memory', 'hermes'].includes(req.kind) ? 1200 : ['weekly', 'report', 'goal'].includes(req.kind) ? 900 : 500,
+        reasoning_effort: effortFor(req.model), max_completion_tokens: ['memory', 'hermes', 'moment'].includes(req.kind) ? 1200 : ['weekly', 'report', 'goal'].includes(req.kind) ? 900 : 500,
         prompt_cache_key: `athena-${req.kind}`, // the system prompt is shared: OpenAI's cache makes it cheaper
       }),
     });
@@ -210,7 +212,17 @@ Deno.serve(async (req) => {
           r.push(`memory: ${outcome}`);
           continue;
         }
-        if (reply) await saveNote(uid, { ...noteFor(c.req, reply, c.day, c.wk, a.model), n: (existing?.n || 0) + 1 });
+        if (reply) {
+          const note = { ...noteFor(c.req, reply, c.day, c.wk, a.model), n: (existing?.n || 0) + 1 };
+          await saveNote(uid, note);
+          if (c.req.kind === 'hermes') { // the moment check after it sees this week's ideas
+            state.notes[id] = note;
+            list = [...list.slice(0, i + 1), ...candidates(state, today, hour, force, hard).filter((x) => !['memory', 'hermes'].includes(x.req.kind))];
+          }
+        }
+        // a rejected Hermes answer isn't asked again every 10 minutes: a moment is spent for the day; the week gets two tries
+        else if (a.ok && c.req.kind === 'moment') await saveNote(uid, { ...noteFor(c.req, { ideas: [] }, c.day, c.wk, a.model), rejected: true });
+        else if (a.ok && c.req.kind === 'hermes') await saveNote(uid, { id: c.req.noteId, kind: 'ai', of: 'hermes', tries: (existing?.tries || 0) + 1, at: Date.now() });
         r.push(`${c.req.kind}: ${outcome}`);
       }
     } catch (e: any) {

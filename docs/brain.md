@@ -93,6 +93,15 @@ Where they show: a quiet **Hermes** card on Today (at most 3, one tap Accept / N
 - **Trial**: 7 days, on Today. Then "Did it help?": before vs during from your logs (on track %, the habit's daily amount, or the evening answers). Keep it (if it helped, Athena remembers it, as a line she never overwrites) or drop it (undone; not offered again for a month).
 - **Notification**: at most one a day, at the hour the idea is about (in the push function's 90-minute window), only for an open idea.
 - **Gate**: a week of history and 3 logged days in the last 4 weeks (many people log only the days it happened).
+- **Eval fixes (1.6.0)**: the day and time accepted from either field; a lower target (or higher limit) only after 2 full weeks in a row under 60% (`weeksShortBefore`); the prompt prefers a reminder, a smaller start or fixed days. A rejected weekly answer is tried at most twice a week.
+
+**As built (moments, 1.7.0, 22 Nov 2026).** Hermes acts when something happens, not only weekly. `momentsNow` (code) spots, in this order:
+- **slip**: a limit habit over on 2+ days this week, from the hour before its usual slip time to the hour after;
+- **deadline**: a task due within 2 days, an hour or more of work, no start planned;
+- **missed**: a days-a-week habit missed the last 2 days when the week needs nearly every day left;
+- **note**: today's or last night's note asks for a change ("need to", "should", "from tomorrow" …).
+
+`momentRequest` sends the moment with the same facts; the AI writes one idea about that habit or task (or none), checked like any other, stored in `ai-hermes-now-<day>`. Limits: 8 am to 9 pm, one a day (a rejected answer uses it), three a week, the same moment not again for 7 days, nothing an idea this week already covers; never paused or after a crisis note. Runs on the 10-minute server check and on app launch (the launch run keeps the moment hours and limits). The idea shows first on Today ("Right now", even during a trial) and is pushed as soon as it's written, a hard week included (it only makes things easier); it counts as the day's one Hermes notification. Eval: 8 of 8 people pass (about $0.0005 a call; at most ~13 a month a person).
 
 ### Chat (H1 · second)
 
