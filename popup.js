@@ -42,6 +42,9 @@ import { syncNow } from './lib/syncRunner.js';
 import { openMemory, memoryValue } from './lib/memorySheet.js';
 import { hermesCard, openHermes, hermesValue } from './lib/hermesSheet.js';
 import { drawHermesButtons, openThread } from './lib/hermesThreadSheet.js';
+import { variantOf, todayItems, doneCount, logMeter } from './lib/light.js';
+import { drawLightToday } from './lib/lightToday.js';
+import { setUsageTag } from './lib/usage.js';
 import { fixFor, atTime } from './lib/weakFix.js';
 import { undoable as hermesUndoable } from './lib/hermes.js';
 import { answerRecorded, finishRecorded } from './lib/hermesSheet.js';
@@ -92,6 +95,10 @@ async function init() {
   const stepped = applyStepDown(state, today);
   if (stepped) { await save({ weeks: stepped }); state = await load(); }
   setTicketContext({ getState: () => state });
+  // the A/B: classic or Light (a new person at random, kept; someone set up stays classic until they switch in Me)
+  const VA = variantOf(state);
+  if (VA.assigned) { await save({ settings: { ...state.settings, variant: VA.variant } }); state = await load(); }
+  setUsageTag({ ab: state.settings.variant || 'classic' });
   if (state.activeSession) askWhy(state.activeSession); // an unanswered stretch from earlier
   $('#tbDay').textContent = new Date().toLocaleDateString(undefined, { weekday: 'long' });
   $('#dateLabel').textContent = new Date().toLocaleDateString(undefined, { day: 'numeric', month: 'long' });
@@ -203,7 +210,27 @@ function renderJourneyToday() {
   $('#tdVoyage').hidden = true;
   $('#tdQuest').hidden = true;
   coachSlot();
+  renderLight();
   settleNow();
+}
+// the A/B's B side: Today as one list (lib/lightToday.js); the classic blocks hide while it's on
+const isLight = () => state.settings?.variant === 'light';
+function renderLight() {
+  document.body.classList.toggle('v-light', isLight());
+  const box = $('#lightToday');
+  box.hidden = !isLight();
+  if (isLight()) drawLightToday(box, { getState: () => state, today, onChanged: refreshAll, focus: (t) => startOn(t), openHabit: (g) => openPb(g), openTask: (id) => openTicket(id) });
+  meterCheck();
+}
+// the measure, for both sides: taps on Today and seconds from the first tap until everything planned is logged
+function meterGet() { try { return logMeter(JSON.parse(localStorage.getItem('odyssey:meter') || 'null'), today); } catch { return logMeter(null, today); } }
+function meterSet(m) { try { localStorage.setItem('odyssey:meter', JSON.stringify(m)); } catch { /* fine */ } }
+$('#view-today').addEventListener('click', (e) => { if (!e.target.closest('button, input, a')) return; const m = meterGet(); if (!m.taps) m.first = Date.now(); m.taps++; meterSet(m); }, true);
+function meterCheck() {
+  const m = meterGet();
+  if (m.reported || !m.taps) return;
+  const c = doneCount(todayItems(state, today));
+  if (c.of && c.done === c.of) { m.reported = true; meterSet(m); track('day_logged', { taps: m.taps, secs: Math.round((Date.now() - m.first) / 1000), items: c.of }); }
 }
 // one coach card: Athena's idea, trial or follow-up when there is one, else her line for the day
 function coachSlot() {
@@ -436,6 +463,7 @@ $('#note').addEventListener('change', () => form?.saveNote($('#note').value.trim
 function renderProgress() {
   const plan = planOf(today, state);
   if (!plan) return;
+  if (state.settings?.variant === 'light') { const c = doneCount(todayItems(state, today)); $('#todayProg').innerHTML = `<b>${c.done} of ${c.of}</b> done`; segN('todaySeg', 'habits', ''); return; } // Light counts what you can tick
   const vals = state.days[today]?.values || {};
   const logged = plan.goals.filter((g) => g.metrics.every((m) => m.kind === 'perWeekSum' || vals[`${g.id}.${m.id}`] != null)).length;
   const due = dueToday().length;
@@ -1752,7 +1780,7 @@ function insightGo(a) {
 // Me: who you are, then seven rows in three groups; each opens a sheet with that section's settings
 const ME_ROWS = [
   [['course', '🧭', 'Your course', '#meCourse'], ['athena', '🦉', 'Athena', '#meAthena'], ['memory', '🧠', 'What Athena knows', null], ['hermes', '🪽', 'Athena’s ideas', null]],
-  [['music', '🎵', 'Focus music', '#meMusicBox'], ['notif', '🔔', 'Reminders', '#meNotifBox'], ['pause', '⏸', 'Pause', '#mePause']],
+  [['music', '🎵', 'Focus music', '#meMusicBox'], ['notif', '🔔', 'Reminders', '#meNotifBox'], ['pause', '⏸', 'Pause', '#mePause'], ['light', '✨', 'Odyssey Light (test)', null]],
   [['account', '👤', 'Account', '#meAccountBox'], ['data', '⬇️', 'Export your data', '#meData']],
 ];
 let meUser = null;
@@ -1778,6 +1806,7 @@ function drawMe() {
     pause: pauseOn(state, today) ? 'On' : 'Off',
     account: meUser ? meUser.username : 'Sign in',
     data: '',
+    light: isLight() ? 'On' : 'Off',
   };
   const box = $('#meRows');
   box.innerHTML = '';
@@ -1791,6 +1820,7 @@ function drawMe() {
       b.innerHTML = `<span class="cIcon">${icon}</span><span class="cMain"><span>${esc(title)}</span></span><span class="meVal">${esc(value[id])}</span><span class="chev">›</span>`;
       b.onclick = () => (id === 'memory' ? openMemory({ getState: () => state, onChanged: async () => { state = await load(); drawMe(); } })
         : id === 'hermes' ? openHermes({ getState: () => state, today, onChanged: async () => { await refreshAll(); drawMe(); } })
+          : id === 'light' ? (async () => { const v = isLight() ? 'classic' : 'light'; await save({ settings: { ...(await load()).settings, variant: v } }); setUsageTag({ ab: v }); track('variant_switch', { to: v }); toast(v === 'light' ? 'Odyssey Light is on: see Today' : 'Back to the classic app'); await refreshAll(); drawMe(); })()
           : openMeSheet(title, sel, id));
       g.append(b);
     }
