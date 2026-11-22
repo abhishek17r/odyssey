@@ -47,3 +47,21 @@ test('the measure resets each day', () => {
   assert.equal(logMeter({ ...m, taps: 3 }, '2026-11-23').taps, 3);
   assert.equal(logMeter({ ...m, taps: 3 }, '2026-11-24').taps, 0);
 });
+
+import { threadItems, unreadCount } from '../lib/hermesThread.js';
+test('Light: Athena’s evening check-in asks about each habit still open, then a word for the day; Ithaca on day 3', () => {
+  const p = PERSONAS.find((x) => x.id === 'gym-regular');
+  const s = p.build(); s.notes ??= {}; s.settings = { ...(s.settings || {}), variant: 'light' };
+  const day = todayOf(p);
+  const eve = new Date(`${day}T19:00:00`).getTime();
+  const ev = threadItems(s, day, eve).find((x) => x.kind === 'evening');
+  assert.ok(ev, 'asked in the evening');
+  assert.ok(ev.asks.length >= 1 && ev.asks.every((a) => a.key && a.name));
+  assert.equal(threadItems(s, day, new Date(`${day}T10:00:00`).getTime()).some((x) => x.kind === 'evening'), false, 'not in the morning');
+  assert.equal(threadItems({ ...s, settings: { ...s.settings, variant: 'classic' } }, day, eve).some((x) => x.kind === 'evening'), false, 'classic keeps its check-in sheet');
+  s.settings.hermesSeen = 0;
+  assert.ok(unreadCount(s, day, eve) >= 1, 'it waits on you');
+  // three days in with no Ithaca: Athena asks
+  s.profile = { ...(s.profile || {}), onboardedAt: eve - 3 * 864e5, identity: '' };
+  assert.ok(threadItems(s, day, eve).some((x) => x.id === 'ithaca'));
+});

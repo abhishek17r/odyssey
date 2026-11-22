@@ -44,6 +44,7 @@ import { hermesCard, openHermes, hermesValue } from './lib/hermesSheet.js';
 import { drawHermesButtons, openThread } from './lib/hermesThreadSheet.js';
 import { variantOf, todayItems, doneCount, logMeter } from './lib/light.js';
 import { drawLightToday } from './lib/lightToday.js';
+import { drawLightJourney } from './lib/lightJourney.js';
 import { setUsageTag } from './lib/usage.js';
 import { fixFor, atTime } from './lib/weakFix.js';
 import { undoable as hermesUndoable } from './lib/hermes.js';
@@ -163,7 +164,7 @@ function routeOpen(open, id) {
   const go = {
     today: () => showView('today'),
     tasks: () => { setSide('tasks'); showView('today'); },
-    checkin: () => { setSide('habits'); showView('today'); $('#reflectCard').open = true; flash('#reflectCard'); },
+    checkin: () => { if (isLight()) { showView('today'); openThread(hermesCtx()); return; } setSide('habits'); showView('today'); $('#reflectCard').open = true; flash('#reflectCard'); }, // Light: Athena asks
     habit: () => { setSide('habits'); showView('today'); if (id) flash(`.habit[data-goal="${CSS.escape(id)}"]`); },
     task: () => { setSide('tasks'); showView('week'); if (id && state.tickets[id]) openTicket(id); },
     session: () => { if (state.activeSession) setFullscreen(true); else showView('today'); },
@@ -217,10 +218,28 @@ function renderJourneyToday() {
 const isLight = () => state.settings?.variant === 'light';
 function renderLight() {
   document.body.classList.toggle('v-light', isLight());
+  const meTitle = document.querySelector('#view-me .tbDay'); if (meTitle) meTitle.textContent = isLight() ? 'You' : 'Me';
+  // You: behind your avatar, top right of every tab (Me stops being a tab)
+  for (const bar of document.querySelectorAll('.view .topbar')) {
+    if (bar.querySelector('.lightMe')) continue;
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'lightMe'; b.ariaLabel = 'You: settings';
+    b.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg>';
+    b.onclick = () => showView('me');
+    bar.append(b);
+  }
   const box = $('#lightToday');
   box.hidden = !isLight();
   if (isLight()) drawLightToday(box, { getState: () => state, today, onChanged: refreshAll, focus: (t) => startOn(t), openHabit: (g) => openPb(g), openTask: (id) => openTicket(id) });
   meterCheck();
+}
+// Light's Journey: the week and the voyage in one screen (lib/lightJourney.js)
+function renderLightJourney() {
+  const box = $('#lightJourney');
+  box.hidden = !isLight();
+  if (!isLight()) return;
+  drawLightJourney(box, { getState: () => state, today, openVoyage: () => openRewards(), weakRow: (w, wk) => weakActions(w, wk, weekKeyOf(today)),
+    plan: () => { track('light_plan'); openThread(hermesCtx(), { draft: 'Help me plan next week: ' }); }, openReport: () => showView('trends') });
 }
 // the measure, for both sides: taps on Today and seconds from the first tap until everything planned is logged
 function meterGet() { try { return logMeter(JSON.parse(localStorage.getItem('odyssey:meter') || 'null'), today); } catch { return logMeter(null, today); } }
@@ -306,7 +325,7 @@ $('#planNow').onclick = () => (isOnboarded(state) ? openPlan(weekKeyOf(today)) :
 function startOnboarding() {
   const had = isOnboarded(state);
   openOnboarding({
-    state, todayKey: today, weekKey: weekKeyOf(today),
+    state, todayKey: today, weekKey: weekKeyOf(today), light: isLight(),
     onDone: async ({ profile, plan, settings }) => {
       await saveOnboarding({ profile, weekKey: weekKeyOf(today), plan, settings });
       state = await load();
@@ -1515,6 +1534,7 @@ function renderWeek() {
   const v = journeyMap($('#jyMap'), state, today, rewards);
   $('#jySub').textContent = `Delos to Ithaca · harbour ${v.harbour + 1} of 12${v.voyageNo > 1 ? ` · voyage ${v.voyageNo}` : ''}`;
   renderQuests();
+  renderLightJourney();
 
   // the 7 days, coloured by score
   $('#wkDays').innerHTML = days.map((k) => {

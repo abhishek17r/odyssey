@@ -1335,3 +1335,35 @@ body.v-light #todaySeg, body.v-light #todayTasks, body.v-light #todayCard, body.
 .ltAdd { box-sizing: border-box; width: 100%; align-items: center; }
 .ltAddGo { flex: none; }
 .lightToday .ltRow { flex-direction: row; text-align: left; }
+
+/* 1.13: the whole of Odyssey Light on the B side: two tabs, You behind the avatar, Journey as one screen */
+.lightMe { display: none; width: 34px; height: 34px; border-radius: 50%; border: 0; background: var(--ios-fill-2, #e6e1d6); color: var(--ios-label-2, #5f636c); flex: none; align-items: center; justify-content: center; padding: 0; margin-left: 8px; }
+body.v-light .lightMe { display: inline-flex; }
+body.v-light #view-me .lightMe { display: none; }
+body.v-light #tabbar [data-view="trends"], body.v-light #tabbar [data-view="me"] { display: none !important; }
+body.v-light #view-week #jyMap, body.v-light #view-week .wkHero, body.v-light #view-week .wkActions, body.v-light #view-week #weekSeg, body.v-light #view-week .wkHabitsCard, body.v-light #view-week .jySec:nth-of-type(2) { display: none !important; }
+body.v-light #view-week .sideTasks { display: block !important; }
+.lightJourney:not([hidden]) { display: flex; flex-direction: column; gap: 10px; margin-bottom: 12px; }
+.ljVoyage { display: block; width: 100%; text-align: left; border: 0; font: inherit; color: inherit; background: linear-gradient(180deg, var(--lj-a, #e9f0f4), var(--lj-b, #f6f1e6)); }
+.ljTop { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; font-size: 15px; }
+.ljTop b { font-size: 20px; }
+.ljTop span:last-child { color: var(--accent, #3d6b8f); font-weight: 600; font-size: 14px; }
+.ljBar { height: 8px; border-radius: 4px; background: var(--ios-fill-2, #dfe6ea); margin: 8px 0 6px; overflow: hidden; }
+.ljBar i { display: block; height: 100%; background: var(--accent, #3d6b8f); border-radius: 4px; }
+.ljBar.storm i { background: #6b7280; }
+.ljVoyage small, .ljMeta { display: block; font-size: 12.5px; color: var(--ios-label-2); }
+.ljPct { font-size: 22px; font-weight: 700; color: var(--good, #3f7a5f) !important; }
+.ljHabit { display: flex; justify-content: space-between; align-items: center; gap: 10px; font-size: 15px; margin-top: 9px; }
+.ljDots { display: flex; gap: 5px; flex: none; }
+.ljDots i { width: 10px; height: 10px; border-radius: 50%; background: var(--ios-fill-2, #d6d2c9); }
+.ljDots i.on { background: var(--good, #3f7a5f); }
+.ljDots i.off { background: var(--ios-fill-3, #e8c9c2); }
+.ljDots i.now { background: transparent; box-shadow: inset 0 0 0 2px var(--accent, #3d6b8f); }
+.ljMeta { margin-top: 10px; }
+.ljChange { box-shadow: inset 0 0 0 1.5px var(--hm-line, #b9d6d0); }
+.ljChange p b { display: block; font-size: 12px; letter-spacing: .3px; text-transform: uppercase; color: var(--hm, #2f6f68); }
+.ljPlan { min-height: 48px; }
+.ljPast { align-self: center; }
+.ljChunk { font-size: 12px; font-weight: 700; letter-spacing: .4px; color: var(--ios-label-2); margin: 8px 4px 0; }
+@media (prefers-color-scheme: dark) { :root { --lj-a: #243140; --lj-b: #2b2a26; } }
+body.v-light #wkKleos { display: none !important; }
