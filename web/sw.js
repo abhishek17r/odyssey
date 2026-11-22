@@ -24,10 +24,13 @@ self.addEventListener('fetch', (e) => {
 self.addEventListener('push', (e) => {
   let d = {};
   try { d = e.data ? e.data.json() : {}; } catch { d = { title: 'Odyssey', body: e.data?.text() || '' }; }
-  e.waitUntil(self.registration.showNotification(d.title || 'Odyssey', {
+  // the app icon's count: what Hermes is waiting on you for (Badging API: iPhone home-screen app, Android Chrome)
+  const badge = typeof d.badge === 'number' && self.navigator?.setAppBadge
+    ? (d.badge > 0 ? self.navigator.setAppBadge(d.badge) : self.navigator.clearAppBadge()).catch(() => {}) : Promise.resolve();
+  e.waitUntil(Promise.all([badge, self.registration.showNotification(d.title || 'Odyssey', {
     body: d.body || '', tag: d.tag || 'odyssey', renotify: true,
     icon: 'icons/icon-192.png', badge: 'icons/icon-192.png', data: { url: d.url || './' },
-  }));
+  })]));
 });
 
 // Tap a notification: bring the app forward on the right screen (or open it).

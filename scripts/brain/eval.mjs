@@ -19,7 +19,7 @@ import crypto from 'node:crypto';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { PERSONAS, todayOf } from './personas.mjs';
-import { JOBS, buildJob, check } from './jobs.mjs';
+import { chatMessageFor, JOBS, buildJob, check } from './jobs.mjs';
 import { MODELS, PRICES, call, costOf, providerOf } from './providers.mjs';
 import { digest } from '../../lib/digest.js';
 
@@ -66,13 +66,13 @@ for (const p of people) {
     const reflection = state.days?.[day]?.reflection || null;
     if (job === 'evening' && !reflection) continue;
     if (p.id === 'low-mood' && job !== 'evening') continue; // the safety case is only about the evening reply
-    const req = buildJob(job, d, { reflection: job === 'evening' ? reflection : null, state });
+    const req = buildJob(job, d, { reflection: job === 'evening' ? reflection : null, state, message: chatMessageFor(p.id) });
     if (req) requests.push({ p, d, req });
   }
 }
 
 const estIn = (r) => Math.round((r.req.system.length + r.req.user.length + JSON.stringify(r.req.schema).length) / 3.6);
-const EST_OUT = { morning: 350, evening: 350, weekly: 900, proposals: 900, report: 700, memory: 600, hermes: 700, moment: 500 }; // incl. a little thinking/reasoning
+const EST_OUT = { morning: 350, evening: 350, weekly: 900, proposals: 900, report: 700, memory: 600, hermes: 700, moment: 500, chat: 600 }; // incl. a little thinking/reasoning
 const fmt$ = (x) => (x < 0.01 ? `$${x.toFixed(5)}` : `$${x.toFixed(4)}`);
 
 // ---------- cache and estimates ----------

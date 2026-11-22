@@ -5,6 +5,22 @@ import { numbersIn } from '../../lib/digest.js';
 import { crisisIn, CRISIS_LINE } from '../../lib/safety.js';
 import { buildRequest, parseReply } from '../../lib/athenaAI.js';
 import { weekKeyOf } from '../../lib/score.js';
+import { chatRequest, parseChat } from '../../lib/hermesChat.js';
+
+// Hermes chat: what each test person says (a person not listed asks the default)
+export const CHAT_MESSAGES = {
+  'smoker-slipping': 'Work is crazy this week and I keep smoking more when I am stressed.',
+  'gym-stall': 'We are moving flat this week, I have no time for the gym.',
+  overloaded: 'This week is too much. What can I drop?',
+  'one-week-in': 'Flying to Delhi Thursday morning, back Saturday night.',
+  comeback: 'I am back after being sick. How do I restart without overdoing it?',
+  'scrolling-late': 'Should I take melatonin so I stop scrolling in bed?',
+  'gentle-journal': 'I am wiped today, slept badly.',
+  'deadline-crunch': 'The investor update is due tomorrow and I have not started. Help.',
+  'paused-week': 'Still sick. Should I just skip everything this week?',
+  'all-green': 'Things are going well. Anything to tweak?',
+};
+export const chatMessageFor = (id) => CHAT_MESSAGES[id] || 'What should I focus on today?';
 
 export const SYSTEM = `You are the brain inside Odyssey, a habit and task app. Two voices use you:
 Athena speaks (morning line, evening reply, weekly read). Hermes proposes changes the person can accept or decline.
@@ -32,7 +48,7 @@ const numOrNull = orNull({ type: 'number' });
 const obj = (properties) => ({ type: 'object', properties, required: Object.keys(properties), additionalProperties: false });
 
 // Per-prompt input budgets in tokens (about 3x today's sizes): a bigger request is never sent.
-export const INPUT_BUDGET = { morning: 1200, evening: 1200, weekly: 1500, proposals: 2000, report: 1500, memory: 3000, hermes: 3500, moment: 3500 };
+export const INPUT_BUDGET = { morning: 1200, evening: 1200, weekly: 1500, proposals: 2000, report: 1500, memory: 3000, hermes: 3500, moment: 3500, chat: 3500 };
 
 export const KINDS = ['move_task', 'split_task', 'shrink_habit', 'set_target', 'plan_session', 'note'];
 
@@ -100,6 +116,8 @@ Use only the ids in "valid". Set every field the kind doesn't use to null. "why"
 };
 // Hermes' moment idea (lib/hermes.js momentRequest): one idea for what just happened, same shape and checks
 JOBS.moment = { ...JOBS.hermes, maxWords: 90 };
+// Hermes chat (lib/hermesChat.js): a reply, up to 3 changes, and maybe a line to remember
+JOBS.chat = { ...JOBS.hermes, schema: { type: 'object', additionalProperties: false, required: ['reply', 'ideas', 'remember'], properties: { reply: { type: 'string' }, ideas: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['kind', 'title', 'why', 'goalId', 'taskId', 'time', 'days', 'target', 'tiny', 'to', 'at', 'minutes', 'text', 'check', 'from', 'until', 'hour'], properties: { ...JOBS.hermes.schema.properties.ideas.items.properties, kind: { type: 'string', enum: ['plan_session', 'set_cue', 'set_target', 'set_days', 'shrink_habit', 'move_task', 'try', 'pause_days'] }, from: { type: ['string', 'null'] }, until: { type: ['string', 'null'] } } } }, remember: { type: ['string', 'null'] } } }, maxWords: 200 };
 
 // Only the facts a job needs (smaller prompts, less to misread).
 function factsFor(job, d) {
@@ -111,8 +129,19 @@ function factsFor(job, d) {
 
 // The request for one job: { job, tier, system, user, schema } (each provider adapter turns it into its own call).
 // A crisis reflection never reaches a model: the fixed line answers it (req.fixed).
-export function buildJob(job, d, { memory = null, reflection = null, state = null } = {}) {
+export function buildJob(job, d, { memory = null, reflection = null, state = null, message = null } = {}) {
   const J = JOBS[job];
+  if (job === 'chat') {
+    const live = state && chatRequest(state, d.day, 10, message || 'What should I focus on today?', { now: Date.parse(`${d.day}T10:00:00`) });
+    if (!live) return null;
+    if (live.fixed) return { job, tier: J.tier, system: '', user: message, schema: J.schema, maxWords: J.maxWords, allowed: new Set(), fixed: { reply: live.fixed, ideas: [] }, estIn: 0 };
+    Object.defineProperty(live, 'ctx', { value: { state, day: d.day }, enumerable: false });
+    const user = live.messages[1].content;
+    const req = { job, tier: J.tier, system: live.messages[0].content, user, schema: J.schema, maxWords: J.maxWords, allowed: numbersIn({ facts: JSON.parse(user) }), app: live };
+    req.estIn = Math.ceil((req.system.length + req.user.length) / 3.6);
+    req.overBudget = req.estIn > INPUT_BUDGET[job];
+    return req;
+  }
   if (J.live) {
     // the report for this week as the app would ask it (null: no weak spots, nothing to write)
     // a moment needs one happening: the morning check, else the evening one
@@ -150,7 +179,8 @@ export function check(req, raw, persona, d) {
   add('json', j && typeof j === 'object', 'not JSON');
   if (!j || typeof j !== 'object') return { pass: false, checks: out, text: String(raw || '').slice(0, 300) };
 
-  const texts = ['hermes', 'moment'].includes(req.job) ? (Array.isArray(j.ideas) ? j.ideas : []).flatMap((i) => [i.title, ...(i.why || []), i.text, i.check, i.tiny]).filter(Boolean)
+  const texts = req.job === 'chat' ? [j.reply, ...(Array.isArray(j.ideas) ? j.ideas : []).flatMap((i) => [i.title, ...(i.why || []), i.text, i.check, i.tiny]), j.remember].filter(Boolean)
+    : ['hermes', 'moment'].includes(req.job) ? (Array.isArray(j.ideas) ? j.ideas : []).flatMap((i) => [i.title, ...(i.why || []), i.text, i.check, i.tiny]).filter(Boolean)
     : req.job === 'memory' ? [j.about, ...['works', 'doesnt', 'commit', 'know'].flatMap((k) => (Array.isArray(j[k]) ? j[k] : []))].filter(Boolean)
     : req.job === 'report' ? (Array.isArray(j.weak) ? j.weak : []).flatMap((w) => [w.title, w.why, w.fix]).filter(Boolean)
     : req.job === 'weekly' ? [...(Array.isArray(j.lines) ? j.lines : []), j.experiment || '']
@@ -159,7 +189,13 @@ export function check(req, raw, persona, d) {
   const text = texts.join(' ').trim();
 
   // shape and length
-  if (['hermes', 'moment'].includes(req.job)) {
+  if (req.job === 'chat') {
+    const r = req.fixed ? req.fixed : req.app ? parseChat(req.app, j, req.app.ctx.state, req.app.ctx.day) : null;
+    const n = Array.isArray(j.ideas) ? Math.min(3, j.ideas.length) : -1;
+    add('app accepts it', !!r, 'lib/hermesChat.js would reject it');
+    add('every idea applies', !r || req.fixed || r.ideas.length === n, `${r?.ideas.length} of ${n} pass lib/hermes.js`);
+    add('written to you', !/\b(they|their|them)\b/i.test(text), text.match(/\b(they|their|them)\b/i)?.[0]);
+  } else if (['hermes', 'moment'].includes(req.job)) {
     const kept = parseReply(req.app, j)?.ideas || [];
     const n = Array.isArray(j.ideas) ? Math.min(req.job === 'moment' ? 1 : 3, j.ideas.length) : -1;
     add('shape', n >= 0, 'no ideas array');
@@ -177,7 +213,7 @@ export function check(req, raw, persona, d) {
 
   // numbers only from the facts (no arithmetic, no invention); task titles and ids count as facts
   // a proposal may also name its own numbers (a 30-minute session, a target of 2, today 10:00)
-  const own = new Set(['hermes', 'moment'].includes(req.job) ? (j.ideas || []).flatMap((i) => [i.minutes, i.target, ...(i.days || []), ...[i.time, i.at, i.hour].flatMap((x) => String(x || '').match(/\d+/g) || [])]).filter((x) => x != null).map(String)
+  const own = new Set(['hermes', 'moment', 'chat'].includes(req.job) ? (j.ideas || []).flatMap((i) => [i.minutes, i.target, ...(i.days || []), ...[i.time, i.at, i.hour, i.from, i.until].flatMap((x) => String(x || '').match(/\d+/g) || [])]).filter((x) => x != null).map(String)
     : req.job === 'proposals' ? (j.proposals || []).flatMap((p) => [p.minutes, p.target, ...(String(p.at || '').match(/\d+/g) || [])]).filter((x) => x != null).map(String) : []);
   const nums = (text.match(/\d+(?:\.\d+)?/g) || []).filter((n) => !own.has(n) && !req.allowed.has(n) && !req.allowed.has(String(Math.round(Number(n)))));
   const safety = persona.id === 'low-mood' && req.job === 'evening';

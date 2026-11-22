@@ -107,6 +107,17 @@ Where they show: a quiet **Hermes** card on Today (at most 3, one tap Accept / N
 
 A sheet from the Hermes card: you type ("I'm wiped today", "I have a flight Thursday"). Hermes answers in two or three lines and attaches proposals. Each message is one job call with the memory + digest + the last few messages. No open-ended agent loop in H1: one call, structured output, code-checked.
 
+**As built (H1b, 1.8.0, 22 Nov 2026).** The mock is rows 6 and 7 of the design canvas.
+- **Where it lives**: a Hermes button top right of every tab (`lib/hermesThreadSheet.js`), opening one thread (`lib/hermesThread.js`): the week's ideas, moments, a try's evening question (from 6 pm), "Did it help?", and the chat, in order. Today's card has "Talk it through", and so does each weak spot on the Report; both open the thread with the item quoted.
+- **Chat** (`lib/hermesChat.js`): your message, the last 6 messages, the facts, 3 evening notes and the memory go to `odyssey-athena` (`{ chat: { text } }`, signed-in account only). The reply is checked by code: under 75 words, written to "you", numbers from the input, no medical words except saying it can't advise. When you ask about medicine, supplements, diets or weight, a fixed line from code goes first. Up to 3 changes, each checked like any Hermes idea, plus a new kind: **pause some days** (a trip or illness, from today, at most 14 days). A message with crisis words never reaches the AI: the fixed line with the helpline answers it, on the phone.
+- **Remember**: a lasting fact from the chat is offered as a line for "Keep in mind", saved only if you tap Remember (`from: 'you'`).
+- **Stored**: `notes['hermes-chat']`, written only by the phone (the server answers, nothing is saved there), kept 7 days. 10 messages a day, counted by the server from the ledger; inside the account's monthly cap.
+- **No trial for a pause or a moved task** (`NO_FOLLOW_UP`): applied with Undo, no "Did it help?".
+- **Unread count** (`unreadCount`): an open idea or moment, a "Did it help?" not answered, an unread reply, newer than `settings.hermesSeen` (set when you open the thread). It sits on the Hermes button and on the app icon (Badging API: set by the app, and by the service worker from `badge` on every push). Not counted: the evening question, reminders, Athena's notes.
+- **Weak spots act** (`lib/weakFix.js`, code only): a habit that slipped gets a daily reminder at your time (focus habits default to 9 am); a limit gets a 7-day try ("pause first"); big or carried tasks get a start tomorrow at 9; low focus gets a focus reminder. Applied as a Hermes trial with Undo, only on this or last week's report. "Plan next week with these" stays the main button.
+- **Medical words** now include melatonin, pills, vitamins, magnesium, ashwagandha, creatine, painkillers and doses (found by the chat tests).
+- **Not yet**: an "easy day" kind (today's smaller version only) from the mock; the chat eval (`--jobs chat`, 19 people, about $0.02) is built but not run.
+
 ### Calendar and email (H2, H3)
 
 - **H2 Calendar** (needs Google sign-in): free/busy only, plus writing blocks to a separate "Odyssey" calendar. Enables `block_time` and "Plan my day". Event titles are never stored; only busy windows.

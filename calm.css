@@ -1244,3 +1244,50 @@ textarea.atTitle { height: auto; min-height: 54px; padding: 14px !important; res
 }
 .hmWhy span { display: block; }
 .hmWhy span + span { margin-top: 3px; }
+
+/* Hermes (1.8): the button on every tab, the thread and chat, weak-spot fixes */
+.hmBtn { position: relative; width: 40px; height: 40px; border-radius: 50%; border: 0; padding: 0; background: none; flex: none; margin-left: auto; cursor: pointer; }
+.hmBtn .hmMark { width: 40px; height: 40px; }
+.hmBtn[hidden] { display: none; }
+.hmBadge { position: absolute; top: -3px; right: -4px; min-width: 20px; height: 20px; border-radius: 10px; background: var(--ios-red, #d4483b); color: #fff; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; padding: 0 5px; box-sizing: border-box; border: 2px solid var(--ios-bg, #f5f3ee); }
+.hmBadge[hidden] { display: none; }
+.topbar .hmBtn + .miniRing { margin-left: 8px; }
+.hmChat { display: flex; flex-direction: column; height: min(70vh, 640px); }
+.hmThread { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; padding: 4px 2px 10px; }
+.hmWho { display: flex; gap: 8px; align-items: flex-end; }
+.hmWho .hmMark { width: 28px; height: 28px; }
+.hmBub { max-width: 82%; padding: 9px 12px; border-radius: 16px; font-size: 15px; line-height: 1.45; background: var(--card, #fff); border-bottom-left-radius: 5px; overflow-wrap: anywhere; }
+.hmBub.me { align-self: flex-end; background: var(--accent, #3d6b8f); color: #fff; border-radius: 16px; border-bottom-right-radius: 5px; white-space: pre-wrap; }
+.hmBub .hmBtns { margin-top: 8px; }
+.hmPc { margin-left: 36px; background: var(--card, #fff); border-radius: 14px; padding: 10px 12px; box-shadow: inset 0 0 0 1.5px var(--hm-line, #b9d6d0); }
+.hmPc > b { display: block; font-size: 15px; line-height: 1.35; }
+.hmPc .hmChange { margin-top: 6px; font-size: 13px; padding: 7px 9px; }
+.hmPc .hmBtns { margin-top: 8px; }
+.hmPc .hmBtns .primary { min-height: 38px; }
+.hmPc.gone, .hmPc.notnow, .hmPc.undone { box-shadow: inset 0 0 0 1px var(--ios-sep); opacity: .75; }
+.hmDoneLine { display: flex; justify-content: space-between; align-items: center; margin-top: 8px; font-size: 13.5px; font-weight: 600; color: var(--hm, #2f6f68); }
+.hmDoneLine.muted { color: var(--ios-label-2); font-weight: 500; }
+.hmDoneLine .linkBtn { margin: 0; padding: 4px 2px; }
+.hmRem { margin-left: 36px; background: var(--hm-rem, #f3eefb); color: var(--hm-rem-ink, #3e3360); border-radius: 12px; padding: 9px 11px; font-size: 14px; line-height: 1.45; }
+.hmStamp { font-size: 12px; color: var(--ios-label-2); text-align: center; margin: 4px 0 0; }
+.hmNew { display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 700; color: var(--ios-red, #d4483b); letter-spacing: .3px; }
+.hmNew::before, .hmNew::after { content: ''; flex: 1; height: 1px; background: currentColor; opacity: .35; }
+.hmLeft { font-size: 12px; color: var(--ios-label-2); text-align: center; padding: 4px 0; }
+.hmComposer { display: flex; gap: 8px; align-items: flex-end; padding: 6px 0 4px; }
+.hmInput { flex: 1; resize: none; border-radius: 20px; padding: 10px 14px; font: inherit; font-size: 16px; line-height: 1.35; min-height: 42px; box-sizing: border-box; }
+.hmSend { width: 42px; height: 42px; border-radius: 50%; border: 0; background: var(--accent, #3d6b8f); display: flex; align-items: center; justify-content: center; flex: none; }
+.hmSend:disabled { opacity: .4; }
+.hmDots { display: inline-flex; gap: 4px; }
+.hmDots i { width: 6px; height: 6px; border-radius: 50%; background: var(--ios-label-2); animation: hmDot 1s infinite ease-in-out; }
+.hmDots i:nth-child(2) { animation-delay: .15s; } .hmDots i:nth-child(3) { animation-delay: .3s; }
+@keyframes hmDot { 0%, 80%, 100% { opacity: .25; } 40% { opacity: 1; } }
+.hmAll { color: inherit; }
+.rpAct { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 10px; }
+.rpAct .soft { flex: 1 1 160px; min-height: 40px; }
+.rpAct .linkBtn { margin: 0; padding: 8px 4px; }
+.rpTime { width: 110px; }
+.rpActNote { flex-basis: 100%; font-size: 12.5px; color: var(--ios-label-2); line-height: 1.4; }
+.rpDone { font-size: 13.5px; font-weight: 600; color: var(--hm, #2f6f68); justify-content: space-between; }
+@media (prefers-color-scheme: dark) {
+  :root { --hm-rem: rgba(160,140,220,.16); --hm-rem-ink: #d9cff5; }
+}

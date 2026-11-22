@@ -42,6 +42,9 @@ import { currentUser, callFunction } from './lib/cloud.js';
 import { syncNow } from './lib/syncRunner.js';
 import { openMemory, memoryValue } from './lib/memorySheet.js';
 import { hermesCard, openHermes, hermesValue } from './lib/hermesSheet.js';
+import { drawHermesButtons, openThread } from './lib/hermesThreadSheet.js';
+import { fixFor, atTime } from './lib/weakFix.js';
+import { answer as hermesAnswer, finish as hermesFinish, undoable as hermesUndoable } from './lib/hermes.js';
 import { VERSION } from './version.js';
 import { track, trackOpen } from './lib/usage.js';
 import { weekMetrics } from './lib/metrics.js';
@@ -162,7 +165,8 @@ function routeOpen(open, id) {
     plan: () => openPlan(),
     rewards: openRewards,
     week: () => showView('week'),
-    hermes: () => { showView('today'); openHermes(hermesCtx(), id || null); },
+    hermes: () => { showView('today'); openThread(hermesCtx()); }, // ideas and moments land in the thread
+    'hermes-ideas': () => { showView('today'); openHermes(hermesCtx(), id || null); },
   }[open];
   go?.();
 }
@@ -191,6 +195,7 @@ function render() {
 const hermesCtx = () => ({ getState: () => state, today, onChanged: () => refreshAll() }); // refreshAll is defined further down
 function renderJourneyToday() {
   hermesCard($('#tdHermes'), hermesCtx());
+  drawHermesButtons(hermesCtx());
   voyageStrip($('#tdVoyage'), state, today, rewards);
   const q = questsOf(state).active;
   $('#tdQuest').hidden = !q;
@@ -1667,6 +1672,7 @@ function renderReport() {
     const c = document.createElement('section');
     c.className = 'card rpWeak';
     c.innerHTML = `<b>${esc(w.title)}</b><p>${esc(w.why)}</p><div class="rpFix"><span aria-hidden="true">→</span><span>${esc(w.fix)}</span></div>`;
+    c.append(weakActions(w, wk, cur));
     box.append(c);
   }
   // plan the week after the one shown (only for the current or last week)
@@ -1679,6 +1685,46 @@ function renderReport() {
     b.onclick = () => { track('report_plan'); openPlan(planWk, { fixes: R.weak }); };
     box.append(b);
   }
+}
+
+// A weak spot's one-tap fix (code, no AI: lib/weakFix.js) and "Talk it through"; only on this or last week's report
+function weakActions(w, wk, cur) {
+  const row = document.createElement('div');
+  row.className = 'rpAct';
+  const talk = document.createElement('button');
+  talk.type = 'button'; talk.className = 'linkBtn'; talk.textContent = 'Talk it through';
+  talk.onclick = () => { track('weak_talk'); openThread(hermesCtx(), { draft: `About “${w.title}”: ` }); };
+  if (wk < dateKey(addDays(parseKey(cur), -7))) { row.append(talk); return row; }
+  const done = hermesUndoable(state, today).find((h) => h.ideaId.startsWith(`ws-${wk}-${w.id.replace(/[^a-z0-9]+/gi, '-')}`));
+  if (done) {
+    row.className = 'rpAct rpDone';
+    row.innerHTML = `<span>✓ ${done.idea.kind === 'try' ? `Trying for 7 days: ${esc(done.idea.text)}` : `Set up: ${esc((done.changed || '').replace(/\.$/, ''))}`}</span>`;
+    const u = document.createElement('button');
+    u.type = 'button'; u.className = 'linkBtn'; u.textContent = done.undo ? 'Undo' : 'Stop';
+    u.onclick = async () => { await save(hermesFinish(await load(), done, 'stopped')); toast('Undone'); await refreshAll(); };
+    row.append(u);
+    return row;
+  }
+  const f = fixFor(state, w, wk, today);
+  if (f) {
+    const time = f.pickTime ? Object.assign(document.createElement('input'), { type: 'time', value: f.idea.time || f.idea.at?.split(' ')[1] || '09:00', className: 'rpTime', ariaLabel: 'Time' }) : null;
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'soft'; b.textContent = f.label;
+    b.onclick = async () => {
+      const idea = time?.value ? atTime(f.idea, time.value) : f.idea;
+      await save(hermesAnswer(await load(), idea, 'accepted', today));
+      track('weak_fix', { w: w.id.split(':')[0], k: idea.kind });
+      toast(idea.kind === 'try' ? 'Trying it for 7 days' : 'Set up, for a 7-day trial');
+      await refreshAll();
+    };
+    row.append(b);
+    if (time) row.append(time);
+    const note = document.createElement('small');
+    note.className = 'rpActNote';
+    note.textContent = f.note.replace(/^./, (x) => x.toUpperCase());
+    row.append(talk, note);
+  } else row.append(talk);
+  return row;
 }
 
 function insightGo(a) {

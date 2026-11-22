@@ -41,11 +41,11 @@ async function loadState(userId: string) {
   return state;
 }
 
-async function sendToAll(subs: any[], n: { title: string; body: string; url: string; key: string }) {
+async function sendToAll(subs: any[], n: { title: string; body: string; url: string; key: string; badge?: number }) {
   let ok = 0;
   for (const s of subs) {
     try {
-      await webpush.sendNotification(s.sub, JSON.stringify({ title: n.title, body: n.body, url: n.url, tag: n.key.split(':')[0] }), { TTL: 3600, urgency: 'high' });
+      await webpush.sendNotification(s.sub, JSON.stringify({ title: n.title, body: n.body, url: n.url, tag: n.key.split(':')[0], badge: n.badge ?? null }), { TTL: 3600, urgency: 'high' });
       ok++;
       await db.from('odyssey_push_subs').update({ last_ok: new Date().toISOString() }).eq('endpoint', s.endpoint);
     } catch (e: any) {

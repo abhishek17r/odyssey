@@ -18,6 +18,7 @@ import { fromRecords } from './lib/sync.js';
 import { buildRequest, parseReply, costOf, PRICES, noteFor, needsNote, noteIdOf, effortFor, overBudget, costAlert, estTokens } from './lib/athenaAI.js';
 import { weekKeyOf, weekDays, addDays, parseKey, dateKey } from './lib/score.js';
 import { mergeMemory, triedMemory, MEMORY_ID } from './lib/memory.js';
+import { chatRequest, parseChat, CHAT_PER_DAY } from './lib/hermesChat.js';
 
 const env = (k: string) => Deno.env.get(k) ?? '';
 const db = createClient(env('SUPABASE_URL'), env('SUPABASE_SERVICE_ROLE_KEY'), { auth: { persistSession: false } });
@@ -104,7 +105,7 @@ async function ask(req: any, uid: string) {
       },
       body: JSON.stringify({
         model: req.model, messages: req.messages, response_format: { type: 'json_object' },
-        reasoning_effort: effortFor(req.model), max_completion_tokens: ['memory', 'hermes', 'moment'].includes(req.kind) ? 1200 : ['weekly', 'report', 'goal'].includes(req.kind) ? 900 : 500,
+        reasoning_effort: effortFor(req.model), max_completion_tokens: ['memory', 'hermes', 'moment'].includes(req.kind) ? 1200 : req.kind === 'chat' ? 1000 : ['weekly', 'report', 'goal'].includes(req.kind) ? 900 : 500,
         prompt_cache_key: `athena-${req.kind}`, // the system prompt is shared: OpenAI's cache makes it cheaper
       }),
     });
@@ -137,7 +138,7 @@ Deno.serve(async (req) => {
   // the app's launch run: only for the signed-in account (anyone else's token gets nothing more)
   const launchHours = Number(env('AI_LAUNCH_HOURS') || 0);
   const launch = 'user' in who || ('owner' in who && !!body.launch);
-  if ('user' in who && !body.launch) return json({ error: 'not allowed' }, 401);
+  if ('user' in who && !body.launch && !body.chat) return json({ error: 'not allowed' }, 401);
   // the owner's "Run now", and every launch while testing: ignore the time windows, for their own account
   const force = ('owner' in who && !!body.force) || (launch && launchHours === 0);
   if (!env('OPENAI_API_KEY')) return json({ error: 'OPENAI_API_KEY is not set' }, 500);
@@ -153,6 +154,32 @@ Deno.serve(async (req) => {
   const userMonth: Record<string, number> = spend?.user_month || {};
   if (month >= monthCap && 'user' in who) return json({ calls: 0, report: ['monthly cap'] });
   if (month >= monthCap) return json({ note: `monthly cap reached ($${month.toFixed(4)} of $${monthCap})` });
+
+  // Hermes chat: one message from the signed-in account, answered now (the phone saves both; nothing is written here)
+  if (body.chat && ('user' in who || 'owner' in who)) {
+    const uid = 'user' in who ? who.user : who.owner;
+    const state = await loadState(uid);
+    if (state.settings.athenaOn === false || state.settings.hermesOn === false) return json({ error: 'off' }, 400);
+    const { data: subs0 } = await db.from('odyssey_push_subs').select('tz').eq('user_id', uid);
+    const { day: today, hour } = localNow(state.settings.tz || subs0?.find((x: any) => x.tz)?.tz || env('DEFAULT_TZ') || 'Asia/Kolkata');
+    const req0: any = chatRequest(state, today, hour, String(body.chat.text || ''), { model: 'gpt-5.6-luna' });
+    if (!req0) return json({ error: 'empty' }, 400);
+    if (req0.fixed) return json({ reply: req0.fixed, ideas: [], remember: null, fixed: true });
+    const since = new Date(Date.now() - 864e5).toISOString();
+    const { count } = await db.from('odyssey_ai_calls').select('id', { count: 'exact', head: true }).eq('user_id', uid).eq('kind', 'chat').gte('at', since);
+    if ((count || 0) >= CHAT_PER_DAY) return json({ error: 'limit', left: 0 }, 429);
+    if ((userMonth[uid] || 0) >= userMonthCap) return json({ error: 'cap' }, 429);
+    if (overBudget(req0)) return json({ error: 'too long' }, 400);
+    const a = await ask(req0, uid);
+    const cost = a.gatewayHit ? 0 : costOf(a.model, a.tin, a.tout, prices, a.cached);
+    const reply = a.ok ? parseChat(req0, a.text, state, today) : null;
+    await db.from('odyssey_ai_calls').insert({
+      user_id: uid, kind: 'chat', model: a.model, tokens_in: a.tin, tokens_out: a.tout, cached_in: a.cached, cost_usd: cost, ms: a.ms,
+      outcome: !a.ok ? 'error' : reply ? 'used' : 'rejected', detail: a.error || (reply ? (costAlert(req0, cost) ? `cost alert: $${cost.toFixed(5)}` : null) : String(a.text).slice(0, 200)),
+    });
+    if (!reply) return json({ error: a.ok ? 'rejected' : 'error' }, 502);
+    return json({ ...reply, left: Math.max(0, CHAT_PER_DAY - (count || 0) - 1) });
+  }
 
   // who: the owner alone (Run now), or every account seen in the last N days
   let users: string[];
