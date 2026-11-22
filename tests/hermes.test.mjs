@@ -126,6 +126,19 @@ test('eval fixes: a time in the wrong field, a limit eased in a hard week', () =
   const rq = buildRequest('hermes', r, d, weekKeyOf(d));
   assert.equal(rq.input.hardWeek, true);
   const ease = { kind: 'set_target', title: 'Ease the scrolling limit', why: ['Boredom is the recorded trigger.'], goalId: 'scrolling' };
-  assert.equal(parseReply(rq, { ideas: [{ ...ease, target: 90 }] }).ideas.length, 1, 'a higher limit is easier');
+  assert.equal(parseReply(rq, { ideas: [{ ...ease, target: 90 }] }).ideas.length, 0, 'one short week is not reason enough to ease it');
+  rq.input.facts.habits.find((h) => h.id === 'scrolling').weeksShortBefore = 2;
+  assert.equal(parseReply(rq, { ideas: [{ ...ease, target: 90 }] }).ideas.length, 1, 'after two short weeks a higher limit is easier');
   assert.equal(parseReply(rq, { ideas: [{ ...ease, target: 45 }] }).ideas.length, 0, 'a lower limit is harder');
+});
+
+test('a lower target only after two short weeks, never to match a slow week', () => {
+  const g = PERSONAS.find((x) => x.id === 'gentle-journal'); const s = g.build(); s.notes ??= {}; s.settings ??= {}; const d = todayOf(g);
+  const rq = buildRequest('hermes', s, d, weekKeyOf(d));
+  const h = rq.input.facts.habits.find((x) => x.id === 'own-journal');
+  assert.ok(h.weeksShortBefore >= 2);
+  const idea = { kind: 'set_target', title: 'Journal on 3 days', why: ['A smaller step for now.'], goalId: 'own-journal', target: 3 };
+  assert.equal(parseReply(rq, { ideas: [idea] }).ideas.length, 1);
+  h.weeksShortBefore = 1;
+  assert.equal(parseReply(rq, { ideas: [idea] }).ideas.length, 0);
 });
