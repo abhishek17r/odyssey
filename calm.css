@@ -1291,3 +1291,10 @@ textarea.atTitle { height: auto; min-height: 54px; padding: 14px !important; res
 @media (prefers-color-scheme: dark) {
   :root { --hm-rem: rgba(160,140,220,.16); --hm-rem-ink: #d9cff5; }
 }
+
+/* 1.9: one coach. Athena's figure is the avatar; record lines in her thread */
+.hmAva { background: var(--hm-ava, #f3ede2); overflow: hidden; }
+.hmAva svg { width: 100%; height: 100%; display: block; }
+.hmRec { margin-left: 36px; display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 13px; line-height: 1.4; color: var(--hm, #2f6f68); }
+.hmRec .linkBtn { margin: 0; padding: 2px 4px; flex: none; }
+@media (prefers-color-scheme: dark) { :root { --hm-ava: #3a3a36; } }

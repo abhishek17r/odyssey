@@ -177,3 +177,9 @@ Over the trial weeks: **≥ 40 % of proposals accepted**, a measurable lift in h
 3. Hermes's first surface: **proposals first**, chat second.
 4. Memory: **visible and editable** (Me → What Athena knows).
 5. Success bar: as above.
+
+**As built (one coach, 1.9.0, 22 Nov 2026).** Release (a) of the simplification plan (Claude Docs: "Odyssey · Simplification plan"). Hermes is retired as a name: the weekly ideas, moments and chat are Athena's (prompts say "You are Athena, the coach … the person decides, and the plan stays theirs"); her figure is the button, the card and the thread's avatar; pushes read "Athena · …"; Me → "Athena's ideas". Code names (`lib/hermes*.js`, `hermes-*` notes, `hermesOn`) stay, so nothing migrates.
+- **Her notes in the thread**: this morning's line (template or AI), earlier mornings' AI lines, and evening replies to your notes (last 3 days). Not counted as unread.
+- **Every interaction recorded**: accept, not now, undo, keep, drop, an evening yes/no, Remember and a weak-spot fix each add a line to `notes['athena-log']` (phone-written, 30 days) with where it happened ("from Today", "from your ideas", "from the Report"); the thread shows them, with Undo while the change is still running (`recordText`, `withRecord`, `answerRecorded`, `finishRecorded`, `tickRecorded`).
+- **An accepted card shows the words saved at that moment** ("Changed: …"), not a recomputed text.
+- Not yet: Today's simplification (release b) and the onboarding and cuts (release c). The renamed prompts haven't been run through the eval.

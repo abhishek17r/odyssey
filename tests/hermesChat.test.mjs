@@ -95,3 +95,37 @@ test('a weak spot becomes a one-tap fix, set at your time, undone like any Herme
   assert.equal(big.idea.kind, 'plan_session');
   assert.equal(fixFor(t.s, { id: 'delay:tired', title: 'x', why: 'x', fix: 'y' }, weekKeyOf(t.day), t.day), null);
 });
+
+// ---------- 1.9: one coach; every answer recorded in Athena's thread ----------
+import { recordText, withRecord, LOG_ID } from '../lib/hermesThread.js';
+import { answerRecorded, finishRecorded, tickRecorded } from '../lib/hermesSheet.js';
+
+test('every answer is a record line in the thread, with where it was given; Athena’s notes show there too', () => {
+  const { s, day } = setup('deadline-crunch');
+  const wk = weekKeyOf(day);
+  const idea = { id: `${wk}-1`, wk, kind: 'plan_session', title: 'Start the investor update', why: ['Due tomorrow'], taskId: 't1', at: 'today 14:00', minutes: 60 };
+  s.notes[ideasId(wk)] = { ideas: [idea], at: NOW(day, 6) };
+  Object.assign(s, answerRecorded(s, idea, 'accepted', day, 'from Today'));
+  const ev = s.notes[LOG_ID].events;
+  assert.equal(ev.length, 1);
+  assert.match(ev[0].text, /^You said yes: a reminder to start “Investor update email” today at 2 pm, for 60 minutes$/);
+  assert.equal(ev[0].where, 'from Today');
+  const items = threadItems(s, day, Date.now() + 1000);
+  const rec = items.find((x) => x.kind === 'record');
+  assert.match(rec.text, / · from Today$/);
+  // undo is recorded too, and the idea shows as undone
+  const h = undoable(s, day)[0];
+  Object.assign(s, finishRecorded(s, h, 'stopped', 'from the Report'));
+  assert.equal(s.notes[LOG_ID].events.at(-1).text, 'You undid “Start the investor update”');
+  assert.equal(ideaState(s, idea, day), 'undone');
+  // records and Athena's notes never count as unread
+  s.settings.hermesSeen = 0;
+  const n = unreadCount(s, day, Date.now() + 1000);
+  assert.ok(threadItems(s, day, Date.now() + 1000).filter((x) => ['record', 'note'].includes(x.kind)).length >= 2);
+  assert.equal(n, unreadCount({ ...s, notes: { ...s.notes, [LOG_ID]: undefined } }, day, Date.now() + 1000));
+  assert.equal(recordText('tick', { yes: false, check: 'Was lunch phone-free?' }), 'Not today: Was lunch phone-free?');
+  assert.equal(recordText('remember', { text: 'You travel most months.' }), 'Athena will keep in mind: “You travel most months”');
+  // the log keeps 30 days
+  const old = withRecord({ notes: { [LOG_ID]: { events: [{ id: 'x', at: Date.now() - 40 * 864e5, text: 'old' }] } } }, {}, { text: 'new' });
+  assert.deepEqual(old.notes[LOG_ID].events.map((e) => e.text), ['new']);
+});

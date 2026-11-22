@@ -44,7 +44,8 @@ import { openMemory, memoryValue } from './lib/memorySheet.js';
 import { hermesCard, openHermes, hermesValue } from './lib/hermesSheet.js';
 import { drawHermesButtons, openThread } from './lib/hermesThreadSheet.js';
 import { fixFor, atTime } from './lib/weakFix.js';
-import { answer as hermesAnswer, finish as hermesFinish, undoable as hermesUndoable } from './lib/hermes.js';
+import { undoable as hermesUndoable } from './lib/hermes.js';
+import { answerRecorded, finishRecorded } from './lib/hermesSheet.js';
 import { VERSION } from './version.js';
 import { track, trackOpen } from './lib/usage.js';
 import { weekMetrics } from './lib/metrics.js';
@@ -1701,7 +1702,7 @@ function weakActions(w, wk, cur) {
     row.innerHTML = `<span>✓ ${done.idea.kind === 'try' ? `Trying for 7 days: ${esc(done.idea.text)}` : `Set up: ${esc((done.changed || '').replace(/\.$/, ''))}`}</span>`;
     const u = document.createElement('button');
     u.type = 'button'; u.className = 'linkBtn'; u.textContent = done.undo ? 'Undo' : 'Stop';
-    u.onclick = async () => { await save(hermesFinish(await load(), done, 'stopped')); toast('Undone'); await refreshAll(); };
+    u.onclick = async () => { await save(finishRecorded(await load(), done, 'stopped', 'from the Report')); toast('Undone'); await refreshAll(); };
     row.append(u);
     return row;
   }
@@ -1712,7 +1713,7 @@ function weakActions(w, wk, cur) {
     b.type = 'button'; b.className = 'soft'; b.textContent = f.label;
     b.onclick = async () => {
       const idea = time?.value ? atTime(f.idea, time.value) : f.idea;
-      await save(hermesAnswer(await load(), idea, 'accepted', today));
+      await save(answerRecorded(await load(), idea, 'accepted', today, 'from the Report'));
       track('weak_fix', { w: w.id.split(':')[0], k: idea.kind });
       toast(idea.kind === 'try' ? 'Trying it for 7 days' : 'Set up, for a 7-day trial');
       await refreshAll();
@@ -1740,7 +1741,7 @@ function insightGo(a) {
 
 // Me: who you are, then seven rows in three groups; each opens a sheet with that section's settings
 const ME_ROWS = [
-  [['course', '🧭', 'Your course', '#meCourse'], ['athena', '🦉', 'Athena', '#meAthena'], ['memory', '🧠', 'What Athena knows', null], ['hermes', '🪽', 'Hermes', null]],
+  [['course', '🧭', 'Your course', '#meCourse'], ['athena', '🦉', 'Athena', '#meAthena'], ['memory', '🧠', 'What Athena knows', null], ['hermes', '🪽', 'Athena’s ideas', null]],
   [['music', '🎵', 'Focus music', '#meMusicBox'], ['notif', '🔔', 'Reminders', '#meNotifBox'], ['pause', '⏸', 'Pause', '#mePause']],
   [['account', '👤', 'Account', '#meAccountBox'], ['data', '⬇️', 'Export your data', '#meData']],
 ];
