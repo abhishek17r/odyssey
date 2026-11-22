@@ -1,5 +1,5 @@
 import {
-  BAND_LABEL, dateKey, weekDays, addDays, weekKeyOf, planOf, dayScore, band, rollingAvg, streak, weekSummary,
+  BAND_LABEL, dateKey, weekDays, addDays, weekKeyOf, planOf, dayScore, band, rollingAvg, streak, weekSummary, isPaused,
   weekSoFar, dayIndexInWeek, metricKey, targetText, round1, goalTags, sessionTotals, workedMs, phaseMs, procrastPct,
   DELAY_REASONS, ticketTitle, ticketsInSprint, dueInfo, timeOnDay, backlogTickets, TICKET_STATUS,
   goalAvgs, goalTrendKey, lastNDays, reasonStats, reasonById, timeOnDays, parseKey, goalStatus, STATUS, metricWeek, pauseOn,
@@ -194,14 +194,21 @@ function render() {
 
 // ---------- the journey on Today, and side quests ----------
 const hermesCtx = () => ({ getState: () => state, today, onChanged: () => refreshAll() }); // refreshAll is defined further down
+// Today in four blocks (1.10): the header, one Athena card, Habits or Tasks, the focus bar.
+// The voyage strip and the side quest live on Journey; while paused, the paused banner takes the card's place.
 function renderJourneyToday() {
+  const paused = isPaused(state, today);
   hermesCard($('#tdHermes'), hermesCtx());
+  if (paused) $('#tdHermes').hidden = true;
   drawHermesButtons(hermesCtx());
-  voyageStrip($('#tdVoyage'), state, today, rewards);
-  const q = questsOf(state).active;
-  $('#tdQuest').hidden = !q;
-  if (q) $('#tdQuest').innerHTML = questCardHTML(q, state, today, { active: true });
+  $('#tdVoyage').hidden = true;
+  $('#tdQuest').hidden = true;
+  coachSlot();
   settleNow();
+}
+// one coach card: Athena's idea, trial or follow-up when there is one, else her line for the day
+function coachSlot() {
+  if (!$('#tdHermes').hidden || isPaused(state, today)) $('#athenaLine').hidden = true;
 }
 function renderQuests() {
   const box = $('#jyQuests');
@@ -358,7 +365,7 @@ function renderMiss() {
 function renderAthena() {
   const box = $('#athenaLine');
   const l = !lineDismissed(state, today) ? morningLine(state, today) : null;
-  box.hidden = !l;
+  box.hidden = !l || !$('#tdHermes').hidden || isPaused(state, today);
   if (!l) return;
   box.className = `athenaLine ${l.kind}`;
   box.innerHTML = `<span class="alAvatar">${athena(40)}</span><div class="alBody"><span class="alWho">Athena</span><p>${esc(l.text)}</p></div>`;
@@ -433,8 +440,11 @@ function renderProgress() {
   const logged = plan.goals.filter((g) => g.metrics.every((m) => m.kind === 'perWeekSum' || vals[`${g.id}.${m.id}`] != null)).length;
   const due = dueToday().length;
   const tm = timeOnDay(state, today);
-  $('#todayProg').innerHTML = `<b>${logged}/${plan.goals.length}</b> habits${due ? ` · <b>${due}</b> due` : ''}` +
-    (tm.totalMin ? ` · <span title="Timer ${hm(tm.timerMin)}${tm.autoMin ? ` + estimated ${hm(tm.autoMin)} (done without the timer)` : ''}">⏱ <b>${hm(tm.totalMin)}</b></span>` : '');
+  // "2 of 4 done", and the next harbour when it's close (the voyage itself lives on Journey)
+  const v = sail(state, today);
+  const near = !v.peril && v.toNext <= 60 ? ` · <span class="tbNear">${v.toNext} Kleos to ${esc(v.next.name)}</span>` : '';
+  $('#todayProg').innerHTML = `<b>${logged} of ${plan.goals.length}</b> done${due ? ` · <b>${due}</b> due` : ''}` +
+    (tm.totalMin ? ` · <span title="Timer ${hm(tm.timerMin)}${tm.autoMin ? ` + estimated ${hm(tm.autoMin)} (done without the timer)` : ''}">⏱ <b>${hm(tm.totalMin)}</b></span>` : '') + near;
   $('#habitsHead').textContent = logged === plan.goals.length ? 'All logged for today' : `To do · ${plan.goals.length - logged}`;
   segN('todaySeg', 'habits', plan.goals.length - logged || '');
 }

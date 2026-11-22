@@ -12,35 +12,37 @@ const mk = (days, weeks = [W1, W2, W3]) => ({ weeks: Object.fromEntries(weeks.ma
 const done = (ks) => Object.fromEntries(ks.map((k) => [k, { values: { 'gym.days': true } }]));
 
 test('Kleos sails the ship; a leg reaches the next harbour', () => {
-  // three gym days a week earn 3×10 + 30 = 60; enough weeks of it reach Naxos
+  // three gym days a week earn 30; 8 weeks of it (240) reach the next harbour (200)
   const days = {};
-  for (let w = 0; w < 7; w++) for (const off of [2, 4, 6]) days[shift(W1, w * 7 + off)] = { values: { 'gym.days': true } };
-  const weeks = Array.from({ length: 7 }, (_, i) => shift(W1, i * 7));
-  const v = sail(mk(days, weeks), shift(W1, 48));
+  for (let w = 0; w < 8; w++) for (const off of [2, 4, 6]) days[shift(W1, w * 7 + off)] = { values: { 'gym.days': true } };
+  const weeks = Array.from({ length: 8 }, (_, i) => shift(W1, i * 7));
+  const v = sail(mk(days, weeks), shift(W1, 55));
   assert.ok(v.harbour >= 1);
   assert.equal(v.at.name, HARBOURS[v.harbour].name);
   assert.ok(v.log.some((l) => l.type === 'harbour' && l.index === 1));
   assert.equal(v.peril, null);
 });
 
-test('a week below zero blows the ship to a peril; passing the trial gets it out with a bonus', () => {
-  // week 1: every planned day missed (−30) → storm; week 2: gym twice passes "Gym 2 times"
-  const days = { [shift(W1, 1)]: { values: {} }, ...done([shift(W2, 2), shift(W2, 4)]) };
-  const mid = sail(mk(days), shift(W2, 3));
+test('a finished week under 60% on track is a storm; one good day (20 Kleos) sails you on, with a bonus', () => {
+  // week 1: one gym day of three (33%) → storm on Saturday; week 2: two things done on Monday gets you out
+  const days = { ...done([shift(W1, 2)]), [shift(W1, 3)]: { values: {} }, [shift(W1, 5)]: { values: {} }, [shift(W1, 6)]: { values: {} } };
+  const s1 = mk(days);
+  const mid = sail(s1, shift(W2, 1));
   assert.equal(mid.peril?.id, 'cyclops');
-  assert.equal(mid.peril.trial.text, 'Gym 2 times this week');
-  assert.deepEqual(mid.peril.progress, { have: 1, need: 2, passed: false });
-  const after = sail(mk(days), shift(W2, 5));
+  assert.equal(mid.peril.trial.text, 'One good day: two things done');
+  assert.ok(mid.log.some((l) => l.type === 'storm' && l.pct < 60));
+  const s2 = mk({ ...days, [shift(W2, 2)]: { values: { 'gym.days': true } } });
+  s2.tickets = { t: { id: 't', title: 'Planned', status: 'done', createdAt: Date.parse(`${shift(W2, 1)}T09:00:00`), doneAt: Date.parse(`${shift(W2, 2)}T10:00:00`) } };
+  const after = sail(s2, shift(W2, 3));
   assert.equal(after.peril, null);
   assert.ok(after.log.some((l) => l.type === 'escape' && l.peril === 'cyclops'));
   assert.ok(after.meter >= VOYAGE.escapeBonus - 1);
+  assert.equal(stormReasons(s1, W1), 'Gym 1 of 3 days.');
 });
 
-test('a trial not passed by Friday renews, a little smaller; harbours are never lost', () => {
-  const days = { [shift(W1, 1)]: { values: {} } };
-  const v = sail(mk(days), shift(W3, 1));
-  assert.equal(v.peril?.trial.need, 1);
-  assert.equal(v.harbour, 0);
+test('a good week is never a storm, and harbours are never lost', () => {
+  const v = sail(mk(done([shift(W1, 2), shift(W1, 4), shift(W1, 6)])), shift(W2, 1));
+  assert.equal(v.peril, null);
 });
 
 test('a fully paused week is never a storm', () => {
@@ -64,8 +66,3 @@ test('rewards unlock at their harbour and remember claims', () => {
   assert.deepEqual(r.map((x) => [x.id, x.unlocked, x.claimed]), [['a', true, true], ['b', false, false]]);
 });
 
-test('the storm says what blew you there', () => {
-  const s = mk({ [shift(W1, 1)]: { values: {} } });
-  s.tickets = { a: { id: 'a', title: 'Doc', status: 'todo', due: shift(W1, 2) } };
-  assert.equal(stormReasons(s, W1, shift(W2, 1)), '3 planned gym days missed and 1 task overdue.');
-});

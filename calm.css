@@ -1298,3 +1298,7 @@ textarea.atTitle { height: auto; min-height: 54px; padding: 14px !important; res
 .hmRec { margin-left: 36px; display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 13px; line-height: 1.4; color: var(--hm, #2f6f68); }
 .hmRec .linkBtn { margin: 0; padding: 2px 4px; flex: none; }
 @media (prefers-color-scheme: dark) { :root { --hm-ava: #3a3a36; } }
+
+/* 1.10: Today in four blocks. No score ring; the voyage strip and quest live on Journey. */
+#view-today .miniRing, #view-today .cheerLine { display: none !important; }
+.tbNear { color: var(--accent, #3d6b8f); font-weight: 600; }

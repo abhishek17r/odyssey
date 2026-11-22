@@ -28,7 +28,7 @@ test('digest facts match the app’s own numbers', () => {
   assert.equal(smoke.thisWeek.daysOverLimit, 5);
   assert.equal(smoke.triggers[0].tag, 'coffee');
   assert.ok(get('paused-week').d.paused);
-  assert.equal(get('rough-week-peril').d.voyage.peril.needed, 3);
+  assert.equal(get('rough-week-peril').d.voyage.peril.needed, 20);
   assert.equal(get('comeback').d.habits[0].backYesterday.afterDaysOff > 5, true);
   assert.match(get('weekend-only').d.habits[0].pattern, /weekends/);
   assert.equal(get('overdue-pileup').d.tasks.overdue, 5);

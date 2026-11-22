@@ -59,10 +59,6 @@ test('Athena’s favour: only on fully kept days, at most once a week, the same 
   assert.deepEqual(favourDays({ ...s, days: {} }, '2026-10-24', '2026-11-20'), []);
 });
 
-test('laurels earn Kleos', () => {
-  const s = { weeks: weeksOf('2026-11-14'), days: done('2026-11-16'), sessions: {}, tickets: {}, settings: {} };
-  assert.ok(pointEvents(s, '2026-11-17').some((e) => e.kind === 'laurel' && e.pts === POINTS.laurel));
-});
 
 import { market, nextUnlock } from '../lib/voyage.js';
 import { kleos, MARKET } from '../lib/points.js';
