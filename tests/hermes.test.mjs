@@ -115,3 +115,17 @@ test('change it: your time or number, and the title follows', async () => {
   assert.equal(withChange({ kind: 'plan_session', title: 'Start at 9 am', at: 'tomorrow 09:00' }, '08:30').at, 'tomorrow 08:30');
   assert.equal(withChange({ kind: 'set_target', title: 'Gym at 2 days', target: 2 }, 3).title, 'Gym at 3 days');
 });
+
+test('eval fixes: a time in the wrong field, a limit eased in a hard week', () => {
+  const { s, day } = setup();
+  const req = buildRequest('hermes', s, day, weekKeyOf(day));
+  const { task } = answerFor(s, day);
+  const out = parseReply(req, { ideas: [{ kind: 'plan_session', title: 'Start office work', why: ['Your note about mornings'], taskId: task, time: 'tomorrow 09:00', minutes: 60, hour: '09:00' }] }).ideas;
+  assert.equal(out[0]?.at, 'tomorrow 09:00');
+  const p = PERSONAS.find((x) => x.id === 'rough-week-peril'); const r = p.build(); r.notes ??= {}; r.settings ??= {}; const d = todayOf(p);
+  const rq = buildRequest('hermes', r, d, weekKeyOf(d));
+  assert.equal(rq.input.hardWeek, true);
+  const ease = { kind: 'set_target', title: 'Ease the scrolling limit', why: ['Boredom is the recorded trigger.'], goalId: 'scrolling' };
+  assert.equal(parseReply(rq, { ideas: [{ ...ease, target: 90 }] }).ideas.length, 1, 'a higher limit is easier');
+  assert.equal(parseReply(rq, { ideas: [{ ...ease, target: 45 }] }).ideas.length, 0, 'a lower limit is harder');
+});
